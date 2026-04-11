@@ -418,6 +418,63 @@
   .skills-form-cols, .saves-display { grid-template-columns: 1fr; }
   .char-grid { grid-template-columns: 1fr; }
 }
+
+/* ── MAP SYSTEM ──────────────────────────────────────────── */
+.map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;}
+.map-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;cursor:pointer;transition:border-color .15s;position:relative;}
+.map-card:hover{border-color:var(--border2);}
+.map-card-thumb{height:150px;background:var(--bg-raised);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
+.map-card-body{padding:.8rem 1rem;}
+.map-card-name{font-family:var(--font-display);font-size:.9rem;color:var(--text);margin-bottom:2px;}
+.map-card-meta{font-size:.72rem;color:var(--text3);font-family:var(--font-mono);}
+.map-card-del{position:absolute;top:8px;right:8px;opacity:0;transition:opacity .15s;}
+.map-card:hover .map-card-del{opacity:1;}
+
+/* Map editor layout */
+.map-editor-wrap{display:grid;grid-template-columns:200px 1fr;gap:1rem;height:calc(100vh - 180px);min-height:400px;}
+.map-sidebar{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:.85rem;display:flex;flex-direction:column;gap:.75rem;overflow-y:auto;}
+.map-sidebar-section{font-family:var(--font-display);font-size:.58rem;color:var(--glow-d);text-transform:uppercase;letter-spacing:.15em;margin-bottom:.3rem;}
+.sidebar-char-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r);cursor:pointer;transition:background .12s;border:1px solid transparent;}
+.sidebar-char-item:hover{background:var(--bg-raised);}
+.sidebar-char-item.placing{background:var(--glow-bg);border-color:var(--glow-dd);}
+
+.map-main{display:flex;flex-direction:column;gap:.6rem;}
+.map-toolbar{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;flex-shrink:0;}
+.me-name-inp{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font-display);font-size:.88rem;padding:5px 10px;min-width:180px;}
+.me-name-inp:focus{outline:none;border-color:var(--glow-dd);}
+.toolbar-sep{width:1px;height:22px;background:var(--border);flex-shrink:0;}
+.scenario-sel{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font-body);font-size:.78rem;padding:5px 8px;}
+.scenario-sel:focus{outline:none;border-color:var(--glow-dd);}
+
+.map-stage-wrap{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:auto;position:relative;min-height:0;}
+.map-stage{position:relative;display:inline-block;min-width:100%;cursor:default;}
+.map-img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;pointer-events:none;}
+.token-overlay{position:absolute;inset:0;pointer-events:none;}
+
+/* Tokens */
+.map-token{position:absolute;transform:translate(-50%,-50%);border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:600;cursor:grab;pointer-events:all;transition:box-shadow .15s;user-select:none;}
+.map-token:hover{box-shadow:0 0 0 3px rgba(61,186,138,.25);}
+.map-token.dragging{cursor:grabbing;box-shadow:0 4px 20px rgba(0,0,0,.5);z-index:50;}
+.token-label{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--font-display);font-size:9px;color:var(--text2);background:rgba(6,16,10,.85);padding:1px 5px;border-radius:3px;pointer-events:none;}
+.token-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#1a0808;border:1px solid var(--red-border);color:var(--red);font-size:9px;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;}
+.map-token:hover .token-del{display:flex;}
+
+/* Placement hint */
+.place-hint{display:none;align-items:center;gap:6px;font-size:.72rem;color:var(--glow);font-family:var(--font-display);letter-spacing:.04em;background:var(--glow-bg);border:1px solid var(--glow-dd);border-radius:var(--r);padding:4px 10px;}
+
+/* New map modal */
+.nm-preview-img{width:100%;max-height:160px;object-fit:contain;border-radius:var(--r);border:1px solid var(--border);margin-top:.5rem;background:var(--bg-input);}
+.nm-or{display:flex;align-items:center;gap:.6rem;font-size:.7rem;color:var(--text4);margin:.6rem 0;}
+.nm-or::before,.nm-or::after{content:'';flex:1;height:1px;background:var(--border);}
+
+@media(max-width:680px){.map-editor-wrap{grid-template-columns:1fr;height:auto;}.map-sidebar{max-height:200px;}.map-stage-wrap{min-height:300px;}}
+
+
+/* ── ICON PICKER ─────────────────────────────────────────── */
+.icon-quickpick{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;}
+.icon-quickpick span{font-size:1.1rem;cursor:pointer;padding:3px 5px;border-radius:4px;border:1px solid var(--border);background:var(--bg-raised);transition:background .1s;line-height:1;}
+.icon-quickpick span:hover{background:var(--glow-bg);border-color:var(--glow-dd);}
+
 </style>
 </head>
 <body>
@@ -431,7 +488,7 @@
     <button class="nav-btn active" onclick="navTo('characters',this)">Characters</button>
     <button class="nav-btn" onclick="navTo('sessions',this)">Sessions</button>
     <button class="nav-btn disabled">Timeline</button>
-    <button class="nav-btn disabled">Map</button>
+    <button class="nav-btn" onclick="navTo('map',this)">Map</button>
   </div>
   <div class="nav-right">
     <span class="nav-status" id="data-status"></span>
@@ -530,7 +587,19 @@
     <button class="tab" onclick="charTab('story',this)">᛭ Story</button>
   </div>
   <div class="tab-panel active" id="ctab-identity">
-    <div class="fg fg2"><div class="field"><label>Character Name *</label><input id="f-name" type="text"></div><div class="field"><label>Player Name</label><input id="f-player" type="text"></div></div>
+    <div class="fg fg3">
+      <div class="field" style="grid-column:span 1;"><label>Character Name *</label><input id="f-name" type="text"></div>
+      <div class="field"><label>Player Name</label><input id="f-player" type="text"></div>
+      <div class="field"><label>Token Icon</label>
+        <input id="f-icon" type="text" maxlength="4" placeholder="⚔" style="font-size:1.3rem;text-align:center;padding:4px 8px;">
+        <div class="icon-quickpick" id="icon-quickpick">
+          <span onclick="pickIcon('⚔')">⚔</span><span onclick="pickIcon('🗡')">🗡</span><span onclick="pickIcon('🏹')">🏹</span>
+          <span onclick="pickIcon('🔮')">🔮</span><span onclick="pickIcon('🛡')">🛡</span><span onclick="pickIcon('⚡')">⚡</span>
+          <span onclick="pickIcon('🔥')">🔥</span><span onclick="pickIcon('❄')">❄</span><span onclick="pickIcon('🌿')">🌿</span>
+          <span onclick="pickIcon('💀')">💀</span><span onclick="pickIcon('🐉')">🐉</span><span onclick="pickIcon('🎶')">🎶</span>
+        </div>
+      </div>
+    </div>
     <div class="fg fg3">
       <div class="field"><label>Class *</label><select id="f-class"><option value="">— Select —</option><option>Artificer</option><option>Barbarian</option><option>Bard</option><option>Cleric</option><option>Druid</option><option>Fighter</option><option>Monk</option><option>Paladin</option><option>Ranger</option><option>Rogue</option><option>Sorcerer</option><option>Warlock</option><option>Wizard</option><option>Other</option></select></div>
       <div class="field"><label>Subclass</label><input id="f-subclass" type="text"></div>
@@ -711,9 +780,107 @@
   </div>
 </div>
 
+
+<!-- ══ MAP LIST ════════════════════════════════════════════ -->
+<div class="view" id="view-map-list">
+  <div class="list-header">
+    <div><span class="view-title">Maps</span> <span class="muted" id="map-count" style="font-size:.78rem;margin-left:6px;font-family:var(--font-mono);"></span></div>
+    <button class="btn btn-primary btn-sm" onclick="showNewMapModal()">+ New Map</button>
+  </div>
+  <div class="map-grid" id="map-grid"></div>
+  <div class="empty-state" id="map-list-empty" style="display:none">
+    <h2>No maps yet</h2>
+    <p>Upload a map image or paste a URL to get started. Place character tokens, save scenarios, and pause sessions mid-encounter.</p>
+  </div>
+</div>
+
+<!-- ══ MAP EDITOR ══════════════════════════════════════════ -->
+<div class="view" id="view-map-editor">
+  <!-- Toolbar -->
+  <div class="map-toolbar" style="margin-bottom:.6rem;">
+    <button class="btn btn-ghost btn-sm" onclick="showMapList()">← Maps</button>
+    <input class="me-name-inp" id="me-name" type="text" placeholder="Map name" onblur="saveMapName()">
+    <div class="toolbar-sep"></div>
+    <button class="btn btn-primary btn-sm" id="quick-save-btn" onclick="quickSave()" title="Save current token positions">⚡ Save</button>
+    <div style="position:relative;">
+      <button class="btn btn-ghost btn-sm" onclick="toggleSnapshotPanel()" id="snap-toggle-btn" title="Named snapshots">⋮ Snapshots</button>
+      <div id="snapshot-panel" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:100;background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r-lg);padding:.75rem;min-width:240px;box-shadow:0 8px 32px rgba(0,0,0,.6);">
+        <div style="font-family:var(--font-display);font-size:.6rem;color:var(--glow-d);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.5rem;">Named Snapshots</div>
+        <select class="scenario-sel" id="scenario-sel" style="width:100%;margin-bottom:.5rem;"><option value="">— Select snapshot —</option></select>
+        <div style="display:flex;gap:5px;">
+          <button class="btn btn-sm btn-primary" id="save-scen-btn" onclick="saveNamedScenario()" style="flex:1;">+ Save New</button>
+          <button class="btn btn-sm btn-ghost" onclick="loadScenario()">Load</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteScenario()">✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="map-editor-wrap">
+    <!-- Sidebar: characters to place -->
+    <div class="map-sidebar">
+      <div>
+        <div class="map-sidebar-section">Characters</div>
+        <div id="token-sidebar-chars"></div>
+      </div>
+      <div style="margin-top:auto;">
+        <div id="place-hint" class="place-hint">
+          <span>᛭</span> Click map to place
+        </div>
+        <div style="font-size:.65rem;color:var(--text4);line-height:1.5;margin-top:.5rem;">
+          Click a character to select, then click on the map to place their token. Drag tokens to reposition.
+        </div>
+      </div>
+    </div>
+
+    <!-- Map stage -->
+    <div class="map-stage-wrap">
+      <div class="map-stage" id="map-stage" onclick="mapStageClick(event)">
+        <img class="map-img" id="map-img" draggable="false" alt="Map">
+        <div class="token-overlay" id="token-overlay"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NEW MAP MODAL -->
+<div class="overlay" id="new-map-overlay" onclick="if(event.target===this)closeNewMapModal()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:460px;">
+    <div class="modal-title">New Map</div>
+
+    <div class="field" style="margin-bottom:.8rem;">
+      <label>Map Name *</label>
+      <input id="nm-name" type="text" placeholder="e.g. Dungeon Level 1 — The Crypt">
+    </div>
+
+    <div class="map-sidebar-section" style="margin-bottom:.5rem;">Image</div>
+
+    <div class="field" style="margin-bottom:.3rem;">
+      <label>Paste an image URL</label>
+      <input id="nm-url" type="text" placeholder="https://example.com/map.jpg" oninput="handleNmUrl()">
+    </div>
+
+    <div class="nm-or">or upload a file</div>
+
+    <div class="field" style="margin-bottom:.4rem;">
+      <label>Upload image (max 5 MB)</label>
+      <input id="nm-file" type="file" accept="image/*" onchange="handleNmFile(event)" style="color:var(--text2);">
+    </div>
+
+    <img id="nm-preview" class="nm-preview-img" style="display:none;" alt="Preview">
+    <div id="nm-err" style="font-size:.75rem;color:var(--red);margin-top:.4rem;min-height:1rem;"></div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1.1rem;">
+      <button class="btn btn-ghost btn-sm" onclick="closeNewMapModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="nm-create-btn" onclick="createMap()">Create Map</button>
+    </div>
+  </div>
+</div>
+
 </main>
 
 <script src="../shared/db.js"></script>
+<script src="map.js"></script>
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────
 const SKILLS=[
@@ -760,11 +927,13 @@ function navTo(section,btn){
   btn.classList.add('active');
   if(section==='characters')showCharList();
   else if(section==='sessions')showSessionList();
+  else if(section==='map')showMapList();
 }
 
 // ── LOAD / STATUS ──────────────────────────────────────────
 async function init(){
   [characters,sessions]=await Promise.all([DB.load('characters'),DB.load('sessions')]);
+  await loadMaps();
   buildSkillsForm();
   buildConditionPicker();
   renderCharList();
@@ -800,7 +969,7 @@ function renderCharList(){
     return`<div class="char-card${isSelected?' selected':''}" id="card-${c.id}" onclick="cardClick(event,'${c.id}')">
       <div class="card-select-wrap"><input type="checkbox" class="card-checkbox" ${isSelected?'checked':''} onclick="event.stopPropagation();toggleSelect('${c.id}')"></div>
       <div class="char-card-top">
-        <div class="avatar avatar-lg" style="background:${col}20;border-color:${col};color:${col}">${initials(c.name)}</div>
+        <div class="avatar avatar-lg" style="background:${col}20;border-color:${col};color:${col};font-size:${c.icon?'1.2rem':'1rem'}">${c.icon||initials(c.name)}</div>
         <div class="char-card-info">
           <div class="char-card-name">${c.name||'Unnamed'}</div>
           <div class="char-card-sub">${[c.race,c.class].filter(Boolean).join(' · ')||'—'} &nbsp;·&nbsp; Lv ${c.level||1}</div>
@@ -939,14 +1108,14 @@ function showAddCharForm(){editingCharId=null;document.getElementById('char-form
 function showEditCharForm(id){const c=characters.find(x=>x.id===id);if(!c)return;editingCharId=id;document.getElementById('char-form-title').textContent='Edit — '+c.name;resetCharForm();fillCharForm(c);showView('view-char-form');charTab('identity',document.querySelector('#char-tabs .tab'));}
 function resetCharForm(){
   const d={level:1,str:10,dex:10,con:10,int:10,wis:10,cha:10,passive:10,maxhp:8,curhp:8,temphp:0,ac:10,init:0,speed:30,xp:0,cp:0,sp:0,gp:0};
-  ['name','player','class','subclass','level','race','background','alignment','xp','languages','str','dex','con','int','wis','cha','passive','inspiration','maxhp','curhp','temphp','ac','init','speed','hitdice','attacks','equipment','cp','sp','gp','traits','ideals','bonds','flaws','backstory','age','height','weight','eyes','hair','skin','features','notes','proficiencies'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=d[f]!==undefined?d[f]:'';});
+  ['name','player','icon','class','subclass','level','race','background','alignment','xp','languages','str','dex','con','int','wis','cha','passive','inspiration','maxhp','curhp','temphp','ac','init','speed','hitdice','attacks','equipment','cp','sp','gp','traits','ideals','bonds','flaws','backstory','age','height','weight','eyes','hair','skin','features','notes','proficiencies'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=d[f]!==undefined?d[f]:'';});
   document.getElementById('f-hitdice').value='d8';document.getElementById('f-inspiration').value='0';
   ABS.forEach(a=>{const el=document.getElementById('save-'+a);if(el)el.checked=false;});
   SKILLS.forEach(s=>{const el=document.getElementById('skill-'+s.key);if(el)el.checked=false;});
   updateProfBonus();ABS.forEach(a=>updateAbMod(a));updateAllSkills();
 }
 function fillCharForm(c){
-  ['name','player','class','subclass','level','race','background','alignment','xp','languages'].forEach(f=>sv('f-'+f,c[f]));
+  ['name','player','icon','class','subclass','level','race','background','alignment','xp','languages'].forEach(f=>sv('f-'+f,c[f]));
   ABS.forEach(a=>sv('f-'+a,c[a]||10));
   sv('f-passive',c.passive||10);sv('f-inspiration',c.inspiration||0);
   sv('f-maxhp',c.maxHp||8);sv('f-curhp',c.currentHp||8);sv('f-temphp',c.tempHp||0);
@@ -968,7 +1137,7 @@ async function submitCharForm(){
   SKILLS.forEach(s=>{skills[s.key]=document.getElementById('skill-'+s.key)?.checked||false;});
   ABS.forEach(a=>{saves[a]=document.getElementById('save-'+a)?.checked||false;});
   const existing=editingCharId?characters.find(x=>x.id===editingCharId):null;
-  const c={id:editingCharId||uid(),name,player:gv('f-player'),class:gv('f-class'),subclass:gv('f-subclass'),level:lvl,race:gv('f-race'),background:gv('f-background'),alignment:gv('f-alignment'),xp:parseInt(gv('f-xp'))||0,languages:gv('f-languages'),str:parseInt(gv('f-str'))||10,dex:parseInt(gv('f-dex'))||10,con:parseInt(gv('f-con'))||10,int:parseInt(gv('f-int'))||10,wis:parseInt(gv('f-wis'))||10,cha:parseInt(gv('f-cha'))||10,passive:parseInt(gv('f-passive'))||10,inspiration:parseInt(gv('f-inspiration'))||0,maxHp:parseInt(gv('f-maxhp'))||8,currentHp:parseInt(gv('f-curhp'))||8,tempHp:parseInt(gv('f-temphp'))||0,ac:parseInt(gv('f-ac'))||10,initiative:parseInt(gv('f-init'))||0,speed:parseInt(gv('f-speed'))||30,hitDice:gv('f-hitdice'),attacks:gv('f-attacks'),equipment:gv('f-equipment'),cp:parseInt(gv('f-cp'))||0,sp:parseInt(gv('f-sp'))||0,gp:parseInt(gv('f-gp'))||0,saves,skills,traits:gv('f-traits'),ideals:gv('f-ideals'),bonds:gv('f-bonds'),flaws:gv('f-flaws'),backstory:gv('f-backstory'),age:gv('f-age'),height:gv('f-height'),weight:gv('f-weight'),eyes:gv('f-eyes'),hair:gv('f-hair'),skin:gv('f-skin'),features:gv('f-features'),notes:gv('f-notes'),proficiencies:gv('f-proficiencies'),conditions:existing?.conditions||[],createdAt:existing?.createdAt||Date.now(),updatedAt:Date.now()};
+  const c={id:editingCharId||uid(),name,icon:gv('f-icon').trim(),player:gv('f-player'),class:gv('f-class'),subclass:gv('f-subclass'),level:lvl,race:gv('f-race'),background:gv('f-background'),alignment:gv('f-alignment'),xp:parseInt(gv('f-xp'))||0,languages:gv('f-languages'),str:parseInt(gv('f-str'))||10,dex:parseInt(gv('f-dex'))||10,con:parseInt(gv('f-con'))||10,int:parseInt(gv('f-int'))||10,wis:parseInt(gv('f-wis'))||10,cha:parseInt(gv('f-cha'))||10,passive:parseInt(gv('f-passive'))||10,inspiration:parseInt(gv('f-inspiration'))||0,maxHp:parseInt(gv('f-maxhp'))||8,currentHp:parseInt(gv('f-curhp'))||8,tempHp:parseInt(gv('f-temphp'))||0,ac:parseInt(gv('f-ac'))||10,initiative:parseInt(gv('f-init'))||0,speed:parseInt(gv('f-speed'))||30,hitDice:gv('f-hitdice'),attacks:gv('f-attacks'),equipment:gv('f-equipment'),cp:parseInt(gv('f-cp'))||0,sp:parseInt(gv('f-sp'))||0,gp:parseInt(gv('f-gp'))||0,saves,skills,traits:gv('f-traits'),ideals:gv('f-ideals'),bonds:gv('f-bonds'),flaws:gv('f-flaws'),backstory:gv('f-backstory'),age:gv('f-age'),height:gv('f-height'),weight:gv('f-weight'),eyes:gv('f-eyes'),hair:gv('f-hair'),skin:gv('f-skin'),features:gv('f-features'),notes:gv('f-notes'),proficiencies:gv('f-proficiencies'),conditions:existing?.conditions||[],createdAt:existing?.createdAt||Date.now(),updatedAt:Date.now()};
   if(editingCharId){const i=characters.findIndex(x=>x.id===editingCharId);if(i>-1)characters[i]=c;}else characters.push(c);
   await DB.save('characters',c,characters);
   updateStatus();
@@ -1113,6 +1282,7 @@ async function testAndConnect(){
   try{
     await DB.test(url,key);await DB.configure(url,key);
     [characters,sessions]=await Promise.all([DB.load('characters'),DB.load('sessions')]);
+  await loadMaps();
     renderCharList();renderSessionList();updateStatus();
     document.getElementById('cloud-status').innerHTML='<span style="color:var(--glow)">● Connected!</span> Data now syncs to Supabase.';
     document.getElementById('sb-disc-btn').style.display='block';btn.textContent='Re-test & Reconnect';
