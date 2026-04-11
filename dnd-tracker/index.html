@@ -543,7 +543,8 @@ const DB = {
       ...opts, headers:{...this._h(),...(opts.headers||{})}
     });
     if(!r.ok){const t=await r.text();throw new Error(t);}
-    return r.status===204?null:r.json();
+    const text=await r.text();
+    return text?JSON.parse(text):null;
   },
 
   async loadAll() {
