@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Projects</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d1117;--bg-card:#161b22;--bg-raised:#1c2128;--bg-input:#0d1117;
+  --border:#30363d;--border2:#484f58;
+  --text:#e6edf3;--text2:#8b949e;--text3:#484f58;
+  --blue:#58a6ff;--blue-bg:#0d2137;--blue-border:#1f4060;
+  --green:#3fb950;--amber:#d29922;
+  --r:10px;
+  --font:system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+header{border-bottom:1px solid var(--border);padding:0 2rem;height:60px;display:flex;align-items:center;gap:1rem;background:var(--bg-card);}
+.site-title{font-size:1rem;font-weight:600;color:var(--text);letter-spacing:-.01em;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.header-meta{font-size:.75rem;color:var(--text3);}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:.75rem;}
+.page-title{font-size:1.3rem;font-weight:600;letter-spacing:-.02em;}
+.page-actions{display:flex;gap:8px;}
+
+/* BUTTONS */
+.btn{padding:7px 16px;border-radius:6px;border:1px solid var(--border2);background:var(--bg-raised);color:var(--text);cursor:pointer;font-size:.82rem;font-family:var(--font);font-weight:500;transition:all .12s;white-space:nowrap;}
+.btn:hover{background:var(--border);border-color:var(--border2);}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue);}
+.btn-primary:hover{background:#112840;border-color:var(--blue);}
+.btn-sm{padding:4px 10px;font-size:.76rem;}
+.btn-danger{border-color:#5a1818;color:#f85149;background:transparent;}
+.btn-danger:hover{background:#2a0a0a;}
+.icon-btn{padding:5px 8px;font-size:.9rem;line-height:1;}
+
+/* PROJECT GRID */
+.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;}
+
+.project-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;transition:border-color .12s;position:relative;display:flex;flex-direction:column;gap:.75rem;}
+.project-card:hover{border-color:var(--border2);}
+.project-card-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0;}
+
+.project-top{display:flex;align-items:flex-start;gap:12px;}
+.project-icon{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;background:var(--bg-raised);}
+.project-meta{flex:1;min-width:0;}
+.project-name{font-size:.95rem;font-weight:600;color:var(--text);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.project-desc{font-size:.78rem;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+.project-footer{display:flex;align-items:center;gap:8px;margin-top:auto;}
+.project-tag{font-size:.68rem;background:var(--bg-raised);border:1px solid var(--border);color:var(--text3);padding:2px 8px;border-radius:20px;}
+.project-actions{margin-left:auto;display:flex;gap:4px;opacity:0;transition:opacity .12s;}
+.project-card:hover .project-actions{opacity:1;}
+
+.open-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:.78rem;font-family:var(--font);font-weight:500;transition:all .12s;text-decoration:none;white-space:nowrap;}
+.open-btn:hover{background:var(--bg-raised);border-color:var(--border2);color:var(--text);}
+.open-arrow{font-size:.7rem;margin-top:1px;}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:5rem 1rem;color:var(--text3);}
+.empty h2{font-size:1rem;color:var(--text2);margin-bottom:.5rem;font-weight:500;}
+.empty p{font-size:.82rem;line-height:1.6;max-width:340px;margin:0 auto 1.25rem;}
+
+/* MODAL OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:1rem;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;width:100%;max-width:480px;}
+.modal-title{font-size:1rem;font-weight:600;margin-bottom:1.25rem;color:var(--text);}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;}
+
+/* FORM FIELDS */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:.9rem;}
+.field label{font-size:.72rem;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.06em;}
+.field input,.field textarea,.field select{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--font);font-size:.86rem;width:100%;transition:border-color .12s;}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--blue-border);}
+.field select option{background:var(--bg-card);}
+.field textarea{resize:vertical;min-height:70px;line-height:1.5;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+
+/* COLOR PICKER */
+.color-swatches{display:flex;gap:8px;flex-wrap:wrap;}
+.swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .12s;}
+.swatch.selected,.swatch:hover{border-color:var(--text);transform:scale(1.15);}
+
+/* SEARCH */
+.search-wrap{position:relative;max-width:280px;}
+.search-wrap input{background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px 6px 30px;font-family:var(--font);font-size:.82rem;width:100%;}
+.search-wrap input:focus{outline:none;border-color:var(--blue-border);}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:.8rem;pointer-events:none;}
+
+/* BACKUP BAR */
+.backup-bar{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
+.backup-bar-text{font-size:.75rem;color:var(--text3);flex:1;}
+.backup-bar-text strong{color:var(--text2);}
+
+@media(max-width:540px){
+  .project-grid{grid-template-columns:1fr;}
+  .field-row{grid-template-columns:1fr;}
+  header{padding:0 1rem;}
+  main{padding:1.25rem 1rem;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="site-title">&#9632; My Projects</div>
+  <div class="header-right">
+    <span class="header-meta" id="header-meta"></span>
+    <button class="btn btn-sm" onclick="exportProjects()" title="Download backup">&#8595; Export</button>
+    <button class="btn btn-sm" onclick="document.getElementById('import-input').click()" title="Restore from backup">&#8593; Import</button>
+    <input type="file" id="import-input" accept=".json" style="display:none" onchange="importProjects(event)">
+  </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <div class="page-title">Projects</div>
+    <div class="page-actions">
+      <div class="search-wrap">
+        <span class="search-icon">&#128269;</span>
+        <input type="text" placeholder="Search projects..." id="search-input" oninput="renderProjects()">
+      </div>
+      <button class="btn btn-primary" onclick="openModal()">+ New project</button>
+    </div>
+  </div>
+
+  <div class="backup-bar">
+    <div class="backup-bar-text" id="storage-info">Loading...</div>
+    <button class="btn btn-sm" onclick="exportProjects()">&#8595; Backup now</button>
+  </div>
+
+  <div class="project-grid" id="project-grid"></div>
+  <div class="empty" id="empty-state" style="display:none">
+    <h2>No projects yet</h2>
+    <p>Add your first project — paste in the file path or URL, give it a name and description, and it shows up here as a card you can launch any time.</p>
+    <button class="btn btn-primary" onclick="openModal()">+ Add your first project</button>
+  </div>
+</main>
+
+<!-- ADD / EDIT MODAL -->
+<div class="overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modal-title">New project</div>
+    <input type="hidden" id="editing-id">
+
+    <div class="field">
+      <label>Project name *</label>
+      <input id="f-pname" type="text" placeholder="e.g. D&D Campaign Tracker">
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <textarea id="f-pdesc" placeholder="What does this app do?"></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>File or URL *</label>
+        <input id="f-purl" type="text" placeholder="dnd-tracker/index.html">
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="f-pcat">
+          <option value="">— None —</option>
+          <option>Games &amp; hobby</option>
+          <option>Productivity</option>
+          <option>Finance</option>
+          <option>Health</option>
+          <option>Creative</option>
+          <option>Work</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Icon (emoji)</label>
+        <input id="f-picon" type="text" placeholder="&#9876; &#128218; &#128202;" maxlength="4" style="font-size:1.1rem;">
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="f-pstatus">
+          <option value="active">Active</option>
+          <option value="wip">Work in progress</option>
+          <option value="paused">Paused</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Accent color</label>
+      <div class="color-swatches" id="color-swatches"></div>
+      <input type="hidden" id="f-pcolor" value="#58a6ff">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()">Save project</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS=['#58a6ff','#3fb950','#d29922','#e05252','#a371f7','#f78166','#39d353','#56d3b0','#e3b341','#ff7b72'];
+const STATUS_LABELS={active:'Active',wip:'In progress',paused:'Paused'};
+const STATUS_COLORS={active:'var(--green)',wip:'var(--amber)',paused:'var(--text3)'};
+
+let projects=[];
+let editingId=null;
+
+// Storage
+function load(){try{const r=localStorage.getItem('my-projects');if(r)projects=JSON.parse(r);}catch(e){}}
+function save(){try{localStorage.setItem('my-projects',JSON.stringify(projects));updateMeta();}catch(e){alert('Save error: '+e.message);}}
+
+function updateMeta(){
+  const count=projects.length;
+  const size=(JSON.stringify(projects).length/1024).toFixed(1);
+  document.getElementById('header-meta').textContent=`${count} project${count!==1?'s':''}`;
+  document.getElementById('storage-info').innerHTML=`<strong>${count} project${count!==1?'s':''}</strong> saved locally in your browser &nbsp;·&nbsp; ${size} KB &nbsp;·&nbsp; Data persists as long as you use this browser`;
+}
+
+// Render
+function renderProjects(){
+  const query=document.getElementById('search-input').value.toLowerCase().trim();
+  const grid=document.getElementById('project-grid');
+  const empty=document.getElementById('empty-state');
+  const filtered=projects.filter(p=>
+    !query||(p.name||'').toLowerCase().includes(query)||(p.desc||'').toLowerCase().includes(query)||(p.cat||'').toLowerCase().includes(query)
+  );
+  if(!filtered.length){grid.innerHTML='';empty.style.display=query?'none':'block';if(query){grid.innerHTML='<div style="color:var(--text3);font-size:.85rem;padding:2rem 0;">No projects match that search.</div>';}return;}
+  empty.style.display='none';
+  grid.innerHTML=filtered.map(p=>{
+    const color=p.color||'#58a6ff';
+    const icon=p.icon||defaultIcon(p.cat);
+    const tag=p.cat?`<span class="project-tag">${p.cat}</span>`:'';
+    const status=p.status&&p.status!=='active'?`<span class="project-tag" style="color:${STATUS_COLORS[p.status]||'var(--text3)'};border-color:transparent;">${STATUS_LABELS[p.status]||p.status}</span>`:'';
+    return`<div class="project-card" id="card-${p.id}">
+      <div class="project-card-accent" style="background:${color};"></div>
+      <div class="project-top">
+        <div class="project-icon" style="background:${color}18;border:1px solid ${color}30;">${icon}</div>
+        <div class="project-meta">
+          <div class="project-name">${p.name||'Untitled'}</div>
+          <div class="project-desc">${p.desc||'No description'}</div>
+        </div>
+      </div>
+      <div class="project-footer">
+        ${tag}${status}
+        <div class="project-actions">
+          <button class="btn btn-sm icon-btn" onclick="editProject('${p.id}')" title="Edit">&#9998;</button>
+          <button class="btn btn-sm icon-btn btn-danger" onclick="deleteProject('${p.id}')" title="Delete">&#10005;</button>
+        </div>
+        <a class="open-btn" href="${p.url}" target="_blank" rel="noopener" style="margin-left:auto;color:${color};">
+          Open <span class="open-arrow">&#8599;</span>
+        </a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function defaultIcon(cat){
+  const m={Games:'&#9876;','Games & hobby':'&#9876;',Productivity:'&#128203;',Finance:'&#128200;',Health:'&#128153;',Creative:'&#127912;',Work:'&#128188;'};
+  return m[cat]||'&#128196;';
+}
+
+// Modal
+function buildSwatches(){
+  const sel=document.getElementById('f-pcolor').value;
+  document.getElementById('color-swatches').innerHTML=COLORS.map(c=>`<div class="swatch${c===sel?' selected':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`).join('');
+}
+function selectColor(c){document.getElementById('f-pcolor').value=c;buildSwatches();}
+function openModal(id){
+  editingId=id||null;
+  const p=id?projects.find(x=>x.id===id):null;
+  document.getElementById('modal-title').textContent=id?'Edit project':'New project';
+  document.getElementById('editing-id').value=id||'';
+  document.getElementById('f-pname').value=p?.name||'';
+  document.getElementById('f-pdesc').value=p?.desc||'';
+  document.getElementById('f-purl').value=p?.url||'';
+  document.getElementById('f-pcat').value=p?.cat||'';
+  document.getElementById('f-picon').value=p?.icon||'';
+  document.getElementById('f-pstatus').value=p?.status||'active';
+  document.getElementById('f-pcolor').value=p?.color||COLORS[0];
+  buildSwatches();
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('f-pname').focus(),80);
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+function saveProject(){
+  const name=document.getElementById('f-pname').value.trim();
+  const url=document.getElementById('f-purl').value.trim();
+  if(!name){alert('Please enter a project name.');return;}
+  if(!url){alert('Please enter a file path or URL.');return;}
+  const id=editingId||Date.now().toString(36)+Math.random().toString(36).slice(2);
+  const p={id,name,desc:document.getElementById('f-pdesc').value.trim(),url,cat:document.getElementById('f-pcat').value,icon:document.getElementById('f-picon').value.trim(),status:document.getElementById('f-pstatus').value,color:document.getElementById('f-pcolor').value,updatedAt:Date.now(),createdAt:editingId?(projects.find(x=>x.id===editingId)||{}).createdAt||Date.now():Date.now()};
+  if(editingId){const i=projects.findIndex(x=>x.id===editingId);if(i>-1)projects[i]=p;}else projects.push(p);
+  save();closeModal();renderProjects();
+}
+function editProject(id){openModal(id);}
+function deleteProject(id){
+  const p=projects.find(x=>x.id===id);
+  if(!p||!confirm(`Remove "${p.name}" from the launcher?\n\nThis only removes it from this list — your actual files are untouched.`))return;
+  projects=projects.filter(x=>x.id!==id);
+  save();renderProjects();
+}
+
+// Backup
+function exportProjects(){
+  const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),projects},null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`my-projects-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();URL.revokeObjectURL(a.href);
+}
+function importProjects(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(!Array.isArray(d.projects))throw new Error('Invalid backup file.');
+      const merge=projects.length&&confirm('Merge with current projects?\n\nOK = merge\nCancel = replace all');
+      if(merge){const ids=new Set(projects.map(p=>p.id));projects=[...projects,...d.projects.filter(p=>!ids.has(p.id))];}
+      else projects=d.projects;
+      save();renderProjects();
+      alert(`Loaded ${projects.length} project(s).`);
+    }catch(err){alert('Import failed: '+err.message);}
+    e.target.value='';
+  };
+  r.readAsText(file);
+}
+
+// Keyboard shortcut
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeModal();
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.getElementById('search-input').focus();}
+});
+
+// Init
+load();
+renderProjects();
+updateMeta();
+
+// Seed example project if empty
+if(!projects.length){
+  projects=[{id:'example1',name:'D&D Campaign Tracker',desc:'Track sessions, characters, transcripts and AI-generated scene art for your tabletop campaign.',url:'dnd-tracker/index.html',cat:'Games & hobby',icon:'⚔',status:'active',color:'#d29922',createdAt:Date.now(),updatedAt:Date.now()}];
+  save();renderProjects();
+}
+</script>
+</body>
+</html>
