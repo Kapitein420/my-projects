@@ -167,8 +167,10 @@ function renderTokenSidebar() {
   }
   el.innerHTML = characters.map(c => {
     const col = classColor(c.class);
+    const sideIcon = c.icon || initials(c.name);
+    const sideFontSize = c.icon ? "1rem" : ".62rem";
     return `<div class="sidebar-char-item" id="sci-${c.id}" onclick="selectCharForPlace('${c.id}')" title="Click to place on map">
-      <div class="avatar avatar-sm" style="background:${col}20;border-color:${col};color:${col};">${initials(c.name)}</div>
+      <div class="avatar avatar-sm" style="background:${col}20;border-color:${col};color:${col};font-size:${sideFontSize};">${sideIcon}</div>
       <div style="min-width:0;">
         <div style="font-size:.78rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</div>
         <div style="font-size:.62rem;color:var(--text4);">${c.class || '—'} · Lv ${c.level || 1}</div>
@@ -201,6 +203,8 @@ function setPlacingMode(charId) {
 function mapStageClick(e) {
   if (!placingCharId) return;
   if (e.target.closest('.map-token')) return;
+  const img = document.getElementById('map-img');
+  if (!img || !img.naturalWidth) return; // image not loaded yet
 
   const m = maps.find(x => x.id === currentMapId);
   if (!m) return;
@@ -256,7 +260,7 @@ function renderTokensOnMap() {
           transform="rotate(-90 18 18)" opacity="0.7"/>
       </svg>
       <div class="token-label">${esc(name)}</div>
-      <button class="token-del" onclick="event.stopPropagation();removeToken('${tok.id}')">✕</button>
+      <button class="token-del" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation();removeToken('${tok.id}')">✕</button>
     </div>`;
   }).join('');
 }
@@ -354,7 +358,7 @@ async function saveNamedScenario() {
   m.updatedAt = Date.now();
   await saveCurrentMap();
   renderScenarioSelect();
-  flashBtn('save-scen-btn', '✓ Saved!', 'save-scen-btn');
+  flashBtn('save-scen-btn', '✓ Saved!', '+ Save New');
 }
 
 async function loadScenario() {
