@@ -3,299 +3,523 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tome of Heroes — D&D Campaign Tracker</title>
+<title>Tome of Heroes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/styles.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0f0d09;--bg-card:#18140e;--bg-raised:#211a10;--bg-input:#151209;
-  --border:#3a2c16;--border2:#503e20;
-  --amber:#d4973a;--amber-l:#f0c060;--amber-d:#7a5520;--amber-bg:#1e1506;
-  --text:#ddd0aa;--text2:#9a8060;--text3:#50381a;
-  --red:#b84a3a;--green:#5a8840;--blue:#4070a0;--purple:#8050b0;--teal:#30a080;
-  --r:8px;
+/* ── APP-SPECIFIC STYLES ────────────────────────────────── */
+
+/* Character grid */
+.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px,1fr)); gap: 1rem; }
+
+.char-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 1.1rem 1.1rem .9rem;
+  cursor: pointer;
+  transition: border-color .2s, background .2s, transform .15s;
+  position: relative;
+  overflow: hidden;
 }
-body{font-family:'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
-nav{background:var(--bg-card);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;height:54px;gap:0;}
-.brand{font-size:1.05rem;color:var(--amber);letter-spacing:.08em;margin-right:2rem;white-space:nowrap;}
-.nav-links{display:flex;gap:2px;}
-.nav-btn{padding:6px 14px;border-radius:var(--r);color:var(--text2);cursor:pointer;font-size:.85rem;white-space:nowrap;transition:all .15s;border:none;background:none;font-family:inherit;}
-.nav-btn:hover{color:var(--text);background:var(--bg-raised);}
-.nav-btn.active{color:var(--amber);background:var(--amber-bg);}
-.nav-btn.soon{color:var(--text3);cursor:default;pointer-events:none;}
-main{padding:1.75rem 1.5rem;max-width:1150px;margin:0 auto;}
-.view{display:none;}.view.active{display:block;}
-.btn{padding:8px 18px;border-radius:var(--r);border:1px solid var(--amber-d);background:var(--amber-bg);color:var(--amber-l);cursor:pointer;font-size:.85rem;font-family:inherit;transition:all .15s;}
-.btn:hover{background:var(--amber-d);border-color:var(--amber);}
-.btn:active{transform:scale(.98);}
-.btn-sm{padding:5px 12px;font-size:.78rem;}
-.btn-ghost{background:transparent;border-color:var(--border2);color:var(--text2);}
-.btn-ghost:hover{background:var(--bg-raised);color:var(--text);}
-.btn-danger{background:transparent;border-color:#3a1010;color:var(--red);}
-.btn-danger:hover{background:#1a0808;border-color:var(--red);}
-.btn-ai{border-color:#3a1a60;background:#1a0a30;color:#b080f0;}
-.btn-ai:hover{background:#2a1050;border-color:#7040c0;}
-.btn-ai:disabled{opacity:.4;cursor:not-allowed;pointer-events:none;}
-.section-label{font-size:.68rem;color:var(--amber);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.6rem;padding-bottom:4px;border-bottom:1px solid var(--border);}
-.list-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
-.view-title{font-size:1.4rem;color:var(--amber);}
-.item-count{font-size:.8rem;color:var(--text3);margin-left:10px;}
-.empty-msg{text-align:center;padding:4rem 1rem;color:var(--text3);}
-.empty-msg h2{font-size:1.1rem;color:var(--text2);margin-bottom:.5rem;}
-.empty-msg p{font-size:.85rem;line-height:1.6;}
+.char-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: transparent;
+  transition: background .2s;
+}
+.char-card:hover { border-color: var(--border2); background: var(--bg-raised); transform: translateY(-1px); }
+.char-card:hover::before { background: var(--glow-dd); }
+.char-card.selected { border-color: var(--glow-d); background: var(--glow-bg); }
+.char-card.selected::before { background: var(--glow); }
 
-/* CHARACTER CARDS */
-.char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:.9rem;}
-.char-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;cursor:pointer;transition:all .15s;}
-.char-card:hover{border-color:var(--amber-d);background:var(--bg-raised);}
-.char-card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
-.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid;flex-shrink:0;}
-.avatar-lg{width:46px;height:46px;font-size:1rem;}
-.avatar-md{width:36px;height:36px;font-size:.8rem;}
-.avatar-sm{width:28px;height:28px;font-size:.62rem;border-width:1.5px;}
-.char-info{flex:1;min-width:0;}
-.char-name{font-size:1rem;font-weight:bold;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.char-sub{font-size:.75rem;color:var(--text2);margin-top:2px;}
-.level-badge{background:var(--amber-bg);border:1px solid var(--amber-d);color:var(--amber);font-size:.68rem;padding:2px 8px;border-radius:20px;}
-.char-bottom{display:flex;align-items:center;gap:1rem;margin-top:8px;}
-.mini-stat{text-align:center;}
-.mini-val{font-size:.95rem;font-weight:bold;color:var(--text);}
-.mini-lbl{font-size:.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
-.hp-bar-wrap{flex:1;background:var(--bg-input);height:5px;border-radius:3px;overflow:hidden;}
-.hp-bar-fill{height:100%;background:var(--green);border-radius:3px;}
+.card-select-wrap {
+  position: absolute;
+  top: 10px; right: 10px;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.char-card:hover .card-select-wrap,
+.char-card.selected .card-select-wrap,
+.bulk-mode .card-select-wrap { opacity: 1; }
 
-/* SESSION CARDS */
-.session-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:.9rem;}
-.session-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;cursor:pointer;transition:all .15s;}
-.session-card:hover{border-color:var(--amber-d);background:var(--bg-raised);}
-.session-card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
-.session-num-badge{background:var(--amber-bg);border:1px solid var(--amber-d);color:var(--amber);font-size:.68rem;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
-.session-title-card{font-size:1rem;font-weight:bold;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.session-meta-card{font-size:.75rem;color:var(--text2);margin-top:2px;}
-.session-summary-card{font-size:.8rem;color:var(--text2);line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.session-party-row{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;align-items:center;}
-.analyzed-badge{display:inline-flex;align-items:center;gap:4px;font-size:.65rem;color:#9060e0;background:#180a28;border:1px solid #3a1a60;border-radius:12px;padding:2px 8px;margin-top:6px;}
+.card-checkbox {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border2);
+  background: var(--bg-input);
+  cursor: pointer;
+  appearance: none;
+}
+.card-checkbox:checked {
+  background: var(--glow);
+  border-color: var(--glow);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 4l3 3 5-6' stroke='%23061008' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-size: 10px 8px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
 
-/* FORM */
-.form-hdr{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap;}
-.form-title{font-size:1.2rem;color:var(--amber);}
-.form-actions{display:flex;gap:8px;margin-left:auto;}
-.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:1.25rem;overflow-x:auto;}
-.tab{padding:7px 16px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;font-size:.82rem;white-space:nowrap;transition:all .15s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none;}
-.tab:hover{color:var(--text);}
-.tab.active{color:var(--amber);border-bottom-color:var(--amber);}
-.tab-panel{display:none;}.tab-panel.active{display:block;}
-.fg{display:grid;gap:.85rem;margin-bottom:1.25rem;}
-.fg2{grid-template-columns:1fr 1fr;}.fg3{grid-template-columns:1fr 1fr 1fr;}.fg4{grid-template-columns:repeat(4,1fr);}
-.field{display:flex;flex-direction:column;gap:3px;}
-.field label{font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;}
-.field input,.field select,.field textarea{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-family:inherit;font-size:.88rem;transition:border-color .15s;width:100%;}
-.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--amber-d);}
-.field select option{background:#18140e;}
-.field textarea{resize:vertical;min-height:80px;line-height:1.5;}
+.char-card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.char-card-info { flex: 1; min-width: 0; }
+.char-card-name {
+  font-family: var(--font-display);
+  font-size: .95rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+.char-card-sub { font-size: .75rem; color: var(--text3); }
 
-/* ABILITY SCORES */
-.ability-grid-form{display:grid;grid-template-columns:repeat(6,1fr);gap:.75rem;margin-bottom:1.25rem;}
-.ability-box{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r);padding:12px 6px;text-align:center;}
-.ab-name{font-size:.62rem;color:var(--amber);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px;}
-.ab-input{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:1.25rem;text-align:center;padding:5px 2px;font-family:inherit;font-weight:bold;}
-.ab-input:focus{outline:none;border-color:var(--amber-d);}
-.ab-mod{margin-top:7px;font-size:.95rem;font-weight:bold;color:var(--amber-l);}
-.ab-mod-label{font-size:.6rem;color:var(--text3);margin-top:1px;}
-.prof-display{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center;display:inline-block;min-width:120px;margin-bottom:1.25rem;}
-.prof-val{font-size:1.3rem;font-weight:bold;color:var(--amber-l);}
-.prof-lbl{font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;}
-.saves-row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem;}
-.save-item{display:flex;align-items:center;gap:6px;font-size:.82rem;}
-.save-check{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border2);background:var(--bg-input);cursor:pointer;appearance:none;}
-.save-check:checked{background:var(--amber);border-color:var(--amber);}
-.skill-check{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border2);background:var(--bg-input);cursor:pointer;appearance:none;flex-shrink:0;}
-.skill-check:checked{background:var(--amber);border-color:var(--amber);}
-.skills-cols{display:grid;grid-template-columns:1fr 1fr;gap:3px 2rem;margin-bottom:1.25rem;}
-.skill-row{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:.82rem;}
-.skill-ab{color:var(--text3);font-size:.72rem;}
-.skill-bonus-val{margin-left:auto;font-size:.78rem;color:var(--amber-l);min-width:30px;text-align:right;}
-.combat-grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:.75rem;margin-bottom:1.25rem;}
-.combat-box-form{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r);padding:10px 8px;text-align:center;}
-.combat-box-form label{display:block;font-size:.6rem;color:var(--amber);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;}
-.combat-box-form input,.combat-box-form select{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:1.1rem;font-weight:bold;text-align:center;padding:5px 2px;font-family:inherit;}
-.combat-box-form input:focus,.combat-box-form select:focus{outline:none;border-color:var(--amber-d);}
+.char-card-bottom { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.mini-stat { text-align: center; min-width: 36px; }
+.mini-val { font-family: var(--font-mono); font-size: .9rem; color: var(--text); }
+.mini-lbl { font-size: .55rem; color: var(--text4); text-transform: uppercase; letter-spacing: .06em; font-family: var(--font-display); }
 
-/* CHARACTER DETAIL */
-.detail-hdr{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1rem;}
-.detail-top{display:flex;align-items:flex-start;gap:16px;}
-.detail-info{flex:1;}
-.detail-name{font-size:1.8rem;color:var(--amber);line-height:1.1;margin-bottom:4px;}
-.detail-sub{font-size:.9rem;color:var(--text2);}
-.detail-actions{display:flex;gap:8px;margin-top:1rem;}
-.two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:1rem;}
-.panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem;}
-.ab-display-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:.75rem;}
-.ab-display{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r);padding:9px 6px;text-align:center;}
-.add-name{font-size:.58rem;color:var(--amber);text-transform:uppercase;letter-spacing:.12em;}
-.add-mod{font-size:1.4rem;font-weight:bold;color:var(--text);}
-.add-score{font-size:.72rem;color:var(--text2);}
-.combat-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:.75rem;}
-.cd-box{background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;padding:7px 10px;text-align:center;min-width:54px;}
-.cd-val{font-size:1.1rem;font-weight:bold;color:var(--text);}
-.cd-lbl{font-size:.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
-.hp-tracker-row{display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;}
-.hp-lbl{font-size:.75rem;color:var(--text2);}
-.hp-inp{width:54px;text-align:center;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 2px;font-size:1rem;font-family:inherit;}
-.hp-inp:focus{outline:none;border-color:var(--amber-d);}
-.hp-sep{color:var(--text3);}
-.hp-bar2{flex:1;min-width:80px;height:7px;background:var(--bg-input);border-radius:4px;overflow:hidden;}
-.hp-bar2-fill{height:100%;background:var(--green);border-radius:4px;}
-.save-btn{padding:3px 8px;font-size:.72rem;border-radius:5px;border:1px solid var(--amber-d);background:var(--amber-bg);color:var(--amber);cursor:pointer;font-family:inherit;}
-.save-btn:hover{background:var(--amber-d);}
-.skills-display{display:grid;grid-template-columns:1fr 1fr;gap:2px 1rem;}
-.sd-row{display:flex;align-items:center;gap:6px;padding:2px 0;font-size:.78rem;}
-.sd-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);flex-shrink:0;}
-.sd-dot.prof{background:var(--amber);}
-.sd-bonus{margin-left:auto;font-size:.75rem;color:var(--amber-l);}
-.saves-display{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
-.save-disp{display:flex;align-items:center;gap:6px;font-size:.78rem;padding:3px 0;}
-.story-entry{margin-bottom:10px;}
-.story-lbl{font-size:.68rem;color:var(--amber);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;}
-.story-val{font-size:.83rem;color:var(--text2);line-height:1.6;}
+/* Inline HP controls on card */
+.card-hp-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 2px 5px;
+}
+.hp-quick-btn {
+  width: 18px; height: 18px;
+  border-radius: 3px;
+  border: none;
+  background: var(--bg-raised);
+  color: var(--text3);
+  cursor: pointer;
+  font-size: .75rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .1s, color .1s;
+  font-family: var(--font-mono);
+}
+.hp-quick-btn:hover { background: var(--glow-dd); color: var(--glow); }
+.hp-quick-inp {
+  width: 30px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  text-align: center;
+  padding: 0;
+}
+.hp-quick-inp:focus { outline: none; }
 
-/* SESSION DETAIL */
-.session-detail-hdr{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1rem;}
-.sd-session-num{font-size:.72rem;color:var(--amber);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px;}
-.sd-session-title{font-size:1.7rem;color:var(--amber);line-height:1.1;margin-bottom:6px;}
-.sd-session-meta{font-size:.85rem;color:var(--text2);display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center;}
-.party-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:.75rem;}
-.party-member{display:flex;align-items:center;gap:6px;background:var(--bg-raised);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 6px;font-size:.78rem;color:var(--text2);}
-.sd-actions{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;}
-.session-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:1rem;}
+/* Conditions bar on card */
+.card-conditions { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 6px; min-height: 18px; }
 
-/* KEY EVENTS */
-.event-card{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:.65rem;}
-.event-card-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;}
-.event-type-badge{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;padding:2px 8px;border-radius:12px;flex-shrink:0;margin-top:2px;font-weight:bold;}
-.t-combat{background:#2a0a0a;color:#e06050;border:1px solid #5a1a1a;}
-.t-story{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-d);}
-.t-discovery{background:#0a2520;color:#50c090;border:1px solid #1a5040;}
-.t-roleplay{background:#1a0a30;color:#a070e0;border:1px solid #3a1a60;}
-.t-other{background:var(--bg-input);color:var(--text3);border:1px solid var(--border);}
-.event-title{font-size:.9rem;font-weight:bold;color:var(--text);}
-.event-desc{font-size:.8rem;color:var(--text2);line-height:1.55;margin-bottom:6px;}
-.event-chars{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;}
-.event-char-tag{font-size:.65rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text2);padding:1px 7px;border-radius:10px;}
-.prompt-toggle{font-size:.72rem;color:var(--amber-d);cursor:pointer;background:none;border:none;font-family:inherit;padding:0;text-decoration:underline;text-underline-offset:2px;}
-.prompt-toggle:hover{color:var(--amber);}
-.prompt-box{margin-top:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:.78rem;color:var(--text2);line-height:1.55;display:none;}
-.prompt-box.open{display:block;}
-.copy-btn{font-size:.68rem;color:var(--text3);background:none;border:1px solid var(--border);border-radius:4px;padding:2px 7px;cursor:pointer;font-family:inherit;margin-top:5px;}
-.copy-btn:hover{color:var(--text2);}
+/* ── BULK ACTION BAR ─────────────────────────────────────── */
+.bulk-bar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: .6rem 1rem;
+  background: var(--glow-bg);
+  border: 1px solid var(--glow-dd);
+  border-radius: var(--r-lg);
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.bulk-bar.visible { display: flex; }
+.bulk-count {
+  font-family: var(--font-display);
+  font-size: .72rem;
+  color: var(--glow);
+  letter-spacing: .06em;
+  margin-right: 4px;
+}
+.bulk-divider { width: 1px; height: 20px; background: var(--glow-dd); flex-shrink: 0; }
+.bulk-hp-row { display: flex; align-items: center; gap: 5px; }
+.bulk-hp-inp {
+  width: 48px;
+  background: var(--bg-input);
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  padding: 3px 6px;
+  text-align: center;
+}
+.bulk-hp-inp:focus { outline: none; border-color: var(--glow-dd); }
 
-/* AI PANEL */
-.ai-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem;}
-.ai-loading{text-align:center;padding:1.5rem;color:#8050c0;}
-.spin{display:inline-block;font-size:1.4rem;animation:spin 2s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.ai-loading p{font-size:.82rem;color:var(--text2);margin-top:.5rem;}
-.npc-list{display:flex;flex-direction:column;gap:5px;margin-bottom:.75rem;}
-.npc-row{background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;padding:8px 10px;}
-.npc-name{font-size:.85rem;font-weight:bold;color:var(--text);}
-.npc-desc{font-size:.78rem;color:var(--text2);margin-top:2px;line-height:1.5;}
-.plot-list{list-style:none;display:flex;flex-direction:column;gap:4px;margin-bottom:.75rem;}
-.plot-list li{font-size:.8rem;color:var(--text2);padding:4px 8px;background:var(--bg-raised);border-left:2px solid var(--amber-d);border-radius:0 4px 4px 0;line-height:1.5;}
-.loot-wrap{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.75rem;}
-.loot-tag{font-size:.72rem;background:var(--amber-bg);border:1px solid var(--amber-d);color:var(--amber);padding:2px 9px;border-radius:12px;}
+/* ── DM CONDITION PICKER ─────────────────────────────────── */
+.condition-picker {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: .75rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  margin-top: 6px;
+}
+.cond-pick-btn {
+  font-family: var(--font-mono);
+  font-size: .62rem;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+}
+.cond-pick-btn:hover { opacity: .8; transform: scale(1.05); }
+.cond-pick-btn.active { box-shadow: 0 0 0 2px currentColor; }
 
-/* TRANSCRIPT */
-.transcript-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem;}
-.transcript-body{font-family:'Courier New',monospace;font-size:.78rem;color:var(--text2);line-height:1.8;white-space:pre-wrap;word-break:break-word;max-height:580px;overflow-y:auto;padding:2px;}
-.transcript-body::-webkit-scrollbar{width:4px;}
-.transcript-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+/* ── LIST HEADER ─────────────────────────────────────────── */
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+.view-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--glow);
+  letter-spacing: .06em;
+}
 
-/* SESSION FORM */
-.char-check-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem;margin-bottom:1.25rem;}
-.char-check-item{display:flex;align-items:center;gap:8px;background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;padding:8px 10px;cursor:pointer;transition:border-color .15s;}
-.char-check-item:hover{border-color:var(--border2);}
-.char-check-item.checked{border-color:var(--amber-d);background:var(--amber-bg);}
-.char-check-item input[type=checkbox]{appearance:none;width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border2);background:var(--bg-input);flex-shrink:0;cursor:pointer;}
-.char-check-item input[type=checkbox]:checked{background:var(--amber);border-color:var(--amber);}
-.char-check-name{font-size:.82rem;color:var(--text);}
-.char-check-sub{font-size:.68rem;color:var(--text2);}
-.hint{font-size:.75rem;color:var(--text3);margin-bottom:.5rem;line-height:1.5;}
+/* ── CHARACTER DETAIL ────────────────────────────────────── */
+.detail-hdr {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-card);
+}
+.detail-top { display: flex; align-items: flex-start; gap: 16px; }
+.detail-info { flex: 1; }
+.detail-name {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  color: var(--glow);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.detail-sub { font-size: .88rem; color: var(--text3); }
+.detail-actions { display: flex; gap: 8px; margin-top: 1rem; flex-wrap: wrap; }
+.two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,2fr); gap: 1rem; }
 
-.coming-soon{text-align:center;padding:5rem 2rem;color:var(--text3);}
-.coming-soon h2{color:var(--text2);font-size:1.4rem;margin-bottom:.75rem;}
-.coming-soon p{font-size:.88rem;max-width:380px;margin:0 auto;line-height:1.7;}
+.ab-display-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: .75rem; }
+.ab-display {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 9px 6px;
+  text-align: center;
+}
+.ab-display-name { font-family: var(--font-display); font-size: .55rem; color: var(--glow-d); text-transform: uppercase; letter-spacing: .12em; }
+.ab-display-mod { font-family: var(--font-mono); font-size: 1.3rem; color: var(--text); }
+.ab-display-score { font-family: var(--font-mono); font-size: .68rem; color: var(--text3); }
 
-@media(max-width:640px){
-  .ability-grid-form{grid-template-columns:repeat(3,1fr);}
-  .fg2,.fg3,.fg4{grid-template-columns:1fr;}
-  .two-col,.session-layout{grid-template-columns:1fr;}
-  .skills-cols,.saves-display{grid-template-columns:1fr;}
+.saves-display { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; }
+.save-disp { display: flex; align-items: center; gap: 5px; font-size: .76rem; padding: 2px 0; }
+.sd-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+.sd-dot.prof { background: var(--glow); box-shadow: 0 0 4px rgba(61,186,138,.5); }
+.sd-bonus { margin-left: auto; font-family: var(--font-mono); font-size: .72rem; color: var(--glow-d); }
+
+.skills-display { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 1rem; }
+.skill-row-d { display: flex; align-items: center; gap: 5px; padding: 2px 0; font-size: .76rem; }
+
+.combat-row-d { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: .75rem; }
+.cd-box {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 6px 10px;
+  text-align: center;
+  min-width: 52px;
+}
+.cd-val { font-family: var(--font-mono); font-size: 1.05rem; color: var(--text); }
+.cd-lbl { font-family: var(--font-display); font-size: .52rem; color: var(--text4); text-transform: uppercase; letter-spacing: .06em; }
+
+.hp-tracker-row { display: flex; align-items: center; gap: 8px; margin-bottom: .75rem; flex-wrap: wrap; }
+.hp-lbl { font-family: var(--font-display); font-size: .72rem; color: var(--text3); }
+.hp-inp {
+  width: 52px; text-align: center;
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--r);
+  color: var(--text); padding: 4px 2px; font-family: var(--font-mono); font-size: .95rem;
+}
+.hp-inp:focus { outline: none; border-color: var(--glow-dd); }
+.hp-sep { color: var(--text4); }
+.hp-bar2 { flex: 1; min-width: 60px; height: 6px; background: var(--bg-input); border-radius: 3px; overflow: hidden; }
+.hp-bar2-fill { height: 100%; border-radius: 3px; transition: width .4s, background .3s; }
+.save-hp-btn {
+  padding: 3px 9px; font-size: .68rem; border-radius: 4px;
+  border: 1px solid var(--glow-dd); background: var(--glow-bg); color: var(--glow);
+  cursor: pointer; font-family: var(--font-display);
+}
+.save-hp-btn:hover { background: var(--glow-dd); }
+
+/* ── SESSION CARDS ───────────────────────────────────────── */
+.session-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: 1rem; }
+.session-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 1.1rem;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.session-card:hover { border-color: var(--border2); background: var(--bg-raised); }
+.session-card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.session-title-c {
+  font-family: var(--font-display);
+  font-size: .95rem;
+  color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.session-meta-c { font-size: .73rem; color: var(--text3); margin-top: 2px; }
+.session-summary-c {
+  font-size: .8rem; color: var(--text3); line-height: 1.5; margin-top: 6px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.session-party-row { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ── ABILITY FORM ────────────────────────────────────────── */
+.ability-grid-form { display: grid; grid-template-columns: repeat(6,1fr); gap: .65rem; margin-bottom: 1.1rem; }
+.ability-box {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 10px 4px;
+  text-align: center;
+}
+.ab-name { font-family: var(--font-display); font-size: .58rem; color: var(--glow-d); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 5px; }
+.ab-input {
+  width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--text); font-family: var(--font-mono); font-size: 1.2rem; text-align: center;
+  padding: 5px 2px;
+}
+.ab-input:focus { outline: none; border-color: var(--glow-dd); }
+.ab-mod { margin-top: 6px; font-family: var(--font-mono); font-size: .9rem; color: var(--glow); }
+.ab-mod-label { font-size: .55rem; color: var(--text4); font-family: var(--font-display); }
+
+.prof-display {
+  background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 9px; text-align: center; display: inline-block; min-width: 110px; margin-bottom: 1rem;
+}
+.prof-val { font-family: var(--font-mono); font-size: 1.25rem; color: var(--glow); }
+.prof-lbl { font-family: var(--font-display); font-size: .58rem; color: var(--text4); text-transform: uppercase; letter-spacing: .08em; }
+
+.saves-form-row { display: flex; gap: .85rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.save-item-f { display: flex; align-items: center; gap: 5px; font-size: .8rem; }
+.save-chk { width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid var(--border2); background: var(--bg-input); cursor: pointer; appearance: none; }
+.save-chk:checked { background: var(--glow); border-color: var(--glow); }
+.skill-chk { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--border2); background: var(--bg-input); cursor: pointer; appearance: none; flex-shrink: 0; }
+.skill-chk:checked { background: var(--glow); border-color: var(--glow); }
+.skills-form-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 2rem; margin-bottom: 1rem; }
+.skill-row-f { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: .8rem; }
+.skill-ab-f { color: var(--text4); font-size: .68rem; font-family: var(--font-mono); }
+.skill-bonus-val { margin-left: auto; font-family: var(--font-mono); font-size: .75rem; color: var(--glow-d); min-width: 28px; text-align: right; }
+
+.combat-grid-form { display: grid; grid-template-columns: repeat(auto-fit,minmax(88px,1fr)); gap: .65rem; margin-bottom: 1rem; }
+.combat-box-f { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--r); padding: 9px 6px; text-align: center; }
+.combat-box-f label { display: block; font-family: var(--font-display); font-size: .55rem; color: var(--glow-d); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
+.combat-box-f input, .combat-box-f select { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: var(--font-mono); font-size: 1rem; text-align: center; padding: 4px 2px; }
+.combat-box-f input:focus, .combat-box-f select:focus { outline: none; border-color: var(--glow-dd); }
+
+.party-check-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(175px,1fr)); gap: .45rem; margin-bottom: 1rem; }
+.party-check-item { display: flex; align-items: center; gap: 7px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--r); padding: 7px 9px; cursor: pointer; transition: border-color .12s; }
+.party-check-item:hover { border-color: var(--border2); }
+.party-check-item.selected { border-color: var(--glow-dd); background: var(--glow-bg); }
+.party-check-item input[type=checkbox] { appearance: none; width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid var(--border2); background: var(--bg-input); cursor: pointer; }
+.party-check-item input[type=checkbox]:checked { background: var(--glow); border-color: var(--glow); }
+.party-check-name { font-size: .8rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.party-check-sub { font-size: .65rem; color: var(--text3); }
+
+/* Session detail */
+.session-detail-hdr { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.5rem; margin-bottom: 1rem; }
+.session-num-line { font-family: var(--font-display); font-size: .68rem; color: var(--glow-d); text-transform: uppercase; letter-spacing: .15em; margin-bottom: 4px; }
+.session-title-d { font-family: var(--font-display); font-size: 1.6rem; color: var(--glow); line-height: 1.1; margin-bottom: 6px; }
+.session-meta-d { font-size: .82rem; color: var(--text3); display: flex; gap: 1.2rem; flex-wrap: wrap; }
+.party-row-d { display: flex; gap: 8px; flex-wrap: wrap; margin-top: .75rem; align-items: center; }
+.party-member-d { display: flex; align-items: center; gap: 6px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px 3px 5px; font-size: .76rem; color: var(--text3); }
+.session-actions { display: flex; gap: 7px; margin-top: 1rem; flex-wrap: wrap; }
+.session-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.5fr); gap: 1rem; }
+
+.event-card { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--r); padding: .9rem; margin-bottom: .6rem; }
+.event-card-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 5px; }
+.event-type-badge { font-family: var(--font-mono); font-size: .58rem; text-transform: uppercase; letter-spacing: .1em; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; margin-top: 2px; }
+.t-combat    { background:#160808;color:#e06050;border:1px solid #5a1818; }
+.t-story     { background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border); }
+.t-discovery { background:#081808;color:#50c080;border:1px solid #185030; }
+.t-roleplay  { background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border); }
+.t-other     { background:var(--bg-input);color:var(--text3);border:1px solid var(--border); }
+.event-title { font-family: var(--font-display); font-size: .88rem; color: var(--text); }
+.event-desc { font-size: .8rem; color: var(--text3); line-height: 1.5; margin-bottom: 5px; }
+.event-chars { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 5px; }
+.event-char-tag { font-family: var(--font-mono); font-size: .62rem; background: var(--bg-input); border: 1px solid var(--border); color: var(--text3); padding: 1px 6px; border-radius: 8px; }
+.prompt-toggle { font-family: var(--font-display); font-size: .68rem; color: var(--glow-d); cursor: pointer; background: none; border: none; padding: 0; text-decoration: underline; text-underline-offset: 2px; letter-spacing: .04em; }
+.prompt-toggle:hover { color: var(--glow); }
+.prompt-box { margin-top: 5px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--r); padding: 9px; font-size: .76rem; color: var(--text3); line-height: 1.55; display: none; }
+.prompt-box.open { display: block; }
+.copy-btn { font-family: var(--font-mono); font-size: .64rem; color: var(--text3); background: none; border: 1px solid var(--border); border-radius: 3px; padding: 2px 7px; cursor: pointer; margin-top: 5px; }
+.copy-btn:hover { color: var(--text2); }
+
+.npc-row { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--r); padding: 7px 9px; margin-bottom: 5px; }
+.npc-name { font-family: var(--font-display); font-size: .82rem; color: var(--text); }
+.npc-desc { font-size: .76rem; color: var(--text3); margin-top: 2px; line-height: 1.4; }
+.loot-wrap { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: .6rem; }
+.loot-tag { font-family: var(--font-mono); font-size: .68rem; background: var(--amber-bg); border: 1px solid var(--amber-border); color: var(--amber); padding: 2px 8px; border-radius: 10px; }
+.plot-list { list-style: none; display: flex; flex-direction: column; gap: 3px; margin-bottom: .6rem; }
+.plot-list li { font-size: .78rem; color: var(--text3); padding: 4px 8px; background: var(--bg-raised); border-left: 2px solid var(--glow-dd); border-radius: 0 3px 3px 0; line-height: 1.5; }
+
+.transcript-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.1rem; }
+.transcript-body { font-family: var(--font-mono); font-size: .76rem; color: var(--text3); line-height: 1.8; white-space: pre-wrap; word-break: break-word; max-height: 560px; overflow-y: auto; }
+
+.ai-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.1rem; margin-bottom: 1rem; }
+.ai-loading { text-align: center; padding: 1.5rem; color: var(--purple); }
+.ai-loading p { font-size: .8rem; color: var(--text3); margin-top: .5rem; line-height: 1.6; }
+
+.hint { font-family: var(--font-body); font-size: .78rem; color: var(--text3); margin-bottom: .5rem; line-height: 1.5; }
+
+/* Cloud modal */
+.cloud-modal-inner {
+  background: var(--bg-card);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-xl);
+  padding: 1.75rem;
+  width: 100%; max-width: 500px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.8), var(--shadow-glow);
+}
+.cloud-field-label { font-family: var(--font-display); font-size: .6rem; color: var(--text3); text-transform: uppercase; letter-spacing: .1em; display: block; margin-bottom: 4px; }
+.cloud-input { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--r); color: var(--text); padding: 8px 10px; font-family: var(--font-mono); font-size: .8rem; width: 100%; }
+.cloud-input:focus { outline: none; border-color: var(--glow-dd); }
+
+/* Form tabs */
+.form-hdr { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.form-title { font-family: var(--font-display); font-size: 1.1rem; color: var(--glow); letter-spacing: .06em; }
+.form-actions { display: flex; gap: 7px; margin-left: auto; }
+
+/* Story panel in detail */
+.story-entry { margin-bottom: 9px; }
+.story-lbl { font-family: var(--font-display); font-size: .6rem; color: var(--glow-d); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 2px; }
+.story-val { font-size: .82rem; color: var(--text3); line-height: 1.6; }
+
+@media (max-width: 640px) {
+  .ability-grid-form { grid-template-columns: repeat(3,1fr); }
+  .two-col, .session-layout { grid-template-columns: 1fr; }
+  .skills-form-cols, .saves-display { grid-template-columns: 1fr; }
+  .char-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
-<nav>
-  <div class="brand">⚔ Tome of Heroes</div>
+
+<!-- NAV -->
+<nav class="app-nav">
+  <a class="nav-brand" href="../">
+    <span class="nav-brand-icon">᛭</span> Tome of Heroes
+  </a>
   <div class="nav-links">
     <button class="nav-btn active" onclick="navTo('characters',this)">Characters</button>
     <button class="nav-btn" onclick="navTo('sessions',this)">Sessions</button>
-    <button class="nav-btn soon">Timeline</button>
+    <button class="nav-btn disabled">Timeline</button>
+    <button class="nav-btn disabled">Map</button>
   </div>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0;">
-    <span id="data-status" style="font-size:.68rem;color:var(--text3);white-space:nowrap;"></span>
-    <button class="nav-btn" onclick="exportData()" title="Download all data as JSON backup" style="font-size:.72rem;padding:4px 10px;">⬇ Export</button>
-    <button class="nav-btn" onclick="importData()" title="Restore from a backup file" style="font-size:.72rem;padding:4px 10px;">⬆ Import</button>
-    <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImportFile(event)">
-    <button class="nav-btn" id="cloud-btn" onclick="openCloudModal()" style="font-size:.72rem;padding:4px 10px;color:var(--text3);">💾 Local</button>
+  <div class="nav-right">
+    <span class="nav-status" id="data-status"></span>
+    <button class="nav-btn btn-sm" onclick="exportData()">⬇ Export</button>
+    <button class="nav-btn btn-sm" onclick="document.getElementById('import-input').click()">⬆ Import</button>
+    <input type="file" id="import-input" accept=".json" style="display:none" onchange="handleImport(event)">
+    <button class="nav-btn btn-sm" id="cloud-btn" onclick="openCloudModal()" style="color:var(--text4)">💾 Local</button>
   </div>
 </nav>
 
-<!-- CLOUD SETTINGS MODAL -->
-<div id="cloud-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)closeCloudModal()">
-  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;width:100%;max-width:500px;" onclick="event.stopPropagation()">
-    <div style="font-size:1rem;color:var(--amber);margin-bottom:.25rem;">☁ Cloud Database</div>
-    <div id="cloud-modal-status" style="font-size:.75rem;color:var(--text2);margin-bottom:1.25rem;line-height:1.5;"></div>
-
-    <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:.9rem;">
-      <label style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;">Supabase Project URL</label>
-      <input id="sb-url" type="text" placeholder="https://xxxxxxxxxxxx.supabase.co" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:.86rem;width:100%;">
+<!-- CLOUD MODAL -->
+<div class="overlay" id="cloud-overlay" onclick="if(event.target===this)closeCloudModal()">
+  <div class="cloud-modal-inner" onclick="event.stopPropagation()">
+    <div class="modal-title">☁ Cloud Database</div>
+    <div id="cloud-status" style="font-size:.76rem;color:var(--text3);margin-bottom:1.1rem;line-height:1.5;"></div>
+    <div style="margin-bottom:.8rem;"><label class="cloud-field-label">Supabase Project URL</label><input id="sb-url" class="cloud-input" type="text" placeholder="https://xxxx.supabase.co"></div>
+    <div style="margin-bottom:1.1rem;"><label class="cloud-field-label">Anon Public Key</label><input id="sb-key" class="cloud-input" type="password" placeholder="eyJ..."></div>
+    <div id="migrate-panel" style="display:none;background:var(--glow-bg);border:1px solid var(--glow-dd);border-radius:var(--r);padding:.75rem;margin-bottom:1rem;font-size:.78rem;color:var(--text3);line-height:1.5;">
+      <strong style="color:var(--glow);display:block;margin-bottom:3px;">Local data detected</strong>
+      Push your existing characters and sessions to the cloud.
+      <button onclick="migrateToCloud()" style="margin-top:.5rem;display:block;padding:4px 12px;border-radius:4px;border:1px solid var(--glow-dd);background:var(--glow-bg);color:var(--glow);cursor:pointer;font-family:var(--font-display);font-size:.72rem;">⬆ Push to cloud</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:1.25rem;">
-      <label style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;">Anon Public Key</label>
-      <input id="sb-key" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:.86rem;width:100%;">
-    </div>
-
-    <div id="migrate-section" style="display:none;background:var(--amber-bg);border:1px solid var(--amber-d);border-radius:8px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--text2);line-height:1.5;">
-      <strong style="color:var(--amber-l);display:block;margin-bottom:.3rem;">Connected to Supabase</strong>
-      You have local data that hasn't been pushed to the cloud yet. Click below to migrate it — this is safe to run multiple times.
-      <button onclick="migrateToCloud()" style="margin-top:.6rem;display:block;padding:5px 14px;border-radius:6px;border:1px solid var(--amber-d);background:var(--amber-bg);color:var(--amber-l);cursor:pointer;font-family:inherit;font-size:.78rem;">⬆ Push local data to cloud</button>
-    </div>
-
-    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
-      <button id="sb-disconnect-btn" onclick="disconnectCloud()" style="display:none;padding:7px 14px;border-radius:6px;border:1px solid #3a1010;background:transparent;color:var(--red);cursor:pointer;font-family:inherit;font-size:.82rem;">Disconnect</button>
-      <button onclick="closeCloudModal()" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.82rem;">Cancel</button>
-      <button onclick="testAndConnect()" style="padding:7px 14px;border-radius:6px;border:1px solid var(--amber-d);background:var(--amber-bg);color:var(--amber-l);cursor:pointer;font-family:inherit;font-size:.82rem;" id="sb-connect-btn">Test &amp; Connect</button>
+    <div style="display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;">
+      <button id="sb-disc-btn" onclick="disconnectCloud()" style="display:none;padding:6px 14px;border-radius:var(--r);border:1px solid var(--red-border);background:transparent;color:var(--red);cursor:pointer;font-family:var(--font-display);font-size:.76rem;">Disconnect</button>
+      <button onclick="closeCloudModal()" class="btn btn-ghost btn-sm">Cancel</button>
+      <button onclick="testAndConnect()" class="btn btn-primary btn-sm" id="sb-connect-btn">Test & Connect</button>
     </div>
   </div>
 </div>
-<main>
 
-<!-- ── CHARACTER LIST ── -->
+<main class="app-main">
+
+<!-- ══ CHARACTER LIST ══════════════════════════════════════ -->
 <div class="view active" id="view-char-list">
   <div class="list-header">
-    <div><span class="view-title">Characters</span><span class="item-count" id="char-count"></span></div>
-    <button class="btn" onclick="showAddCharForm()">+ Add Character</button>
+    <div><span class="view-title">Characters</span> <span class="muted" id="char-count" style="font-size:.78rem;margin-left:6px;font-family:var(--font-mono);"></span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" id="bulk-toggle-btn" onclick="toggleBulkMode()">☰ Select</button>
+      <button class="btn btn-primary btn-sm" onclick="showAddCharForm()">+ Character</button>
+    </div>
   </div>
+
+  <!-- Bulk action bar -->
+  <div class="bulk-bar" id="bulk-bar">
+    <span class="bulk-count" id="bulk-count">0 selected</span>
+    <div class="bulk-divider"></div>
+
+    <!-- HP adjustment -->
+    <div class="bulk-hp-row">
+      <button class="btn btn-sm btn-ghost" onclick="bulkHP('damage')" title="Deal damage">⚔ Damage</button>
+      <input class="bulk-hp-inp" id="bulk-hp-val" type="number" min="0" value="0" placeholder="HP">
+      <button class="btn btn-sm btn-primary" onclick="bulkHP('heal')" title="Heal">✦ Heal</button>
+    </div>
+    <div class="bulk-divider"></div>
+
+    <!-- Conditions -->
+    <button class="btn btn-sm btn-ghost" onclick="toggleConditionPicker()" id="cond-picker-btn">◈ Conditions</button>
+    <div class="bulk-divider"></div>
+
+    <!-- Other bulk actions -->
+    <button class="btn btn-sm btn-ghost" onclick="bulkSelectAll()">Select All</button>
+    <button class="btn btn-sm btn-danger" onclick="bulkDelete()">✕ Delete</button>
+    <button class="btn btn-sm btn-ghost" onclick="cancelBulkMode()" style="margin-left:auto;">Done</button>
+  </div>
+
+  <!-- Condition picker (shown below bulk bar) -->
+  <div id="condition-picker-wrap" style="display:none;margin-bottom:.75rem;">
+    <div class="condition-picker" id="condition-picker"></div>
+    <div style="margin-top:6px;display:flex;gap:6px;">
+      <button class="btn btn-sm btn-primary" onclick="bulkApplyConditions()">Apply to selected</button>
+      <button class="btn btn-sm btn-danger" onclick="bulkClearConditions()">Clear conditions</button>
+    </div>
+  </div>
+
   <div class="char-grid" id="char-grid"></div>
-  <div class="empty-msg" id="char-empty" style="display:none"><h2>No characters yet</h2><p>Add your first character to begin tracking your campaign's heroes.</p></div>
+  <div class="empty-state" id="char-empty" style="display:none">
+    <h2>No characters yet</h2>
+    <p>Add your first hero to begin tracking your campaign.</p>
+  </div>
 </div>
 
-<!-- ── CHARACTER FORM ── -->
+<!-- ══ CHARACTER FORM ══════════════════════════════════════ -->
 <div class="view" id="view-char-form">
   <div class="form-hdr">
     <div class="form-title" id="char-form-title">New Character</div>
     <div class="form-actions">
-      <button class="btn btn-ghost" onclick="showCharList()">Cancel</button>
-      <button class="btn" onclick="submitCharForm()">Save Character</button>
+      <button class="btn btn-ghost btn-sm" onclick="showCharList()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="submitCharForm()">Save Character</button>
     </div>
   </div>
   <div class="tabs" id="char-tabs">
@@ -303,7 +527,7 @@ main{padding:1.75rem 1.5rem;max-width:1150px;margin:0 auto;}
     <button class="tab" onclick="charTab('abilities',this)">✦ Abilities</button>
     <button class="tab" onclick="charTab('combat',this)">⚡ Combat</button>
     <button class="tab" onclick="charTab('profs',this)">⬡ Proficiencies</button>
-    <button class="tab" onclick="charTab('story',this)">📖 Story</button>
+    <button class="tab" onclick="charTab('story',this)">᛭ Story</button>
   </div>
   <div class="tab-panel active" id="ctab-identity">
     <div class="fg fg2"><div class="field"><label>Character Name *</label><input id="f-name" type="text"></div><div class="field"><label>Player Name</label><input id="f-player" type="text"></div></div>
@@ -317,69 +541,72 @@ main{padding:1.75rem 1.5rem;max-width:1150px;margin:0 auto;}
       <div class="field"><label>Background</label><select id="f-background"><option value="">— Select —</option><option>Acolyte</option><option>Charlatan</option><option>Criminal</option><option>Entertainer</option><option>Folk Hero</option><option>Guild Artisan</option><option>Hermit</option><option>Noble</option><option>Outlander</option><option>Sage</option><option>Sailor</option><option>Soldier</option><option>Urchin</option><option>Other</option></select></div>
       <div class="field"><label>Alignment</label><select id="f-alignment"><option value="">— Select —</option><option>Lawful Good</option><option>Neutral Good</option><option>Chaotic Good</option><option>Lawful Neutral</option><option>True Neutral</option><option>Chaotic Neutral</option><option>Lawful Evil</option><option>Neutral Evil</option><option>Chaotic Evil</option></select></div>
     </div>
-    <div class="fg fg2"><div class="field"><label>Experience Points</label><input id="f-xp" type="number" min="0" value="0"></div><div class="field"><label>Languages</label><input id="f-languages" type="text"></div></div>
+    <div class="fg fg2"><div class="field"><label>Experience Points</label><input id="f-xp" type="number" value="0"></div><div class="field"><label>Languages</label><input id="f-languages" type="text"></div></div>
   </div>
   <div class="tab-panel" id="ctab-abilities">
     <div class="section-label">Ability Scores</div>
     <div class="ability-grid-form">
-      <div class="ability-box"><div class="ab-name">STR</div><input class="ab-input" id="f-str" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('str')"><div class="ab-mod" id="mod-str">+0</div><div class="ab-mod-label">modifier</div></div>
-      <div class="ability-box"><div class="ab-name">DEX</div><input class="ab-input" id="f-dex" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('dex');updateAllSkills()"><div class="ab-mod" id="mod-dex">+0</div><div class="ab-mod-label">modifier</div></div>
-      <div class="ability-box"><div class="ab-name">CON</div><input class="ab-input" id="f-con" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('con')"><div class="ab-mod" id="mod-con">+0</div><div class="ab-mod-label">modifier</div></div>
-      <div class="ability-box"><div class="ab-name">INT</div><input class="ab-input" id="f-int" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('int');updateAllSkills()"><div class="ab-mod" id="mod-int">+0</div><div class="ab-mod-label">modifier</div></div>
-      <div class="ability-box"><div class="ab-name">WIS</div><input class="ab-input" id="f-wis" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('wis');updateAllSkills()"><div class="ab-mod" id="mod-wis">+0</div><div class="ab-mod-label">modifier</div></div>
-      <div class="ability-box"><div class="ab-name">CHA</div><input class="ab-input" id="f-cha" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('cha');updateAllSkills()"><div class="ab-mod" id="mod-cha">+0</div><div class="ab-mod-label">modifier</div></div>
+      <div class="ability-box"><div class="ab-name">STR</div><input class="ab-input" id="f-str" type="number" min="1" max="30" value="10" oninput="updateAbMod('str')"><div class="ab-mod" id="mod-str">+0</div><div class="ab-mod-label">mod</div></div>
+      <div class="ability-box"><div class="ab-name">DEX</div><input class="ab-input" id="f-dex" type="number" min="1" max="30" value="10" oninput="updateAbMod('dex');updateAllSkills()"><div class="ab-mod" id="mod-dex">+0</div><div class="ab-mod-label">mod</div></div>
+      <div class="ability-box"><div class="ab-name">CON</div><input class="ab-input" id="f-con" type="number" min="1" max="30" value="10" oninput="updateAbMod('con')"><div class="ab-mod" id="mod-con">+0</div><div class="ab-mod-label">mod</div></div>
+      <div class="ability-box"><div class="ab-name">INT</div><input class="ab-input" id="f-int" type="number" min="1" max="30" value="10" oninput="updateAbMod('int');updateAllSkills()"><div class="ab-mod" id="mod-int">+0</div><div class="ab-mod-label">mod</div></div>
+      <div class="ability-box"><div class="ab-name">WIS</div><input class="ab-input" id="f-wis" type="number" min="1" max="30" value="10" oninput="updateAbMod('wis');updateAllSkills()"><div class="ab-mod" id="mod-wis">+0</div><div class="ab-mod-label">mod</div></div>
+      <div class="ability-box"><div class="ab-name">CHA</div><input class="ab-input" id="f-cha" type="number" min="1" max="30" value="10" oninput="updateAbMod('cha');updateAllSkills()"><div class="ab-mod" id="mod-cha">+0</div><div class="ab-mod-label">mod</div></div>
     </div>
     <div class="section-label">Proficiency Bonus</div>
-    <div class="prof-display"><div class="prof-val" id="prof-bonus-display">+2</div><div class="prof-lbl">Proficiency Bonus</div></div>
-    <div class="fg fg2"><div class="field"><label>Inspiration</label><select id="f-inspiration"><option value="0">No</option><option value="1">Yes</option></select></div><div class="field"><label>Passive Perception</label><input id="f-passive" type="number" value="10"></div></div>
+    <div class="prof-display"><div class="prof-val" id="prof-display">+2</div><div class="prof-lbl">Proficiency Bonus</div></div>
+    <div class="fg fg2" style="margin-top:.5rem;"><div class="field"><label>Inspiration</label><select id="f-inspiration"><option value="0">No</option><option value="1">Yes</option></select></div><div class="field"><label>Passive Perception</label><input id="f-passive" type="number" value="10"></div></div>
   </div>
   <div class="tab-panel" id="ctab-combat">
     <div class="section-label">Hit Points</div>
     <div class="fg fg3"><div class="field"><label>Max HP</label><input id="f-maxhp" type="number" min="1" value="8"></div><div class="field"><label>Current HP</label><input id="f-curhp" type="number" value="8"></div><div class="field"><label>Temp HP</label><input id="f-temphp" type="number" value="0"></div></div>
-    <div class="section-label" style="margin-top:.5rem;">Combat Stats</div>
+    <div class="section-label">Combat Stats</div>
     <div class="combat-grid-form">
-      <div class="combat-box-form"><label>Armor Class</label><input id="f-ac" type="number" value="10"></div>
-      <div class="combat-box-form"><label>Initiative</label><input id="f-init" type="number" value="0"></div>
-      <div class="combat-box-form"><label>Speed (ft)</label><input id="f-speed" type="number" value="30"></div>
-      <div class="combat-box-form"><label>Hit Dice</label><select id="f-hitdice" style="font-size:.85rem;font-weight:normal;"><option>d6</option><option selected>d8</option><option>d10</option><option>d12</option></select></div>
+      <div class="combat-box-f"><label>AC</label><input id="f-ac" type="number" value="10"></div>
+      <div class="combat-box-f"><label>Initiative</label><input id="f-init" type="number" value="0"></div>
+      <div class="combat-box-f"><label>Speed</label><input id="f-speed" type="number" value="30"></div>
+      <div class="combat-box-f"><label>Hit Dice</label><select id="f-hitdice"><option>d6</option><option selected>d8</option><option>d10</option><option>d12</option></select></div>
     </div>
-    <div class="field" style="margin-bottom:1.25rem;"><label>Attacks &amp; Spellcasting</label><textarea id="f-attacks" placeholder="Longsword: +5 to hit, 1d8+3 slashing"></textarea></div>
-    <div class="field" style="margin-bottom:1rem;"><label>Equipment</label><textarea id="f-equipment"></textarea></div>
-    <div class="fg fg3"><div class="field"><label>Copper (CP)</label><input id="f-cp" type="number" value="0"></div><div class="field"><label>Silver (SP)</label><input id="f-sp" type="number" value="0"></div><div class="field"><label>Gold (GP)</label><input id="f-gp" type="number" value="0"></div></div>
+    <div class="field" style="margin-bottom:.9rem;"><label>Attacks & Spellcasting</label><textarea id="f-attacks" placeholder="Longsword: +5 to hit, 1d8+3 slashing"></textarea></div>
+    <div class="field" style="margin-bottom:.9rem;"><label>Equipment</label><textarea id="f-equipment"></textarea></div>
+    <div class="fg fg3"><div class="field"><label>Copper</label><input id="f-cp" type="number" value="0"></div><div class="field"><label>Silver</label><input id="f-sp" type="number" value="0"></div><div class="field"><label>Gold</label><input id="f-gp" type="number" value="0"></div></div>
   </div>
   <div class="tab-panel" id="ctab-profs">
     <div class="section-label">Saving Throws</div>
-    <div class="saves-row">
-      <label class="save-item"><input type="checkbox" class="save-check" id="save-str"> Strength</label>
-      <label class="save-item"><input type="checkbox" class="save-check" id="save-dex"> Dexterity</label>
-      <label class="save-item"><input type="checkbox" class="save-check" id="save-con"> Constitution</label>
-      <label class="save-item"><input type="checkbox" class="save-check" id="save-int"> Intelligence</label>
-      <label class="save-item"><input type="checkbox" class="save-check" id="save-wis"> Wisdom</label>
-      <label class="save-item"><input type="checkbox" class="save-check" id="save-cha"> Charisma</label>
+    <div class="saves-form-row">
+      <label class="save-item-f"><input type="checkbox" class="save-chk" id="save-str"> Strength</label>
+      <label class="save-item-f"><input type="checkbox" class="save-chk" id="save-dex"> Dexterity</label>
+      <label class="save-item-f"><input type="checkbox" class="save-chk" id="save-con"> Constitution</label>
+      <label class="save-item-f"><input type="checkbox" class="save-chk" id="save-int"> Intelligence</label>
+      <label class="save-item-f"><input type="checkbox" class="save-chk" id="save-wis"> Wisdom</label>
+      <label class="save-item-f"><input type="checkbox" class="save-chk" id="save-cha"> Charisma</label>
     </div>
     <div class="section-label">Skills</div>
-    <div class="skills-cols" id="skills-form"></div>
+    <div class="skills-form-cols" id="skills-form"></div>
     <div class="field"><label>Other Proficiencies</label><textarea id="f-proficiencies"></textarea></div>
   </div>
   <div class="tab-panel" id="ctab-story">
     <div class="fg fg2"><div class="field"><label>Personality Traits</label><textarea id="f-traits"></textarea></div><div class="field"><label>Ideals</label><textarea id="f-ideals"></textarea></div></div>
     <div class="fg fg2"><div class="field"><label>Bonds</label><textarea id="f-bonds"></textarea></div><div class="field"><label>Flaws</label><textarea id="f-flaws"></textarea></div></div>
-    <div class="field" style="margin-bottom:1.25rem;"><label>Backstory</label><textarea id="f-backstory" style="min-height:110px;"></textarea></div>
+    <div class="field" style="margin-bottom:.9rem;"><label>Backstory</label><textarea id="f-backstory" style="min-height:100px;"></textarea></div>
     <div class="fg fg3"><div class="field"><label>Age</label><input id="f-age" type="text"></div><div class="field"><label>Height</label><input id="f-height" type="text"></div><div class="field"><label>Weight</label><input id="f-weight" type="text"></div></div>
     <div class="fg fg3"><div class="field"><label>Eyes</label><input id="f-eyes" type="text"></div><div class="field"><label>Hair</label><input id="f-hair" type="text"></div><div class="field"><label>Skin</label><input id="f-skin" type="text"></div></div>
-    <div class="field"><label>Features &amp; Traits</label><textarea id="f-features"></textarea></div>
-    <div class="field" style="margin-top:1rem;"><label>Notes</label><textarea id="f-notes"></textarea></div>
+    <div class="field" style="margin-top:.5rem;"><label>Features & Traits</label><textarea id="f-features"></textarea></div>
+    <div class="field" style="margin-top:.5rem;"><label>Notes</label><textarea id="f-notes"></textarea></div>
   </div>
 </div>
 
-<!-- ── CHARACTER DETAIL ── -->
+<!-- ══ CHARACTER DETAIL ════════════════════════════════════ -->
 <div class="view" id="view-char-detail">
   <div class="detail-hdr">
     <div class="detail-top">
-      <div class="avatar avatar-lg" id="d-avatar" style="width:60px;height:60px;font-size:1.3rem;"></div>
-      <div class="detail-info"><div class="detail-name" id="d-name"></div><div class="detail-sub" id="d-sub"></div>
+      <div class="avatar avatar-xl" id="d-avatar"></div>
+      <div class="detail-info">
+        <div class="detail-name" id="d-name"></div>
+        <div class="detail-sub" id="d-sub"></div>
+        <div id="d-conditions" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;"></div>
         <div class="detail-actions">
-          <button class="btn btn-ghost btn-sm" onclick="showCharList()">← Characters</button>
+          <button class="btn btn-ghost btn-sm" onclick="showCharList()">← Back</button>
           <button class="btn btn-sm" onclick="editCurrentChar()">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="deleteCurrentChar()">Delete</button>
         </div>
@@ -388,114 +615,107 @@ main{padding:1.75rem 1.5rem;max-width:1150px;margin:0 auto;}
   </div>
   <div class="two-col">
     <div>
-      <div class="panel"><div class="section-label">Ability Scores</div><div class="ab-display-grid" id="d-abilities"></div><div class="section-label" style="margin-top:.75rem;">Saving Throws</div><div class="saves-display" id="d-saves"></div></div>
+      <div class="panel"><div class="section-label">Ability Scores</div><div class="ab-display-grid" id="d-abilities"></div><div class="section-label" style="margin-top:.6rem;">Saving Throws</div><div class="saves-display" id="d-saves"></div></div>
       <div class="panel" id="d-appear-panel"><div class="section-label">Appearance</div><div id="d-appearance"></div></div>
     </div>
     <div>
       <div class="panel">
-        <div class="section-label">Combat</div><div class="combat-row" id="d-combat"></div>
+        <div class="section-label">Combat</div><div class="combat-row-d" id="d-combat"></div>
         <div class="section-label">Hit Points</div>
-        <div class="hp-tracker-row"><span class="hp-lbl">HP</span><input class="hp-inp" id="d-curhp-inp" type="number"><span class="hp-sep">/</span><input class="hp-inp" id="d-maxhp-inp" type="number" readonly style="opacity:.6;cursor:default;"><div class="hp-bar2"><div class="hp-bar2-fill" id="d-hp-bar"></div></div><button class="save-btn" onclick="saveHpEdit()">Save</button></div>
-        <div style="margin-top:.5rem;"><div class="section-label">Attacks</div><div id="d-attacks" style="font-size:.82rem;color:var(--text2);line-height:1.7;white-space:pre-wrap;"></div></div>
-        <div style="margin-top:.75rem;"><div class="section-label">Equipment</div><div id="d-equipment" style="font-size:.82rem;color:var(--text2);line-height:1.6;white-space:pre-wrap;"></div></div>
-        <div style="margin-top:.75rem;display:flex;gap:1.5rem;font-size:.8rem;color:var(--text2);"><span><span style="color:var(--amber);">GP</span> <span id="d-gp">0</span></span><span><span style="color:var(--text3);">SP</span> <span id="d-sp">0</span></span><span><span style="color:var(--text3);">CP</span> <span id="d-cp">0</span></span></div>
+        <div class="hp-tracker-row">
+          <span class="hp-lbl">HP</span>
+          <input class="hp-inp" id="d-curhp" type="number">
+          <span class="hp-sep">/</span>
+          <input class="hp-inp" id="d-maxhp" type="number" readonly style="opacity:.5;cursor:default;">
+          <div class="hp-bar2"><div class="hp-bar2-fill" id="d-hp-fill"></div></div>
+          <button class="save-hp-btn" onclick="saveHp()">Save</button>
+        </div>
+        <div style="margin-top:.5rem;"><div class="section-label">Attacks</div><div id="d-attacks" style="font-size:.8rem;color:var(--text3);white-space:pre-wrap;line-height:1.6;"></div></div>
+        <div style="margin-top:.6rem;"><div class="section-label">Equipment</div><div id="d-equipment" style="font-size:.8rem;color:var(--text3);white-space:pre-wrap;line-height:1.5;"></div></div>
+        <div style="margin-top:.6rem;display:flex;gap:1.5rem;font-family:var(--font-mono);font-size:.75rem;color:var(--text3);">
+          <span><span style="color:var(--amber);">GP</span> <span id="d-gp">0</span></span>
+          <span><span style="color:var(--text4);">SP</span> <span id="d-sp">0</span></span>
+          <span><span style="color:var(--text4);">CP</span> <span id="d-cp">0</span></span>
+        </div>
       </div>
       <div class="panel"><div class="section-label">Skills</div><div class="skills-display" id="d-skills"></div></div>
-      <div class="panel"><div class="section-label">Personality &amp; Story</div><div id="d-story"></div></div>
+      <div class="panel"><div class="section-label">Story</div><div id="d-story"></div></div>
     </div>
   </div>
 </div>
 
-<!-- ── SESSION LIST ── -->
+<!-- ══ SESSION LIST ════════════════════════════════════════ -->
 <div class="view" id="view-sessions">
   <div class="list-header">
-    <div><span class="view-title">Sessions</span><span class="item-count" id="session-count"></span></div>
-    <button class="btn" onclick="showAddSessionForm()">+ Log Session</button>
+    <div><span class="view-title">Sessions</span> <span class="muted" id="session-count" style="font-size:.78rem;margin-left:6px;font-family:var(--font-mono);"></span></div>
+    <button class="btn btn-primary btn-sm" onclick="showAddSessionForm()">+ Log Session</button>
   </div>
   <div class="session-grid" id="session-grid"></div>
-  <div class="empty-msg" id="session-empty" style="display:none"><h2>No sessions logged yet</h2><p>Log your first session. Paste in transcripts and let AI extract key events, NPCs, and generate cinematic image prompts.</p></div>
+  <div class="empty-state" id="session-empty" style="display:none"><h2>No sessions yet</h2><p>Log your first session — paste a transcript and let the AI extract the story.</p></div>
 </div>
 
-<!-- ── SESSION FORM ── -->
+<!-- ══ SESSION FORM ════════════════════════════════════════ -->
 <div class="view" id="view-session-form">
   <div class="form-hdr">
-    <div class="form-title" id="session-form-title">Log New Session</div>
+    <div class="form-title" id="session-form-title">Log Session</div>
     <div class="form-actions">
-      <button class="btn btn-ghost" onclick="showSessionList()">Cancel</button>
-      <button class="btn" onclick="submitSessionForm()">Save Session</button>
+      <button class="btn btn-ghost btn-sm" onclick="showSessionList()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="submitSessionForm()">Save Session</button>
     </div>
   </div>
   <div class="section-label">Session Info</div>
-  <div class="fg fg4" style="margin-bottom:1.25rem;">
+  <div class="fg fg4" style="margin-bottom:.9rem;">
     <div class="field"><label>Session #</label><input id="sf-number" type="number" min="1" value="1"></div>
-    <div class="field" style="grid-column:span 2;"><label>Session Title *</label><input id="sf-title" type="text" placeholder="e.g. The Tomb of Annihilation"></div>
+    <div class="field" style="grid-column:span 2;"><label>Title *</label><input id="sf-title" type="text" placeholder="The Tomb of Annihilation"></div>
     <div class="field"><label>Date Played</label><input id="sf-date" type="date"></div>
   </div>
-  <div class="fg fg3" style="margin-bottom:1.25rem;">
-    <div class="field"><label>Location / Setting</label><input id="sf-location" type="text" placeholder="e.g. Undermountain, Level 3"></div>
+  <div class="fg fg3" style="margin-bottom:.9rem;">
+    <div class="field"><label>Location / Setting</label><input id="sf-location" type="text"></div>
     <div class="field"><label>DM Name</label><input id="sf-dm" type="text"></div>
-    <div class="field"><label>Next Session Hook</label><input id="sf-hook" type="text" placeholder="What was left unresolved?"></div>
+    <div class="field"><label>Next Session Hook</label><input id="sf-hook" type="text"></div>
   </div>
   <div class="section-label">Party Present</div>
-  <div class="char-check-grid" id="sf-party-grid"></div>
-  <div class="section-label">Session Summary</div>
-  <div class="field" style="margin-bottom:1.25rem;"><label>Your summary / DM notes (AI can also generate this from the transcript)</label><textarea id="sf-summary" style="min-height:90px;" placeholder="Brief summary of what happened..."></textarea></div>
+  <div class="party-check-grid" id="sf-party-grid"></div>
+  <div class="section-label">Summary</div>
+  <div class="field" style="margin-bottom:.9rem;"><label>DM Notes (AI can generate this from transcript)</label><textarea id="sf-summary" style="min-height:80px;"></textarea></div>
   <div class="section-label">Transcript</div>
-  <p class="hint">Paste your session transcript — raw chat logs, notes, voice-to-text, anything. The AI will parse it to extract key events and build image prompts per scene.</p>
-  <div class="field" style="margin-bottom:1rem;"><textarea id="sf-transcript" style="min-height:240px;font-family:'Courier New',monospace;font-size:.8rem;" placeholder="[DM] You arrive at the stone door carved with serpentine figures...&#10;[Player] I check for traps. Rolling Perception... 17.&#10;[DM] You notice a thin wire stretched across the threshold..."></textarea></div>
-  <div class="fg fg2"><div class="field"><label>Tags (comma separated)</label><input id="sf-tags" type="text" placeholder="combat, dungeon, betrayal..."></div></div>
+  <p class="hint">Paste raw session transcript — chat logs, notes, voice-to-text. AI will extract events, NPCs, loot and generate cinematic image prompts.</p>
+  <div class="field" style="margin-bottom:.9rem;"><textarea id="sf-transcript" style="min-height:220px;font-family:var(--font-mono);font-size:.76rem;" placeholder="[DM] You arrive at the stone entrance...&#10;[Player] I check for traps. Rolling Perception... 17."></textarea></div>
+  <div class="fg fg2"><div class="field"><label>Tags</label><input id="sf-tags" type="text" placeholder="combat, dungeon, betrayal..."></div></div>
 </div>
 
-<!-- ── SESSION DETAIL ── -->
+<!-- ══ SESSION DETAIL ══════════════════════════════════════ -->
 <div class="view" id="view-session-detail">
   <div class="session-detail-hdr">
-    <div class="sd-session-num" id="sd-num"></div>
-    <div class="sd-session-title" id="sd-title"></div>
-    <div class="sd-session-meta" id="sd-meta"></div>
-    <div class="party-row" id="sd-party"></div>
-    <div class="sd-actions">
+    <div class="session-num-line" id="sd-num"></div>
+    <div class="session-title-d" id="sd-title"></div>
+    <div class="session-meta-d" id="sd-meta"></div>
+    <div class="party-row-d" id="sd-party"></div>
+    <div class="session-actions">
       <button class="btn btn-ghost btn-sm" onclick="showSessionList()">← Sessions</button>
       <button class="btn btn-sm" onclick="editCurrentSession()">Edit</button>
-      <button class="btn btn-ai btn-sm" id="ai-btn" onclick="runAIAnalysis()">✦ Analyze with AI</button>
+      <button class="btn btn-ai btn-sm" id="ai-btn" onclick="runAIAnalysis()">✦ Analyze</button>
       <button class="btn btn-danger btn-sm" onclick="deleteCurrentSession()">Delete</button>
     </div>
   </div>
   <div class="session-layout">
     <div>
-      <div class="ai-panel">
-        <div class="section-label">AI Analysis</div>
-        <div id="ai-content"><p style="font-size:.82rem;color:var(--text3);line-height:1.7;">Click <strong style="color:#9060e0;">✦ Analyze with AI</strong> to extract key events, NPCs, loot &amp; plot threads from your transcript — and generate a cinematic image prompt for each scene.</p></div>
-      </div>
-      <div class="panel" id="sd-summary-panel" style="display:none;">
-        <div class="section-label">Session Summary</div>
-        <div id="sd-summary" style="font-size:.85rem;color:var(--text2);line-height:1.7;"></div>
-      </div>
-      <div class="panel" id="sd-hook-panel" style="display:none;">
-        <div class="section-label">Next Session Hook</div>
-        <div id="sd-hook-txt" style="font-size:.85rem;color:var(--amber-l);line-height:1.6;font-style:italic;"></div>
-      </div>
-      <div class="panel" id="sd-tags-panel" style="display:none;">
-        <div class="section-label">Tags</div>
-        <div id="sd-tags-display" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-      </div>
+      <div class="ai-panel"><div class="section-label">AI Analysis</div><div id="ai-content"><p style="font-size:.8rem;color:var(--text3);line-height:1.6;">Click <strong style="color:var(--purple);">✦ Analyze</strong> to extract key events, NPCs, loot, plot hooks and cinematic image prompts from your transcript.</p></div></div>
+      <div class="panel" id="sd-summary-panel" style="display:none;"><div class="section-label">Summary</div><div id="sd-summary" style="font-size:.82rem;color:var(--text3);line-height:1.7;"></div></div>
+      <div class="panel" id="sd-hook-panel" style="display:none;"><div class="section-label">Next Session Hook</div><div id="sd-hook-txt" style="font-size:.82rem;color:var(--amber);line-height:1.6;font-style:italic;"></div></div>
+      <div class="panel" id="sd-tags-panel" style="display:none;"><div class="section-label">Tags</div><div id="sd-tags-display" style="display:flex;gap:5px;flex-wrap:wrap;"></div></div>
     </div>
     <div>
-      <div class="transcript-panel">
-        <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;"><span>Transcript</span><span id="sd-wc" style="font-size:.68rem;color:var(--text3);font-weight:normal;text-transform:none;letter-spacing:0;"></span></div>
-        <div class="transcript-body" id="sd-transcript"></div>
-      </div>
+      <div class="transcript-panel"><div class="section-label" style="display:flex;align-items:center;justify-content:space-between;"><span>Transcript</span><span id="sd-wc" style="font-family:var(--font-mono);font-size:.64rem;color:var(--text4);font-weight:normal;text-transform:none;letter-spacing:0;"></span></div><div class="transcript-body" id="sd-transcript"></div></div>
     </div>
   </div>
 </div>
 
-<!-- ── TIMELINE ── -->
-<div class="view" id="view-timeline">
-  <div class="coming-soon"><div style="font-size:2.5rem;margin-bottom:1rem;">🗺</div><h2>Campaign Timeline</h2><p>Scroll through your campaign's history with AI-generated scene illustrations and story highlights. Coming next.</p></div>
-</div>
-
 </main>
+
+<script src="../shared/db.js"></script>
 <script>
-// ── CONSTANTS ──────────────────────────────────────────────────────────────
+// ── CONSTANTS ──────────────────────────────────────────────
 const SKILLS=[
   {name:'Acrobatics',ab:'dex',key:'acrobatics'},{name:'Animal Handling',ab:'wis',key:'animalHandling'},
   {name:'Arcana',ab:'int',key:'arcana'},{name:'Athletics',ab:'str',key:'athletics'},
@@ -507,241 +727,206 @@ const SKILLS=[
   {name:'Religion',ab:'int',key:'religion'},{name:'Sleight of Hand',ab:'dex',key:'sleightOfHand'},
   {name:'Stealth',ab:'dex',key:'stealth'},{name:'Survival',ab:'wis',key:'survival'},
 ];
-const CLASS_COLORS={Artificer:'#b06020',Barbarian:'#c04030',Bard:'#9050b0',Cleric:'#c0a020',Druid:'#507030',Fighter:'#608090',Monk:'#30a090',Paladin:'#c09030',Ranger:'#406030',Rogue:'#504060',Sorcerer:'#b03060',Warlock:'#5030a0',Wizard:'#3060b0',Other:'#706050'};
+const CLASS_COLORS={Artificer:'#b06020',Barbarian:'#c04030',Bard:'#9050b0',Cleric:'#c0a020',Druid:'#3a7030',Fighter:'#507080',Monk:'#20907a',Paladin:'#c09030',Ranger:'#3a6030',Rogue:'#504060',Sorcerer:'#a02060',Warlock:'#4020a0',Wizard:'#2060a0',Other:'#506050'};
 const ABS=['str','dex','con','int','wis','cha'];
 const AB_NAMES={str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',cha:'CHA'};
-const TYPE_CLASS={combat:'t-combat',story:'t-story',discovery:'t-discovery',roleplay:'t-roleplay',other:'t-other'};
+const TYPE_CSS={combat:'t-combat',story:'t-story',discovery:'t-discovery',roleplay:'t-roleplay',other:'t-other'};
+const CONDITIONS=['Poisoned','Stunned','Bleeding','Frightened','Exhausted','Unconscious','Blessed','Concentrating'];
+const COND_CSS={Poisoned:'cond-poisoned',Stunned:'cond-stunned',Bleeding:'cond-bleeding',Frightened:'cond-frightened',Exhausted:'cond-exhausted',Unconscious:'cond-unconscious',Blessed:'cond-blessed',Concentrating:'cond-concentrating'};
 
-// ── STATE ──────────────────────────────────────────────────────────────────
-let characters=[],sessions=[],editingCharId=null,currentCharId=null,editingSessionId=null,currentSessionId=null;
+// ── STATE ──────────────────────────────────────────────────
+let characters=[],sessions=[];
+let editingCharId=null,currentCharId=null,editingSessionId=null,currentSessionId=null;
+let bulkMode=false,selectedIds=new Set(),pendingConditions=new Set();
 
-// ── DATABASE LAYER ───────────────────────────────────────────────────────
-// Works in two modes: localStorage (default) or Supabase (cloud).
-// Switch modes via the ☁ button in the nav. Data migrates with one click.
-const DB = {
-  sb: null, // {url, key} when Supabase is configured
+// ── HELPERS ────────────────────────────────────────────────
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+const abMod=s=>Math.floor((s-10)/2);
+const fmtMod=m=>(m>=0?'+':'')+m;
+const profBonus=lvl=>Math.ceil(lvl/4)+1;
+const initials=n=>(n||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
+const classColor=c=>CLASS_COLORS[c]||'#506050';
+const hpPct=(cur,max)=>Math.max(0,Math.min(100,Math.round((cur/max)*100)));
+const hpColor=p=>p>60?'#2a8a50':p>25?'#8a7020':'#8a2020';
+const fmtDate=d=>{if(!d)return'';try{return new Date(d+'T00:00:00').toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});}catch(e){return d;}};
+const wc=t=>t?t.trim().split(/\s+/).filter(Boolean).length:0;
+const showView=id=>{document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');};
+const gv=id=>(document.getElementById(id)||document.getElementById('f-'+id))?.value||'';
+const sv=(id,v)=>{const el=document.getElementById(id)||document.getElementById('f-'+id);if(el)el.value=v||'';};
 
-  // Default credentials — override via the ☁ settings panel if needed
-  _defaultCreds: {url:'https://qavuogmqssjrsaylthdw.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdnVvZ21xc3NqcnNheWx0aGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTQyMzQsImV4cCI6MjA5MTQ5MDIzNH0.jpP1vHqs2nvy0HEOnoglXOboSDNC-Nm1DZjaTWnSBdw'},
-
-  init() {
-    try {
-      const stored = JSON.parse(localStorage.getItem('_sb_config')||'null');
-      // Use stored config if present, otherwise fall back to baked-in creds
-      this.sb = stored || this._defaultCreds;
-    } catch(e) { this.sb = this._defaultCreds; }
-  },
-
-  get isCloud() { return !!this.sb; },
-
-  _h(extra={}) {
-    return {'apikey':this.sb.key,'Authorization':'Bearer '+this.sb.key,'Content-Type':'application/json',...extra};
-  },
-
-  async _req(path, opts={}) {
-    const r = await fetch(this.sb.url+'/rest/v1'+path, {
-      ...opts, headers:{...this._h(),...(opts.headers||{})}
-    });
-    if(!r.ok){const t=await r.text();throw new Error(t);}
-    const text=await r.text();
-    return text?JSON.parse(text):null;
-  },
-
-  async loadAll() {
-    if(this.isCloud){
-      try{
-        const [ch,se]=await Promise.all([
-          this._req('/characters?select=data&order=created_at.asc'),
-          this._req('/sessions?select=data&order=created_at.asc')
-        ]);
-        characters=ch.map(r=>r.data);
-        sessions=se.map(r=>r.data);
-        return;
-      }catch(e){console.warn('Cloud load failed, using local:',e.message);}
-    }
-    try{characters=JSON.parse(localStorage.getItem('dnd-chars')||'[]');}catch(e){}
-    try{sessions=JSON.parse(localStorage.getItem('dnd-sessions')||'[]');}catch(e){}
-  },
-
-  async saveChar(char) {
-    if(this.isCloud){
-      await this._req('/characters',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates'},
-        body:JSON.stringify({id:char.id,data:char,updated_at:new Date().toISOString()})});
-    } else {
-      try{localStorage.setItem('dnd-chars',JSON.stringify(characters));}catch(e){alert('Save error: '+e.message);}
-    }
-  },
-
-  async deleteChar(id) {
-    if(this.isCloud){
-      await this._req('/characters?id=eq.'+id,{method:'DELETE'});
-    } else {
-      try{localStorage.setItem('dnd-chars',JSON.stringify(characters));}catch(e){alert('Save error: '+e.message);}
-    }
-  },
-
-  async saveSession(session) {
-    if(this.isCloud){
-      await this._req('/sessions',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates'},
-        body:JSON.stringify({id:session.id,data:session,updated_at:new Date().toISOString()})});
-    } else {
-      try{localStorage.setItem('dnd-sessions',JSON.stringify(sessions));}catch(e){alert('Save error: '+e.message);}
-    }
-  },
-
-  async deleteSession(id) {
-    if(this.isCloud){
-      await this._req('/sessions?id=eq.'+id,{method:'DELETE'});
-    } else {
-      try{localStorage.setItem('dnd-sessions',JSON.stringify(sessions));}catch(e){alert('Save error: '+e.message);}
-    }
-  },
-
-  async saveAllLocal() {
-    if(!this.isCloud){
-      localStorage.setItem('dnd-chars',JSON.stringify(characters));
-      localStorage.setItem('dnd-sessions',JSON.stringify(sessions));
-    } else {
-      // Push all records to cloud (used after bulk import)
-      await Promise.all([
-        ...characters.map(c=>this.saveChar(c)),
-        ...sessions.map(s=>this.saveSession(s))
-      ]);
-    }
-  },
-
-  async configure(url,key) {
-    this.sb={url:url.replace(/\/+$/,''),key};
-    localStorage.setItem('_sb_config',JSON.stringify(this.sb));
-  },
-
-  disconnect() {
-    this.sb=null;
-    localStorage.removeItem('_sb_config');
-  },
-
-  async test(url,key) {
-    const r=await fetch(url.replace(/\/+$/,'')+'/rest/v1/characters?limit=1',
-      {headers:{'apikey':key,'Authorization':'Bearer '+key}});
-    if(!r.ok)throw new Error('Tables not found — did you run the SQL setup?');
-    return true;
-  },
-
-  async migrate() {
-    // Push all localStorage data to Supabase
-    const ch=JSON.parse(localStorage.getItem('dnd-chars')||'[]');
-    const se=JSON.parse(localStorage.getItem('dnd-sessions')||'[]');
-    for(const c of ch)await this._req('/characters',{method:'POST',
-      headers:{'Prefer':'resolution=merge-duplicates'},
-      body:JSON.stringify({id:c.id,data:c,updated_at:new Date().toISOString()})});
-    for(const s of se)await this._req('/sessions',{method:'POST',
-      headers:{'Prefer':'resolution=merge-duplicates'},
-      body:JSON.stringify({id:s.id,data:s,updated_at:new Date().toISOString()})});
-    return {chars:ch.length,sessions:se.length};
-  }
-};
-
-// ── BACKUP / RESTORE ───────────────────────────────────────────────────────
-function exportData(){
-  const payload={version:1,exportedAt:new Date().toISOString(),characters,sessions};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  const d=new Date().toISOString().slice(0,10);
-  a.download=`tome-of-heroes-backup-${d}.json`;
-  a.click();URL.revokeObjectURL(a.href);
-}
-function importData(){document.getElementById('import-file-input').click();}
-function handleImportFile(e){
-  const file=e.target.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=async ev=>{
-    try{
-      const payload=JSON.parse(ev.target.result);
-      if(!payload.characters||!payload.sessions)throw new Error('Invalid backup file format.');
-      const mode=characters.length||sessions.length
-        ?confirm(`Merge with existing data?\n\nOK = merge (keeps existing, adds new from backup)\nCancel = replace all (deletes current data)`)
-        :false;
-      if(mode){
-        // Merge: add anything from backup that doesn't already exist by id
-        const newChars=payload.characters.filter(c=>!characters.find(x=>x.id===c.id));
-        const newSess=payload.sessions.filter(s=>!sessions.find(x=>x.id===s.id));
-        characters=[...characters,...newChars];
-        sessions=[...sessions,...newSess];
-        alert(`Imported ${newChars.length} character(s) and ${newSess.length} session(s).`);
-      }else{
-        characters=payload.characters;sessions=payload.sessions;
-        alert(`Restored ${characters.length} character(s) and ${sessions.length} session(s).`);
-      }
-      await DB.saveAllLocal();
-      renderCharList();showDataStatus();
-    }catch(err){alert('Import failed: '+err.message);}
-    e.target.value='';
-  };
-  reader.readAsText(file);
-}
-function showDataStatus(){
-  const chars=characters.length,sess=sessions.length;
-  const size=JSON.stringify({characters,sessions}).length;
-  const kb=(size/1024).toFixed(1);
-  const cloud=DB.isCloud;
-  const status=document.getElementById('data-status');
-  if(status)status.textContent=`${chars} char${chars!==1?'s':''} · ${sess} session${sess!==1?'s':''} · ${kb} KB`;
-  const btn=document.getElementById('cloud-btn');
-  if(btn){btn.textContent=cloud?'☁ Cloud':'💾 Local';btn.style.color=cloud?'#50c090':'var(--text3)';}
-}
-
-// ── UTILS ──────────────────────────────────────────────────────────────────
-function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
-function abMod(s){return Math.floor((s-10)/2);}
-function fmtMod(m){return(m>=0?'+':'')+m;}
-function profBonus(lvl){return Math.ceil(lvl/4)+1;}
-function initials(name){return(name||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';}
-function classColor(cls){return CLASS_COLORS[cls]||'#706050';}
-function hpPct(cur,max){return Math.max(0,Math.min(100,Math.round((cur/max)*100)));}
-function fmtDate(d){if(!d)return'';try{return new Date(d+'T00:00:00').toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});}catch(e){return d;}}
-function wordCount(t){return t?t.trim().split(/\s+/).filter(Boolean).length:0;}
-function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');}
-function gv(id){return(document.getElementById(id)||document.getElementById('f-'+id))?.value||'';}
-function sv(id,v){const el=document.getElementById(id)||document.getElementById('f-'+id);if(el)el.value=v||'';}
-
+// ── NAV ────────────────────────────────────────────────────
 function navTo(section,btn){
-  document.querySelectorAll('.nav-btn:not(.soon)').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-links .nav-btn:not(.disabled)').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(section==='characters')showCharList();
   else if(section==='sessions')showSessionList();
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// CHARACTERS
-// ══════════════════════════════════════════════════════════════════════════
+// ── LOAD / STATUS ──────────────────────────────────────────
+async function init(){
+  [characters,sessions]=await Promise.all([DB.load('characters'),DB.load('sessions')]);
+  buildSkillsForm();
+  buildConditionPicker();
+  renderCharList();
+  updateStatus();
+}
+
+function updateStatus(){
+  const kb=(JSON.stringify({characters,sessions}).length/1024).toFixed(1);
+  const st=document.getElementById('data-status');
+  if(st)st.textContent=`${characters.length}c · ${sessions.length}s · ${kb}KB`;
+  const btn=document.getElementById('cloud-btn');
+  if(btn){btn.textContent=DB.isCloud?'☁ Cloud':'💾 Local';btn.style.color=DB.isCloud?'var(--glow)':'var(--text4)';}
+}
+
+// ══════════════════════════════════════════════════════════
+// CHARACTER SYSTEM
+// ══════════════════════════════════════════════════════════
+
 function showCharList(){showView('view-char-list');renderCharList();}
+
 function renderCharList(){
-  const grid=gv('char-grid'),empty=document.getElementById('char-empty');
-  document.getElementById('char-count').textContent=characters.length?`(${characters.length})`:'';
   const el=document.getElementById('char-grid');
+  const empty=document.getElementById('char-empty');
+  document.getElementById('char-count').textContent=characters.length?`(${characters.length})`:'';
   if(!characters.length){el.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
   el.innerHTML=characters.map(c=>{
-    const col=classColor(c.class),pct=hpPct(c.currentHp||0,c.maxHp||1);
-    return`<div class="char-card" onclick="showCharDetail('${c.id}')">
+    const col=classColor(c.class);
+    const pct=hpPct(c.currentHp||0,c.maxHp||1);
+    const hpCol=hpColor(pct);
+    const isSelected=selectedIds.has(c.id);
+    const conds=(c.conditions||[]).map(cn=>`<span class="condition ${COND_CSS[cn]||''}">${cn}</span>`).join('');
+    return`<div class="char-card${isSelected?' selected':''}" id="card-${c.id}" onclick="cardClick(event,'${c.id}')">
+      <div class="card-select-wrap"><input type="checkbox" class="card-checkbox" ${isSelected?'checked':''} onclick="event.stopPropagation();toggleSelect('${c.id}')"></div>
       <div class="char-card-top">
-        <div class="avatar avatar-lg" style="background:${col}22;border-color:${col};color:${col}">${initials(c.name)}</div>
-        <div class="char-info"><div class="char-name">${c.name||'Unnamed'}</div><div class="char-sub">${[c.race,c.class].filter(Boolean).join(' · ')||'No class set'}</div></div>
-        <div class="level-badge">Lv ${c.level||1}</div>
+        <div class="avatar avatar-lg" style="background:${col}20;border-color:${col};color:${col}">${initials(c.name)}</div>
+        <div class="char-card-info">
+          <div class="char-card-name">${c.name||'Unnamed'}</div>
+          <div class="char-card-sub">${[c.race,c.class].filter(Boolean).join(' · ')||'—'} &nbsp;·&nbsp; Lv ${c.level||1}</div>
+        </div>
       </div>
-      <div class="char-bottom">
-        <div class="mini-stat"><div class="mini-val">${c.currentHp||0}/${c.maxHp||0}</div><div class="mini-lbl">HP</div></div>
-        <div class="mini-stat"><div class="mini-val">${c.ac||10}</div><div class="mini-lbl">AC</div></div>
-        <div class="hp-bar-wrap"><div class="hp-bar-fill" style="width:${pct}%"></div></div>
+      ${conds?`<div class="card-conditions">${conds}</div>`:''}
+      <div class="char-card-bottom">
+        <div class="mini-stat"><div class="mini-val mono">${c.ac||10}</div><div class="mini-lbl">AC</div></div>
+        <div class="mini-stat"><div class="mini-val mono">${fmtMod(c.initiative||0)}</div><div class="mini-lbl">Init</div></div>
+        <div class="card-hp-row" onclick="event.stopPropagation()">
+          <button class="hp-quick-btn" onclick="quickHp('${c.id}',-1)">−</button>
+          <input class="hp-quick-inp" id="qhp-${c.id}" type="number" value="${c.currentHp||0}" onchange="quickHpSet('${c.id}',this.value)" onclick="event.stopPropagation()">
+          <span style="font-family:var(--font-mono);font-size:.65rem;color:var(--text4);">/${c.maxHp||0}</span>
+          <button class="hp-quick-btn" onclick="quickHp('${c.id}',1)">+</button>
+        </div>
+        <div class="hp-bar" style="flex:1;height:4px;"><div class="hp-bar-fill" style="width:${pct}%;background:${hpCol};height:100%;border-radius:3px;"></div></div>
       </div>
     </div>`;
   }).join('');
 }
+
+// Inline HP controls
+function quickHp(id,delta){
+  const c=characters.find(x=>x.id===id);if(!c)return;
+  c.currentHp=Math.max(0,Math.min(c.maxHp,c.currentHp+delta));
+  const inp=document.getElementById('qhp-'+id);if(inp)inp.value=c.currentHp;
+  DB.save('characters',c,characters).then(()=>renderCharList());
+}
+function quickHpSet(id,val){
+  const c=characters.find(x=>x.id===id);if(!c)return;
+  c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(val)||0));
+  DB.save('characters',c,characters);
+  // Re-render the card's HP bar only
+  const card=document.getElementById('card-'+id);
+  if(card){
+    const bar=card.querySelector('.hp-bar-fill');
+    const pct=hpPct(c.currentHp,c.maxHp);
+    if(bar){bar.style.width=pct+'%';bar.style.background=hpColor(pct);}
+  }
+}
+
+// Card click: open detail or toggle select in bulk mode
+function cardClick(e,id){
+  if(bulkMode||e.target.closest('.card-select-wrap')||e.target.closest('.card-hp-row'))return;
+  showCharDetail(id);
+}
+function toggleSelect(id){
+  if(selectedIds.has(id))selectedIds.delete(id);else selectedIds.add(id);
+  updateBulkBar();
+  const card=document.getElementById('card-'+id);
+  if(card)card.classList.toggle('selected',selectedIds.has(id));
+  const chk=card?.querySelector('.card-checkbox');
+  if(chk)chk.checked=selectedIds.has(id);
+}
+
+// ── BULK MANAGEMENT ────────────────────────────────────────
+function toggleBulkMode(){bulkMode=!bulkMode;updateBulkBar();document.getElementById('bulk-toggle-btn').textContent=bulkMode?'✕ Cancel':'☰ Select';document.getElementById('char-grid').classList.toggle('bulk-mode',bulkMode);if(!bulkMode)cancelBulkMode();}
+function cancelBulkMode(){bulkMode=false;selectedIds.clear();pendingConditions.clear();document.getElementById('bulk-toggle-btn').textContent='☰ Select';document.getElementById('char-grid').classList.remove('bulk-mode');document.getElementById('condition-picker-wrap').style.display='none';updateBulkBar();renderCharList();}
+function updateBulkBar(){
+  const bar=document.getElementById('bulk-bar');
+  const count=selectedIds.size;
+  bar.classList.toggle('visible',bulkMode||count>0);
+  document.getElementById('bulk-count').textContent=`${count} selected`;
+}
+function bulkSelectAll(){characters.forEach(c=>selectedIds.add(c.id));updateBulkBar();renderCharList();}
+
+async function bulkHP(type){
+  const val=parseInt(document.getElementById('bulk-hp-val').value)||0;
+  if(!val||!selectedIds.size)return;
+  for(const id of selectedIds){
+    const c=characters.find(x=>x.id===id);if(!c)continue;
+    c.currentHp=type==='heal'?Math.min(c.maxHp,c.currentHp+val):Math.max(0,c.currentHp-val);
+    await DB.save('characters',c,characters);
+  }
+  renderCharList();
+}
+
+async function bulkDelete(){
+  if(!selectedIds.size)return;
+  if(!confirm(`Delete ${selectedIds.size} character(s)? This cannot be undone.`))return;
+  for(const id of selectedIds){
+    characters=characters.filter(x=>x.id!==id);
+    await DB.remove('characters',id,characters);
+  }
+  cancelBulkMode();
+}
+
+function buildConditionPicker(){
+  document.getElementById('condition-picker').innerHTML=CONDITIONS.map(cn=>`
+    <button class="cond-pick-btn ${COND_CSS[cn]||''}" onclick="toggleConditionPending('${cn}',this)">${cn}</button>`).join('');
+}
+function toggleConditionPicker(){
+  const wrap=document.getElementById('condition-picker-wrap');
+  const visible=wrap.style.display==='block';
+  wrap.style.display=visible?'none':'block';
+  document.getElementById('cond-picker-btn').textContent=visible?'◈ Conditions':'◈ Conditions ▴';
+}
+function toggleConditionPending(cn,btn){
+  if(pendingConditions.has(cn)){pendingConditions.delete(cn);btn.classList.remove('active');}
+  else{pendingConditions.add(cn);btn.classList.add('active');}
+}
+async function bulkApplyConditions(){
+  if(!selectedIds.size||!pendingConditions.size)return;
+  for(const id of selectedIds){
+    const c=characters.find(x=>x.id===id);if(!c)continue;
+    c.conditions=c.conditions||[];
+    pendingConditions.forEach(cn=>{if(!c.conditions.includes(cn))c.conditions.push(cn);});
+    await DB.save('characters',c,characters);
+  }
+  renderCharList();
+}
+async function bulkClearConditions(){
+  if(!selectedIds.size)return;
+  for(const id of selectedIds){
+    const c=characters.find(x=>x.id===id);if(!c)continue;
+    c.conditions=[];
+    await DB.save('characters',c,characters);
+  }
+  renderCharList();
+}
+
+// ── CHAR FORM ──────────────────────────────────────────────
 function buildSkillsForm(){
   document.getElementById('skills-form').innerHTML=SKILLS.map(s=>`
-    <label class="skill-row"><input type="checkbox" class="skill-check" id="skill-${s.key}" oninput="updateSkillBonus('${s.key}','${s.ab}')">
-    <span>${s.name}</span><span class="skill-ab">(${s.ab.toUpperCase()})</span>
+    <label class="skill-row-f"><input type="checkbox" class="skill-chk" id="skill-${s.key}" oninput="updateSkillBonus('${s.key}','${s.ab}')">
+    <span>${s.name}</span><span class="skill-ab-f">(${s.ab.toUpperCase()})</span>
     <span class="skill-bonus-val" id="sbonus-${s.key}">+0</span></label>`).join('');
 }
 function charTab(name,btn){
@@ -753,65 +938,73 @@ function charTab(name,btn){
 function showAddCharForm(){editingCharId=null;document.getElementById('char-form-title').textContent='New Character';resetCharForm();showView('view-char-form');charTab('identity',document.querySelector('#char-tabs .tab'));}
 function showEditCharForm(id){const c=characters.find(x=>x.id===id);if(!c)return;editingCharId=id;document.getElementById('char-form-title').textContent='Edit — '+c.name;resetCharForm();fillCharForm(c);showView('view-char-form');charTab('identity',document.querySelector('#char-tabs .tab'));}
 function resetCharForm(){
-  const defs={level:1,str:10,dex:10,con:10,int:10,wis:10,cha:10,passive:10,maxhp:8,curhp:8,temphp:0,ac:10,init:0,speed:30,xp:0,cp:0,sp:0,gp:0};
-  ['name','player','class','subclass','level','race','background','alignment','xp','languages','str','dex','con','int','wis','cha','passive','inspiration','maxhp','curhp','temphp','ac','init','speed','hitdice','attacks','equipment','cp','sp','gp','traits','ideals','bonds','flaws','backstory','age','height','weight','eyes','hair','skin','features','notes','proficiencies'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=defs[f]!==undefined?defs[f]:'';});
+  const d={level:1,str:10,dex:10,con:10,int:10,wis:10,cha:10,passive:10,maxhp:8,curhp:8,temphp:0,ac:10,init:0,speed:30,xp:0,cp:0,sp:0,gp:0};
+  ['name','player','class','subclass','level','race','background','alignment','xp','languages','str','dex','con','int','wis','cha','passive','inspiration','maxhp','curhp','temphp','ac','init','speed','hitdice','attacks','equipment','cp','sp','gp','traits','ideals','bonds','flaws','backstory','age','height','weight','eyes','hair','skin','features','notes','proficiencies'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=d[f]!==undefined?d[f]:'';});
   document.getElementById('f-hitdice').value='d8';document.getElementById('f-inspiration').value='0';
   ABS.forEach(a=>{const el=document.getElementById('save-'+a);if(el)el.checked=false;});
   SKILLS.forEach(s=>{const el=document.getElementById('skill-'+s.key);if(el)el.checked=false;});
-  updateProfBonus();ABS.forEach(a=>updateAbilityMod(a));updateAllSkills();
+  updateProfBonus();ABS.forEach(a=>updateAbMod(a));updateAllSkills();
 }
 function fillCharForm(c){
-  sv('name',c.name);sv('player',c.player);sv('class',c.class);sv('subclass',c.subclass);sv('level',c.level||1);sv('race',c.race);sv('background',c.background);sv('alignment',c.alignment);sv('xp',c.xp||0);sv('languages',c.languages);
-  sv('str',c.str||10);sv('dex',c.dex||10);sv('con',c.con||10);sv('int',c.int||10);sv('wis',c.wis||10);sv('cha',c.cha||10);sv('passive',c.passive||10);sv('inspiration',c.inspiration||0);
-  sv('maxhp',c.maxHp||8);sv('curhp',c.currentHp||8);sv('temphp',c.tempHp||0);sv('ac',c.ac||10);sv('init',c.initiative||0);sv('speed',c.speed||30);
+  ['name','player','class','subclass','level','race','background','alignment','xp','languages'].forEach(f=>sv('f-'+f,c[f]));
+  ABS.forEach(a=>sv('f-'+a,c[a]||10));
+  sv('f-passive',c.passive||10);sv('f-inspiration',c.inspiration||0);
+  sv('f-maxhp',c.maxHp||8);sv('f-curhp',c.currentHp||8);sv('f-temphp',c.tempHp||0);
+  sv('f-ac',c.ac||10);sv('f-init',c.initiative||0);sv('f-speed',c.speed||30);
   document.getElementById('f-hitdice').value=c.hitDice||'d8';
-  sv('attacks',c.attacks);sv('equipment',c.equipment);sv('cp',c.cp||0);sv('sp',c.sp||0);sv('gp',c.gp||0);
-  sv('traits',c.traits);sv('ideals',c.ideals);sv('bonds',c.bonds);sv('flaws',c.flaws);sv('backstory',c.backstory);sv('age',c.age);sv('height',c.height);sv('weight',c.weight);sv('eyes',c.eyes);sv('hair',c.hair);sv('skin',c.skin);sv('features',c.features);sv('notes',c.notes);sv('proficiencies',c.proficiencies);
+  ['attacks','equipment','cp','sp','gp','traits','ideals','bonds','flaws','backstory','age','height','weight','eyes','hair','skin','features','notes','proficiencies'].forEach(f=>sv('f-'+f,c[f]));
   ABS.forEach(a=>{const el=document.getElementById('save-'+a);if(el)el.checked=!!(c.saves&&c.saves[a]);});
   SKILLS.forEach(s=>{const el=document.getElementById('skill-'+s.key);if(el)el.checked=!!(c.skills&&c.skills[s.key]);});
-  updateProfBonus();ABS.forEach(a=>updateAbilityMod(a));updateAllSkills();
+  updateProfBonus();ABS.forEach(a=>updateAbMod(a));updateAllSkills();
 }
-function updateAbilityMod(ab){const s=parseInt(document.getElementById('f-'+ab).value)||10;document.getElementById('mod-'+ab).textContent=fmtMod(abMod(s));}
-function updateProfBonus(){const lvl=parseInt(document.getElementById('f-level').value)||1;document.getElementById('prof-bonus-display').textContent=fmtMod(profBonus(lvl));updateAllSkills();}
-function updateSkillBonus(key,ab){const s=parseInt(document.getElementById('f-'+ab).value)||10;const lvl=parseInt(document.getElementById('f-level').value)||1;const ch=document.getElementById('skill-'+key).checked;const el=document.getElementById('sbonus-'+key);if(el)el.textContent=fmtMod(abMod(s)+(ch?profBonus(lvl):0));}
+function updateAbMod(ab){const s=parseInt(document.getElementById('f-'+ab)?.value)||10;const el=document.getElementById('mod-'+ab);if(el)el.textContent=fmtMod(abMod(s));}
+function updateProfBonus(){const lvl=parseInt(document.getElementById('f-level')?.value)||1;const el=document.getElementById('prof-display');if(el)el.textContent=fmtMod(profBonus(lvl));updateAllSkills();}
+function updateSkillBonus(key,ab){const s=parseInt(document.getElementById('f-'+ab)?.value)||10;const lvl=parseInt(document.getElementById('f-level')?.value)||1;const ch=document.getElementById('skill-'+key)?.checked;const el=document.getElementById('sbonus-'+key);if(el)el.textContent=fmtMod(abMod(s)+(ch?profBonus(lvl):0));}
 function updateAllSkills(){SKILLS.forEach(s=>updateSkillBonus(s.key,s.ab));}
-function submitCharForm(){
-  const name=gv('name').trim();if(!name){alert('Please enter a character name.');return;}
-  const lvl=parseInt(gv('level'))||1;
+async function submitCharForm(){
+  const name=document.getElementById('f-name').value.trim();if(!name){alert('Please enter a character name.');return;}
+  const lvl=parseInt(gv('f-level'))||1;
   const skills={},saves={};
-  SKILLS.forEach(s=>{skills[s.key]=document.getElementById('skill-'+s.key).checked;});
-  ABS.forEach(a=>{saves[a]=document.getElementById('save-'+a).checked;});
-  const c={id:editingCharId||uid(),name,player:gv('player'),class:gv('class'),subclass:gv('subclass'),level:lvl,race:gv('race'),background:gv('background'),alignment:gv('alignment'),xp:parseInt(gv('xp'))||0,languages:gv('languages'),str:parseInt(gv('str'))||10,dex:parseInt(gv('dex'))||10,con:parseInt(gv('con'))||10,int:parseInt(gv('int'))||10,wis:parseInt(gv('wis'))||10,cha:parseInt(gv('cha'))||10,passive:parseInt(gv('passive'))||10,inspiration:parseInt(gv('inspiration'))||0,maxHp:parseInt(gv('maxhp'))||8,currentHp:parseInt(gv('curhp'))||8,tempHp:parseInt(gv('temphp'))||0,ac:parseInt(gv('ac'))||10,initiative:parseInt(gv('init'))||0,speed:parseInt(gv('speed'))||30,hitDice:gv('hitdice'),attacks:gv('attacks'),equipment:gv('equipment'),cp:parseInt(gv('cp'))||0,sp:parseInt(gv('sp'))||0,gp:parseInt(gv('gp'))||0,saves,skills,traits:gv('traits'),ideals:gv('ideals'),bonds:gv('bonds'),flaws:gv('flaws'),backstory:gv('backstory'),age:gv('age'),height:gv('height'),weight:gv('weight'),eyes:gv('eyes'),hair:gv('hair'),skin:gv('skin'),features:gv('features'),notes:gv('notes'),proficiencies:gv('proficiencies'),createdAt:editingCharId?(characters.find(x=>x.id===editingCharId)||{}).createdAt||Date.now():Date.now(),updatedAt:Date.now()};
+  SKILLS.forEach(s=>{skills[s.key]=document.getElementById('skill-'+s.key)?.checked||false;});
+  ABS.forEach(a=>{saves[a]=document.getElementById('save-'+a)?.checked||false;});
+  const existing=editingCharId?characters.find(x=>x.id===editingCharId):null;
+  const c={id:editingCharId||uid(),name,player:gv('f-player'),class:gv('f-class'),subclass:gv('f-subclass'),level:lvl,race:gv('f-race'),background:gv('f-background'),alignment:gv('f-alignment'),xp:parseInt(gv('f-xp'))||0,languages:gv('f-languages'),str:parseInt(gv('f-str'))||10,dex:parseInt(gv('f-dex'))||10,con:parseInt(gv('f-con'))||10,int:parseInt(gv('f-int'))||10,wis:parseInt(gv('f-wis'))||10,cha:parseInt(gv('f-cha'))||10,passive:parseInt(gv('f-passive'))||10,inspiration:parseInt(gv('f-inspiration'))||0,maxHp:parseInt(gv('f-maxhp'))||8,currentHp:parseInt(gv('f-curhp'))||8,tempHp:parseInt(gv('f-temphp'))||0,ac:parseInt(gv('f-ac'))||10,initiative:parseInt(gv('f-init'))||0,speed:parseInt(gv('f-speed'))||30,hitDice:gv('f-hitdice'),attacks:gv('f-attacks'),equipment:gv('f-equipment'),cp:parseInt(gv('f-cp'))||0,sp:parseInt(gv('f-sp'))||0,gp:parseInt(gv('f-gp'))||0,saves,skills,traits:gv('f-traits'),ideals:gv('f-ideals'),bonds:gv('f-bonds'),flaws:gv('f-flaws'),backstory:gv('f-backstory'),age:gv('f-age'),height:gv('f-height'),weight:gv('f-weight'),eyes:gv('f-eyes'),hair:gv('f-hair'),skin:gv('f-skin'),features:gv('f-features'),notes:gv('f-notes'),proficiencies:gv('f-proficiencies'),conditions:existing?.conditions||[],createdAt:existing?.createdAt||Date.now(),updatedAt:Date.now()};
   if(editingCharId){const i=characters.findIndex(x=>x.id===editingCharId);if(i>-1)characters[i]=c;}else characters.push(c);
-  DB.saveChar(c).then(()=>editingCharId?showCharDetail(c.id):showCharList());
+  await DB.save('characters',c,characters);
+  updateStatus();
+  editingCharId?showCharDetail(c.id):showCharList();
 }
+
 function showCharDetail(id){
   currentCharId=id;const c=characters.find(x=>x.id===id);if(!c){showCharList();return;}
   const col=classColor(c.class),pb=profBonus(c.level||1);
-  const av=document.getElementById('d-avatar');av.textContent=initials(c.name);av.style.cssText=`background:${col}22;border-color:${col};color:${col};width:60px;height:60px;font-size:1.3rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0;border:2px solid;`;
-  document.getElementById('d-name').textContent=c.name||'Unnamed';
+  const av=document.getElementById('d-avatar');av.textContent=initials(c.name);av.style.cssText=`background:${col}20;border-color:${col};color:${col};width:64px;height:64px;font-size:1.3rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:600;flex-shrink:0;border:2px solid;`;
+  document.getElementById('d-name').textContent=c.name;
   document.getElementById('d-sub').textContent=[`Level ${c.level||1}`,c.class,c.subclass,c.race,c.background,c.alignment].filter(Boolean).join(' · ');
-  document.getElementById('d-abilities').innerHTML=ABS.map(a=>`<div class="ab-display"><div class="add-name">${AB_NAMES[a]}</div><div class="add-mod">${fmtMod(abMod(c[a]||10))}</div><div class="add-score">${c[a]||10}</div></div>`).join('');
-  document.getElementById('d-saves').innerHTML=ABS.map(a=>{const prof=c.saves&&c.saves[a];return`<div class="save-disp"><div class="sd-dot ${prof?'prof':''}"></div><span>${AB_NAMES[a]}</span><span style="margin-left:auto;font-size:.75rem;color:var(--amber-l)">${fmtMod(abMod(c[a]||10)+(prof?pb:0))}</span></div>`;}).join('');
-  document.getElementById('d-combat').innerHTML=`<div class="cd-box"><div class="cd-val">${c.ac||10}</div><div class="cd-lbl">AC</div></div><div class="cd-box"><div class="cd-val">${fmtMod(c.initiative||0)}</div><div class="cd-lbl">Initiative</div></div><div class="cd-box"><div class="cd-val">${c.speed||30}</div><div class="cd-lbl">Speed</div></div><div class="cd-box"><div class="cd-val">${c.level||1}${c.hitDice||'d8'}</div><div class="cd-lbl">Hit Dice</div></div><div class="cd-box"><div class="cd-val">${fmtMod(pb)}</div><div class="cd-lbl">Prof</div></div>`;
-  document.getElementById('d-curhp-inp').value=c.currentHp||0;document.getElementById('d-maxhp-inp').value=c.maxHp||0;document.getElementById('d-hp-bar').style.width=hpPct(c.currentHp||0,c.maxHp||1)+'%';
+  document.getElementById('d-conditions').innerHTML=(c.conditions||[]).map(cn=>`<span class="condition ${COND_CSS[cn]||''}">${cn}</span>`).join('');
+  document.getElementById('d-abilities').innerHTML=ABS.map(a=>`<div class="ab-display"><div class="ab-display-name">${AB_NAMES[a]}</div><div class="ab-display-mod">${fmtMod(abMod(c[a]||10))}</div><div class="ab-display-score">${c[a]||10}</div></div>`).join('');
+  document.getElementById('d-saves').innerHTML=ABS.map(a=>{const prof=c.saves&&c.saves[a];return`<div class="save-disp"><div class="sd-dot ${prof?'prof':''}"></div><span>${AB_NAMES[a]}</span><span class="sd-bonus">${fmtMod(abMod(c[a]||10)+(prof?pb:0))}</span></div>`;}).join('');
+  document.getElementById('d-combat').innerHTML=`<div class="cd-box"><div class="cd-val">${c.ac||10}</div><div class="cd-lbl">AC</div></div><div class="cd-box"><div class="cd-val">${fmtMod(c.initiative||0)}</div><div class="cd-lbl">Init</div></div><div class="cd-box"><div class="cd-val">${c.speed||30}</div><div class="cd-lbl">Speed</div></div><div class="cd-box"><div class="cd-val">${c.level||1}${c.hitDice||'d8'}</div><div class="cd-lbl">HD</div></div><div class="cd-box"><div class="cd-val">${fmtMod(pb)}</div><div class="cd-lbl">Prof</div></div>`;
+  document.getElementById('d-curhp').value=c.currentHp||0;document.getElementById('d-maxhp').value=c.maxHp||0;
+  const pct=hpPct(c.currentHp||0,c.maxHp||1);const fill=document.getElementById('d-hp-fill');fill.style.width=pct+'%';fill.style.background=hpColor(pct);
   document.getElementById('d-attacks').textContent=c.attacks||'—';document.getElementById('d-equipment').textContent=c.equipment||'—';
   document.getElementById('d-gp').textContent=c.gp||0;document.getElementById('d-sp').textContent=c.sp||0;document.getElementById('d-cp').textContent=c.cp||0;
-  document.getElementById('d-skills').innerHTML=SKILLS.map(s=>{const prof=c.skills&&c.skills[s.key];return`<div class="sd-row"><div class="sd-dot ${prof?'prof':''}"></div><span>${s.name}</span><span class="sd-bonus">${fmtMod(abMod(c[s.ab]||10)+(prof?pb:0))}</span></div>`;}).join('');
-  const sf=[{l:'Personality Traits',v:c.traits},{l:'Ideals',v:c.ideals},{l:'Bonds',v:c.bonds},{l:'Flaws',v:c.flaws},{l:'Backstory',v:c.backstory},{l:'Features & Traits',v:c.features},{l:'Other Proficiencies',v:c.proficiencies},{l:'Notes',v:c.notes}];
-  document.getElementById('d-story').innerHTML=sf.filter(f=>f.v).map(f=>`<div class="story-entry"><div class="story-lbl">${f.l}</div><div class="story-val">${f.v}</div></div>`).join('')||'<div style="color:var(--text3);font-size:.83rem;">No story details yet.</div>';
+  document.getElementById('d-skills').innerHTML=SKILLS.map(s=>{const prof=c.skills&&c.skills[s.key];return`<div class="skill-row-d"><div class="sd-dot ${prof?'prof':''}"></div><span>${s.name}</span><span class="sd-bonus">${fmtMod(abMod(c[s.ab]||10)+(prof?pb:0))}</span></div>`;}).join('');
+  const sf=[{l:'Personality',v:c.traits},{l:'Ideals',v:c.ideals},{l:'Bonds',v:c.bonds},{l:'Flaws',v:c.flaws},{l:'Backstory',v:c.backstory},{l:'Features',v:c.features},{l:'Proficiencies',v:c.proficiencies},{l:'Notes',v:c.notes}];
+  document.getElementById('d-story').innerHTML=sf.filter(f=>f.v).map(f=>`<div class="story-entry"><div class="story-lbl">${f.l}</div><div class="story-val">${f.v}</div></div>`).join('')||'<div class="muted" style="font-size:.8rem;">No story details yet.</div>';
   const af=[{k:'age',l:'Age'},{k:'height',l:'Height'},{k:'weight',l:'Weight'},{k:'eyes',l:'Eyes'},{k:'hair',l:'Hair'},{k:'skin',l:'Skin'}];
-  const ah=af.filter(f=>c[f.k]).map(f=>`<div style="display:flex;gap:.5rem;margin-bottom:4px;font-size:.82rem;"><span style="color:var(--amber);min-width:60px;">${f.l}</span><span style="color:var(--text2);">${c[f.k]}</span></div>`).join('');
-  document.getElementById('d-appear-panel').style.display=ah?'block':'none';document.getElementById('d-appearance').innerHTML=ah;
+  const ah=af.filter(f=>c[f.k]).map(f=>`<div style="display:flex;gap:.5rem;margin-bottom:3px;font-size:.8rem;"><span style="color:var(--glow-d);min-width:55px;font-family:var(--font-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;">${f.l}</span><span style="color:var(--text3);">${c[f.k]}</span></div>`).join('');
+  const ap=document.getElementById('d-appear-panel');ap.style.display=ah?'block':'none';document.getElementById('d-appearance').innerHTML=ah;
   showView('view-char-detail');
 }
-function saveHpEdit(){const c=characters.find(x=>x.id===currentCharId);if(!c)return;c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(document.getElementById('d-curhp-inp').value)||0));DB.saveChar(c).then(()=>showCharDetail(currentCharId));}
+async function saveHp(){const c=characters.find(x=>x.id===currentCharId);if(!c)return;c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(document.getElementById('d-curhp').value)||0));await DB.save('characters',c,characters);showCharDetail(currentCharId);}
 function editCurrentChar(){showEditCharForm(currentCharId);}
-function deleteCurrentChar(){const c=characters.find(x=>x.id===currentCharId);if(!c||!confirm(`Delete ${c.name}? This cannot be undone.`))return;characters=characters.filter(x=>x.id!==currentCharId);DB.deleteChar(currentCharId).then(showCharList);}
+async function deleteCurrentChar(){const c=characters.find(x=>x.id===currentCharId);if(!c||!confirm(`Delete ${c.name}?`))return;characters=characters.filter(x=>x.id!==currentCharId);await DB.remove('characters',currentCharId,characters);updateStatus();showCharList();}
 
-// ══════════════════════════════════════════════════════════════════════════
-// SESSIONS
-// ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// SESSION SYSTEM
+// ══════════════════════════════════════════════════════════
+
 function showSessionList(){showView('view-sessions');renderSessionList();}
 function renderSessionList(){
   const el=document.getElementById('session-grid'),empty=document.getElementById('session-empty');
@@ -820,202 +1013,152 @@ function renderSessionList(){
   empty.style.display='none';
   const sorted=[...sessions].sort((a,b)=>b.number-a.number);
   el.innerHTML=sorted.map(s=>{
-    const party=(s.party||[]).map(id=>{const c=characters.find(x=>x.id===id);if(!c)return'';const col=classColor(c.class);return`<div class="avatar avatar-sm" style="background:${col}22;border-color:${col};color:${col}" title="${c.name}">${initials(c.name)}</div>`;}).join('');
+    const party=(s.party||[]).map(id=>{const c=characters.find(x=>x.id===id);if(!c)return'';const col=classColor(c.class);return`<div class="avatar avatar-sm" style="background:${col}20;border-color:${col};color:${col}" title="${c.name}">${initials(c.name)}</div>`;}).join('');
     return`<div class="session-card" onclick="showSessionDetail('${s.id}')">
       <div class="session-card-top">
-        <div class="session-num-badge">Session ${s.number}</div>
-        <div><div class="session-title-card">${s.title||'Untitled'}</div><div class="session-meta-card">${[fmtDate(s.date),s.location].filter(Boolean).join(' · ')||'No date'}</div></div>
+        <span class="badge badge-glow">Session ${s.number}</span>
+        <div><div class="session-title-c">${s.title||'Untitled'}</div><div class="session-meta-c">${[fmtDate(s.date),s.location].filter(Boolean).join(' · ')||'No date'}</div></div>
       </div>
-      ${s.summary?`<div class="session-summary-card">${s.summary}</div>`:''}
+      ${s.summary?`<div class="session-summary-c">${s.summary}</div>`:''}
       ${party?`<div class="session-party-row">${party}</div>`:''}
-      ${s.analysis?`<div class="analyzed-badge">✦ AI Analyzed · ${s.analysis.keyEvents?.length||0} events</div>`:''}
+      ${s.analysis?`<span class="badge badge-purple" style="margin-top:6px;display:inline-flex;">✦ AI · ${s.analysis.keyEvents?.length||0} events</span>`:''}
     </div>`;
   }).join('');
 }
+
 function buildPartyCheckGrid(){
   const el=document.getElementById('sf-party-grid');
-  if(!characters.length){el.innerHTML='<div style="font-size:.8rem;color:var(--text3);">No characters yet — create some in the Characters section.</div>';return;}
-  el.innerHTML=characters.map(c=>{const col=classColor(c.class);return`<label class="char-check-item" id="pi-${c.id}"><input type="checkbox" id="pc-${c.id}" onchange="document.getElementById('pi-${c.id}').classList.toggle('checked',this.checked)"><div class="avatar avatar-sm" style="background:${col}22;border-color:${col};color:${col}">${initials(c.name)}</div><div><div class="char-check-name">${c.name}</div><div class="char-check-sub">${[c.class,c.race].filter(Boolean).join(' · ')||'—'}</div></div></label>`;}).join('');
+  if(!characters.length){el.innerHTML='<div class="muted" style="font-size:.8rem;">No characters — add some first.</div>';return;}
+  el.innerHTML=characters.map(c=>{const col=classColor(c.class);return`<label class="party-check-item" id="pi-${c.id}"><input type="checkbox" id="pc-${c.id}" onchange="document.getElementById('pi-${c.id}').classList.toggle('selected',this.checked)"><div class="avatar avatar-sm" style="background:${col}20;border-color:${col};color:${col}">${initials(c.name)}</div><div><div class="party-check-name">${c.name}</div><div class="party-check-sub">${[c.class,c.race].filter(Boolean).join(' · ')||'—'}</div></div></label>`;}).join('');
 }
-function showAddSessionForm(){
-  editingSessionId=null;document.getElementById('session-form-title').textContent='Log New Session';
-  resetSessionForm();buildPartyCheckGrid();showView('view-session-form');
-}
-function showEditSessionForm(id){
-  const s=sessions.find(x=>x.id===id);if(!s)return;
-  editingSessionId=id;document.getElementById('session-form-title').textContent='Edit — '+s.title;
-  resetSessionForm();buildPartyCheckGrid();
-  sv('sf-number',s.number||1);sv('sf-title',s.title);sv('sf-date',s.date);sv('sf-location',s.location);sv('sf-dm',s.dm);sv('sf-hook',s.hook);sv('sf-summary',s.summary);sv('sf-transcript',s.transcript);sv('sf-tags',(s.tags||[]).join(', '));
-  (s.party||[]).forEach(id=>{const cb=document.getElementById('pc-'+id);const pi=document.getElementById('pi-'+id);if(cb)cb.checked=true;if(pi)pi.classList.add('checked');});
-  showView('view-session-form');
-}
-function resetSessionForm(){
-  const next=sessions.length?Math.max(...sessions.map(s=>s.number||0))+1:1;
-  sv('sf-number',next);sv('sf-title','');sv('sf-date',new Date().toISOString().split('T')[0]);sv('sf-location','');sv('sf-dm','');sv('sf-hook','');sv('sf-summary','');sv('sf-transcript','');sv('sf-tags','');
-}
-function submitSessionForm(){
-  const title=gv('sf-title').trim();if(!title){alert('Please enter a session title.');return;}
+function showAddSessionForm(){editingSessionId=null;document.getElementById('session-form-title').textContent='Log Session';resetSessionForm();buildPartyCheckGrid();showView('view-session-form');}
+function showEditSessionForm(id){const s=sessions.find(x=>x.id===id);if(!s)return;editingSessionId=id;document.getElementById('session-form-title').textContent='Edit — '+s.title;resetSessionForm();buildPartyCheckGrid();fillSessionForm(s);showView('view-session-form');}
+function resetSessionForm(){const next=sessions.length?Math.max(...sessions.map(s=>s.number||0))+1:1;sv('sf-number',next);['sf-title','sf-location','sf-dm','sf-hook','sf-summary','sf-transcript','sf-tags'].forEach(id=>sv(id,''));sv('sf-date',new Date().toISOString().split('T')[0]);}
+function fillSessionForm(s){sv('sf-number',s.number);sv('sf-title',s.title);sv('sf-date',s.date);sv('sf-location',s.location);sv('sf-dm',s.dm);sv('sf-hook',s.hook);sv('sf-summary',s.summary);sv('sf-transcript',s.transcript);sv('sf-tags',(s.tags||[]).join(', '));(s.party||[]).forEach(id=>{const cb=document.getElementById('pc-'+id);const pi=document.getElementById('pi-'+id);if(cb)cb.checked=true;if(pi)pi.classList.add('selected');});}
+async function submitSessionForm(){
+  const title=document.getElementById('sf-title').value.trim();if(!title){alert('Please enter a session title.');return;}
   const party=characters.filter(c=>document.getElementById('pc-'+c.id)?.checked).map(c=>c.id);
   const tags=gv('sf-tags').split(',').map(t=>t.trim()).filter(Boolean);
   const existing=editingSessionId?sessions.find(x=>x.id===editingSessionId):null;
   const s={id:editingSessionId||uid(),number:parseInt(gv('sf-number'))||1,title,date:gv('sf-date'),location:gv('sf-location'),dm:gv('sf-dm'),hook:gv('sf-hook'),summary:gv('sf-summary'),transcript:gv('sf-transcript'),tags,party,analysis:existing?.analysis||null,createdAt:existing?.createdAt||Date.now(),updatedAt:Date.now()};
   if(editingSessionId){const i=sessions.findIndex(x=>x.id===editingSessionId);if(i>-1)sessions[i]=s;}else sessions.push(s);
-  DB.saveSession(s).then(()=>showSessionDetail(s.id));
+  await DB.save('sessions',s,sessions);updateStatus();showSessionDetail(s.id);
 }
 function showSessionDetail(id){
   currentSessionId=id;const s=sessions.find(x=>x.id===id);if(!s){showSessionList();return;}
   document.getElementById('sd-num').textContent=`Session ${s.number}`;
   document.getElementById('sd-title').textContent=s.title||'Untitled';
-  const meta=[fmtDate(s.date),s.location,s.dm?'DM: '+s.dm:null].filter(Boolean);
-  document.getElementById('sd-meta').innerHTML=meta.map(m=>`<span>${m}</span>`).join('');
-  const party=(s.party||[]).map(id=>{const c=characters.find(x=>x.id===id);if(!c)return'';const col=classColor(c.class);return`<div class="party-member"><div class="avatar avatar-sm" style="background:${col}22;border-color:${col};color:${col}">${initials(c.name)}</div>${c.name}</div>`;}).join('');
-  document.getElementById('sd-party').innerHTML=party;
+  document.getElementById('sd-meta').innerHTML=[fmtDate(s.date),s.location,s.dm?'DM: '+s.dm:null].filter(Boolean).map(m=>`<span>${m}</span>`).join('');
+  document.getElementById('sd-party').innerHTML=(s.party||[]).map(id=>{const c=characters.find(x=>x.id===id);if(!c)return'';const col=classColor(c.class);return`<div class="party-member-d"><div class="avatar avatar-sm" style="background:${col}20;border-color:${col};color:${col}">${initials(c.name)}</div>${c.name}</div>`;}).join('');
   const sp=document.getElementById('sd-summary-panel');if(s.summary){sp.style.display='block';document.getElementById('sd-summary').textContent=s.summary;}else sp.style.display='none';
   const hp=document.getElementById('sd-hook-panel');if(s.hook){hp.style.display='block';document.getElementById('sd-hook-txt').textContent=s.hook;}else hp.style.display='none';
-  const tp=document.getElementById('sd-tags-panel');if(s.tags?.length){tp.style.display='block';document.getElementById('sd-tags-display').innerHTML=s.tags.map(t=>`<span class="loot-tag">${t}</span>`).join('');}else tp.style.display='none';
-  document.getElementById('sd-transcript').textContent=s.transcript||'No transcript added.';
-  const wc=wordCount(s.transcript);document.getElementById('sd-wc').textContent=wc?`${wc.toLocaleString()} words`:'';
-  if(s.analysis)renderAnalysis(s.analysis,s);
-  else document.getElementById('ai-content').innerHTML='<p style="font-size:.82rem;color:var(--text3);line-height:1.7;">Click <strong style="color:#9060e0;">✦ Analyze with AI</strong> to extract key events, NPCs, loot &amp; plot threads from your transcript — and generate a cinematic image prompt for each scene.</p>';
-  document.getElementById('ai-btn').disabled=false;document.getElementById('ai-btn').textContent='✦ Analyze with AI';
+  const tp=document.getElementById('sd-tags-panel');if(s.tags?.length){tp.style.display='block';document.getElementById('sd-tags-display').innerHTML=s.tags.map(t=>`<span class="badge badge-ghost">${t}</span>`).join('');}else tp.style.display='none';
+  document.getElementById('sd-transcript').textContent=s.transcript||'No transcript.';
+  const words=wc(s.transcript);document.getElementById('sd-wc').textContent=words?`${words.toLocaleString()} words`:'';
+  if(s.analysis)renderAnalysis(s.analysis);
+  else document.getElementById('ai-content').innerHTML='<p style="font-size:.78rem;color:var(--text3);line-height:1.6;">Click <strong style="color:var(--purple);">✦ Analyze</strong> to extract key events, NPCs, loot, plot hooks and cinematic image prompts.</p>';
+  const btn=document.getElementById('ai-btn');btn.disabled=false;btn.textContent='✦ Analyze';
   showView('view-session-detail');
 }
-function renderAnalysis(analysis,session){
-  let html='';
-  if(analysis.keyEvents?.length){
-    html+='<div class="section-label">Key Events</div>';
-    html+=analysis.keyEvents.map((e,i)=>{
-      const tc=TYPE_CLASS[e.type]||'t-other';
-      const chars=(e.characters||[]).map(n=>`<span class="event-char-tag">${n}</span>`).join('');
-      const prompt=e.imagePrompt?`<button class="prompt-toggle" onclick="togglePrompt(${i})">▸ View image prompt</button><div class="prompt-box" id="eprompt-${i}">${e.imagePrompt.replace(/</g,'&lt;')}<br><button class="copy-btn" onclick="copyPrompt(${i})">Copy prompt</button></div>`:'';
-      return`<div class="event-card"><div class="event-card-top"><span class="event-type-badge ${tc}">${e.type||'event'}</span><div class="event-title">${e.title||'Event'}</div></div><div class="event-desc">${e.description||''}</div>${chars?`<div class="event-chars">${chars}</div>`:''}${prompt}</div>`;
-    }).join('');
-  }
-  if(analysis.npcs?.length){html+='<div class="section-label" style="margin-top:.5rem;">NPCs Encountered</div><div class="npc-list">'+analysis.npcs.map(n=>`<div class="npc-row"><div class="npc-name">${n.name}</div>${n.description?`<div class="npc-desc">${n.description}</div>`:''}</div>`).join('')+'</div>';}
-  if(analysis.loot?.length){html+='<div class="section-label">Loot &amp; Rewards</div><div class="loot-wrap">'+analysis.loot.map(l=>`<span class="loot-tag">${l}</span>`).join('')+'</div>';}
-  if(analysis.plotHooks?.length){html+='<div class="section-label">Plot Threads</div><ul class="plot-list">'+analysis.plotHooks.map(h=>`<li>${h}</li>`).join('')+'</ul>';}
-  if(analysis.summary){const sp=document.getElementById('sd-summary-panel');sp.style.display='block';document.getElementById('sd-summary').textContent=analysis.summary;}
-  document.getElementById('ai-content').innerHTML=html||'<p style="color:var(--text3);font-size:.82rem;">No events extracted.</p>';
+function renderAnalysis(a){
+  let h='';
+  if(a.keyEvents?.length){h+='<div class="section-label">Key Events</div>';h+=a.keyEvents.map((e,i)=>{const cc=TYPE_CSS[e.type]||'t-other';const chars=(e.characters||[]).map(n=>`<span class="event-char-tag">${n}</span>`).join('');const prompt=e.imagePrompt?`<button class="prompt-toggle" onclick="togglePrompt(${i})">▸ image prompt</button><div class="prompt-box" id="ep-${i}">${e.imagePrompt}<br><button class="copy-btn" onclick="copyPrompt(${i})">Copy</button></div>`:'';return`<div class="event-card"><div class="event-card-top"><span class="event-type-badge ${cc}">${e.type||'event'}</span><div class="event-title">${e.title||''}</div></div><div class="event-desc">${e.description||''}</div>${chars?`<div class="event-chars">${chars}</div>`:''}${prompt}</div>`;}).join('');}
+  if(a.npcs?.length){h+='<div class="section-label" style="margin-top:.5rem;">NPCs</div>'+a.npcs.map(n=>`<div class="npc-row"><div class="npc-name">${n.name}</div>${n.description?`<div class="npc-desc">${n.description}</div>`:''}</div>`).join('');}
+  if(a.loot?.length){h+='<div class="section-label">Loot</div><div class="loot-wrap">'+a.loot.map(l=>`<span class="loot-tag">${l}</span>`).join('')+'</div>';}
+  if(a.plotHooks?.length){h+='<div class="section-label">Plot Threads</div><ul class="plot-list">'+a.plotHooks.map(x=>`<li>${x}</li>`).join('')+'</ul>';}
+  if(a.summary){const sp=document.getElementById('sd-summary-panel');sp.style.display='block';document.getElementById('sd-summary').textContent=a.summary;}
+  document.getElementById('ai-content').innerHTML=h||'<p class="muted">No events extracted.</p>';
 }
-function togglePrompt(i){const box=document.getElementById('eprompt-'+i);const btn=box.previousElementSibling;box.classList.toggle('open');btn.textContent=box.classList.contains('open')?'▾ Hide image prompt':'▸ View image prompt';}
-function copyPrompt(i){const box=document.getElementById('eprompt-'+i);const text=box.textContent.replace('Copy prompt','').trim();navigator.clipboard.writeText(text).then(()=>{const btn=box.querySelector('.copy-btn');btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy prompt',2000);});}
-
+function togglePrompt(i){const b=document.getElementById('ep-'+i);const t=b.previousElementSibling;b.classList.toggle('open');t.textContent=b.classList.contains('open')?'▾ image prompt':'▸ image prompt';}
+function copyPrompt(i){const b=document.getElementById('ep-'+i);navigator.clipboard.writeText(b.textContent.replace('Copy','').trim()).then(()=>{const btn=b.querySelector('.copy-btn');btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);});}
 async function runAIAnalysis(){
   const s=sessions.find(x=>x.id===currentSessionId);if(!s)return;
-  if(!s.transcript&&!s.summary){alert('Add a transcript or summary before analyzing.');return;}
-  const btn=document.getElementById('ai-btn');
-  btn.disabled=true;btn.textContent='Analyzing…';
-  document.getElementById('ai-content').innerHTML='<div class="ai-loading"><div class="spin">⚙</div><p>Consulting the arcane scrolls…<br><span style="font-size:.75rem;color:var(--text3);">Extracting events, NPCs, and building scene prompts</span></p></div>';
+  if(!s.transcript&&!s.summary){alert('Add a transcript or summary first.');return;}
+  const btn=document.getElementById('ai-btn');btn.disabled=true;btn.textContent='Analyzing…';
+  document.getElementById('ai-content').innerHTML=`<div class="ai-loading"><div class="spinner">᛭</div><p>Consulting the arcane scrolls…<br><span style="font-size:.72rem;">Extracting events, NPCs, and building scene prompts</span></p></div>`;
   const partyNames=(s.party||[]).map(id=>characters.find(x=>x.id===id)?.name).filter(Boolean).join(', ')||'Unknown party';
-  const content=(s.transcript||s.summary||'').slice(0,8000);
-  const prompt=`Analyze this D&D session. Respond ONLY with valid JSON, no markdown fences.
-
-Session: ${s.title} (#${s.number})
-Date: ${s.date||'Unknown'} | Location: ${s.location||'Unknown'} | Party: ${partyNames}
-${s.summary?'DM Notes: '+s.summary:''}
-
-Content:
-${content}
-
-Return this JSON:
-{
-  "summary": "2-3 sentence session overview",
-  "keyEvents": [
-    {
-      "title": "Short dramatic event title",
-      "description": "What happened in 1-2 sentences",
-      "type": "combat|story|discovery|roleplay|other",
-      "characters": ["names of characters/NPCs directly involved"],
-      "imagePrompt": "Cinematic image generation prompt for this scene. Specify: fantasy art style (e.g. dark fantasy oil painting), lighting, mood, colors, composition, specific visual details. Write at least 80 words. Make it something a concept artist could paint from."
-    }
-  ],
-  "npcs": [{"name":"NPC name","description":"Their role this session"}],
-  "loot": ["item or reward"],
-  "plotHooks": ["unresolved thread or foreshadowed event"]
-}
-
-Extract 3-7 key events. Image prompts must be vivid and cinematic.`;
+  const prompt=`Analyze this D&D session. Respond ONLY with valid JSON, no markdown fences.\nSession: ${s.title} (#${s.number})\nDate: ${s.date||'Unknown'} | Location: ${s.location||'Unknown'} | Party: ${partyNames}\n${s.summary?'DM Notes: '+s.summary:''}\n\nContent:\n${(s.transcript||s.summary||'').slice(0,8000)}\n\nReturn this JSON:\n{\n  "summary": "2-3 sentence overview",\n  "keyEvents": [{"title":"","description":"","type":"combat|story|discovery|roleplay|other","characters":[],"imagePrompt":"80+ word cinematic image generation prompt with art style, lighting, mood, colors, composition"}],\n  "npcs": [{"name":"","description":""}],\n  "loot": ["item"],\n  "plotHooks": ["unresolved thread"]\n}\nExtract 3-7 key events. Image prompts must be vivid and cinematic.`;
   try{
     const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await resp.json();
     const raw=data.content?.map(b=>b.text||'').join('')||'';
-    const clean=raw.replace(/```json|```/g,'').trim();
-    const analysis=JSON.parse(clean);
+    const analysis=JSON.parse(raw.replace(/```json|```/g,'').trim());
     const idx=sessions.findIndex(x=>x.id===currentSessionId);
     if(idx>-1){sessions[idx].analysis=analysis;if(!sessions[idx].summary&&analysis.summary)sessions[idx].summary=analysis.summary;}
-    await DB.saveSession(sessions.find(x=>x.id===currentSessionId));
-    renderAnalysis(analysis,sessions.find(x=>x.id===currentSessionId));
-  }catch(err){
-    document.getElementById('ai-content').innerHTML=`<p style="color:var(--red);font-size:.82rem;">Analysis failed: ${err.message||'Unknown error'}. Check that transcript content exists and try again.</p>`;
-  }
+    await DB.save('sessions',sessions.find(x=>x.id===currentSessionId),sessions);
+    renderAnalysis(analysis);
+  }catch(err){document.getElementById('ai-content').innerHTML=`<p style="color:var(--red);font-size:.78rem;">Analysis failed: ${err.message}</p>`;}
   btn.disabled=false;btn.textContent='✦ Re-analyze';
 }
 function editCurrentSession(){showEditSessionForm(currentSessionId);}
-function deleteCurrentSession(){const s=sessions.find(x=>x.id===currentSessionId);if(!s||!confirm(`Delete Session ${s.number}: "${s.title}"? This cannot be undone.`))return;sessions=sessions.filter(x=>x.id!==currentSessionId);DB.deleteSession(currentSessionId).then(showSessionList);}
+async function deleteCurrentSession(){const s=sessions.find(x=>x.id===currentSessionId);if(!s||!confirm(`Delete Session ${s.number}: "${s.title}"?`))return;sessions=sessions.filter(x=>x.id!==currentSessionId);await DB.remove('sessions',currentSessionId,sessions);updateStatus();showSessionList();}
 
-// ── CLOUD SETTINGS UI ─────────────────────────────────────────────────────
+// ── CLOUD MODAL ────────────────────────────────────────────
 function openCloudModal(){
-  const modal=document.getElementById('cloud-modal');
-  modal.style.display='flex';
+  document.getElementById('cloud-overlay').classList.add('open');
+  document.getElementById('sb-url').value=DB.sb?.url||'';
+  document.getElementById('sb-key').value=DB.sb?.key||'';
   const isCloud=DB.isCloud;
-  document.getElementById('sb-url').value=DB.sb?.url||'https://qavuogmqssjrsaylthdw.supabase.co';
-  document.getElementById('sb-key').value=DB.sb?.key||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdnVvZ21xc3NqcnNheWx0aGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTQyMzQsImV4cCI6MjA5MTQ5MDIzNH0.jpP1vHqs2nvy0HEOnoglXOboSDNC-Nm1DZjaTWnSBdw';
-  document.getElementById('sb-disconnect-btn').style.display=isCloud?'block':'none';
+  document.getElementById('sb-disc-btn').style.display=isCloud?'block':'none';
   document.getElementById('sb-connect-btn').textContent=isCloud?'Re-test & Reconnect':'Test & Connect';
-  const localHasData=localStorage.getItem('dnd-chars')||localStorage.getItem('dnd-sessions');
-  document.getElementById('migrate-section').style.display=(isCloud&&localHasData)?'block':'none';
-  const statusEl=document.getElementById('cloud-modal-status');
-  if(isCloud){statusEl.innerHTML='<span style="color:#50c090;">&#9679; Connected</span> — data syncs to Supabase on every save. Works across all your devices and browsers.';}
-  else{statusEl.innerHTML='Currently using <strong>browser localStorage</strong> — data stays on this device. Connect Supabase to sync across devices.';}
+  const local=localStorage.getItem('toh-characters')||localStorage.getItem('toh-sessions');
+  document.getElementById('migrate-panel').style.display=(isCloud&&local)?'block':'none';
+  document.getElementById('cloud-status').innerHTML=isCloud?'<span style="color:var(--glow)">● Connected</span> — data syncs to Supabase on every save.':'Currently using <strong>browser localStorage</strong>. Connect Supabase to sync across devices.';
 }
-function closeCloudModal(){document.getElementById('cloud-modal').style.display='none';}
+function closeCloudModal(){document.getElementById('cloud-overlay').classList.remove('open');}
 async function testAndConnect(){
-  const url=document.getElementById('sb-url').value.trim();
-  const key=document.getElementById('sb-key').value.trim();
-  if(!url||!key){alert('Please enter both your Supabase URL and anon key.');return;}
-  const btn=document.getElementById('sb-connect-btn');
-  btn.textContent='Testing...';btn.disabled=true;
+  const url=document.getElementById('sb-url').value.trim(),key=document.getElementById('sb-key').value.trim();
+  if(!url||!key){alert('Enter both URL and key.');return;}
+  const btn=document.getElementById('sb-connect-btn');btn.textContent='Testing…';btn.disabled=true;
   try{
-    await DB.test(url,key);
-    await DB.configure(url,key);
-    // Reload data from cloud
-    await DB.loadAll();
-    renderCharList();renderSessionList();
-    showDataStatus();
-    // Check if there's local data to migrate
-    const localHasData=localStorage.getItem('dnd-chars')||localStorage.getItem('dnd-sessions');
-    document.getElementById('migrate-section').style.display=localHasData?'block':'none';
-    document.getElementById('sb-disconnect-btn').style.display='block';
-    document.getElementById('cloud-modal-status').innerHTML='<span style="color:#50c090;">&#9679; Connected successfully!</span> Your data now syncs to Supabase.';
-    btn.textContent='Re-test & Reconnect';
-  }catch(err){
-    document.getElementById('cloud-modal-status').innerHTML='<span style="color:#b84a3a;">&#9679; Connection failed:</span> '+err.message+'<br><small style="color:var(--text3)">Check your URL and key, and make sure you ran the SQL setup in Supabase.</small>';
-  }
+    await DB.test(url,key);await DB.configure(url,key);
+    [characters,sessions]=await Promise.all([DB.load('characters'),DB.load('sessions')]);
+    renderCharList();renderSessionList();updateStatus();
+    document.getElementById('cloud-status').innerHTML='<span style="color:var(--glow)">● Connected!</span> Data now syncs to Supabase.';
+    document.getElementById('sb-disc-btn').style.display='block';btn.textContent='Re-test & Reconnect';
+  }catch(err){document.getElementById('cloud-status').innerHTML=`<span style="color:var(--red)">● Failed:</span> ${err.message}`;}
   btn.disabled=false;
 }
 async function disconnectCloud(){
-  if(!confirm('Disconnect from Supabase?\n\nYour cloud data stays in Supabase safely. The app will fall back to this browser\'s local storage.'))return;
-  DB.disconnect();
-  // Reload from local
-  await DB.loadAll();
-  renderCharList();renderSessionList();
-  showDataStatus();
-  closeCloudModal();
+  if(!confirm('Disconnect from Supabase? Your cloud data stays safe.'))return;
+  DB.disconnect();[characters,sessions]=await Promise.all([DB.load('characters'),DB.load('sessions')]);
+  renderCharList();renderSessionList();updateStatus();closeCloudModal();
 }
 async function migrateToCloud(){
-  const btn=event.target;btn.textContent='Migrating...';btn.disabled=true;
+  const btn=event.target;btn.textContent='Migrating…';btn.disabled=true;
   try{
-    const result=await DB.migrate();
-    alert(`Migrated ${result.chars} character(s) and ${result.sessions} session(s) to Supabase. \n\nYou can now safely use the app from any device.`);
-    document.getElementById('migrate-section').style.display='none';
+    const r=await DB.migrate([{name:'characters',key:'toh-characters'},{name:'sessions',key:'toh-sessions'}]);
+    alert(`Migrated ${r.characters||0} character(s) and ${r.sessions||0} session(s).`);
+    document.getElementById('migrate-panel').style.display='none';
   }catch(err){alert('Migration failed: '+err.message);}
-  btn.textContent='⬆ Push local data to cloud';btn.disabled=false;
+  btn.textContent='⬆ Push to cloud';btn.disabled=false;
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────
-buildSkillsForm();
-DB.init();
-DB.loadAll().then(()=>{renderCharList();showDataStatus();});
+// ── BACKUP ─────────────────────────────────────────────────
+function exportData(){
+  const blob=new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),characters,sessions},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`tome-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);
+}
+function handleImport(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=async ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(!d.characters||!d.sessions)throw new Error('Invalid backup format.');
+      const merge=characters.length&&confirm('Merge? OK = merge, Cancel = replace all');
+      if(merge){const ids=new Set(characters.map(c=>c.id));characters=[...characters,...d.characters.filter(c=>!ids.has(c.id))];const sids=new Set(sessions.map(s=>s.id));sessions=[...sessions,...d.sessions.filter(s=>!sids.has(s.id))];}
+      else{characters=d.characters;sessions=d.sessions;}
+      await DB.saveAll('characters',characters);await DB.saveAll('sessions',sessions);
+      renderCharList();updateStatus();alert(`Loaded ${characters.length} character(s) and ${sessions.length} session(s).`);
+    }catch(err){alert('Import failed: '+err.message);}
+    e.target.value='';
+  };
+  r.readAsText(file);
+}
+
+// ── INIT ───────────────────────────────────────────────────
+init();
 </script>
 </body>
 </html>
