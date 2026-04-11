@@ -1,0 +1,411 @@
+/* ============================================================
+   TOME OF HEROES — Map System
+   Handles: map list, image loading, token placement,
+   token dragging, scenario save/load, quick save
+   ============================================================ */
+
+let maps = [];
+let currentMapId = null;
+let placingCharId = null;
+let _dragTokenId = null;
+let _dragOffX = 0, _dragOffY = 0;
+
+// ── LOAD ──────────────────────────────────────────────────────────────────────
+async function loadMaps() {
+  maps = await DB.load('maps');
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function showMapList() {
+  showView('view-map-list');
+  renderMapList();
+}
+
+// ── MAP LIST ──────────────────────────────────────────────────────────────────
+function renderMapList() {
+  const grid = document.getElementById('map-grid');
+  const empty = document.getElementById('map-list-empty');
+  const count = document.getElementById('map-count');
+  count.textContent = maps.length ? `(${maps.length})` : '';
+
+  if (!maps.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = maps.map(m => {
+    const bg = m.imageData || m.imageUrl;
+    const scenCount = Object.keys(m.scenarios || {}).length;
+    const tokCount = (m.tokens || []).length;
+    return `<div class="map-card" onclick="openMapEditor('${m.id}')">
+      <div class="map-card-thumb" ${bg ? `style="background-image:url('${bg}')"` : ''}>${!bg ? '<span style="font-size:1.5rem;opacity:.3;">🗺</span>' : ''}</div>
+      <div class="map-card-body">
+        <div class="map-card-name">${esc(m.name || 'Unnamed Map')}</div>
+        <div class="map-card-meta">${scenCount} scenario${scenCount !== 1 ? 's' : ''} · ${tokCount} token${tokCount !== 1 ? 's' : ''}</div>
+      </div>
+      <button class="btn btn-sm btn-danger map-card-del" onclick="event.stopPropagation();deleteMap('${m.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ── NEW MAP MODAL ─────────────────────────────────────────────────────────────
+function showNewMapModal() {
+  document.getElementById('new-map-overlay').classList.add('open');
+  document.getElementById('nm-name').value = '';
+  document.getElementById('nm-url').value = '';
+  document.getElementById('nm-file').value = '';
+  document.getElementById('nm-preview').style.display = 'none';
+  document.getElementById('nm-err').textContent = '';
+}
+function closeNewMapModal() {
+  document.getElementById('new-map-overlay').classList.remove('open');
+}
+function handleNmUrl() {
+  const url = document.getElementById('nm-url').value.trim();
+  const prev = document.getElementById('nm-preview');
+  if (url) {
+    prev.src = url;
+    prev.style.display = 'block';
+    prev.onerror = () => { document.getElementById('nm-err').textContent = 'Cannot load image from that URL.'; prev.style.display = 'none'; };
+    prev.onload = () => { document.getElementById('nm-err').textContent = ''; };
+  } else {
+    prev.style.display = 'none';
+  }
+}
+function handleNmFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    document.getElementById('nm-err').textContent = 'File too large (max 5 MB). Use a URL instead for big maps.';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const prev = document.getElementById('nm-preview');
+    prev.src = ev.target.result;
+    prev.style.display = 'block';
+    document.getElementById('nm-url').value = '';
+    document.getElementById('nm-err').textContent = '';
+  };
+  reader.readAsDataURL(file);
+}
+async function createMap() {
+  const name = document.getElementById('nm-name').value.trim();
+  if (!name) { document.getElementById('nm-err').textContent = 'Map name is required.'; return; }
+
+  const urlVal = document.getElementById('nm-url').value.trim();
+  const prev = document.getElementById('nm-preview');
+  let imageUrl = null, imageData = null;
+
+  if (urlVal) {
+    imageUrl = urlVal;
+  } else if (prev.src.startsWith('data:')) {
+    imageData = prev.src;
+  } else {
+    document.getElementById('nm-err').textContent = 'Provide an image URL or upload a file.';
+    return;
+  }
+
+  const btn = document.getElementById('nm-create-btn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+
+  const m = { id: uid(), name, imageUrl, imageData, tokens: [], scenarios: {}, createdAt: Date.now(), updatedAt: Date.now() };
+  maps.push(m);
+  await DB.save('maps', m, maps);
+  closeNewMapModal();
+  openMapEditor(m.id);
+  btn.disabled = false; btn.textContent = 'Create Map';
+}
+async function deleteMap(id) {
+  const m = maps.find(x => x.id === id);
+  if (!m || !confirm(`Delete map "${m.name}"?\n\nAll tokens and scenarios will be permanently removed.`)) return;
+  maps = maps.filter(x => x.id !== id);
+  await DB.remove('maps', id, maps);
+  renderMapList();
+}
+
+// ── MAP EDITOR ────────────────────────────────────────────────────────────────
+function openMapEditor(id) {
+  currentMapId = id;
+  placingCharId = null;
+  const m = maps.find(x => x.id === id);
+  if (!m) { showMapList(); return; }
+
+  showView('view-map-editor');
+
+  // Header
+  document.getElementById('me-name').value = m.name;
+
+  // Load image
+  const img = document.getElementById('map-img');
+  img.src = m.imageData || m.imageUrl || '';
+  img.onload = () => renderTokensOnMap();
+  if (img.complete && img.naturalWidth) renderTokensOnMap();
+
+  // Sidebar + scenarios
+  renderTokenSidebar();
+  renderScenarioSelect();
+  setPlacingMode(null);
+}
+
+async function saveMapName() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  m.name = document.getElementById('me-name').value.trim() || 'Unnamed Map';
+  m.updatedAt = Date.now();
+  await saveCurrentMap();
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function renderTokenSidebar() {
+  const el = document.getElementById('token-sidebar-chars');
+  if (!characters.length) {
+    el.innerHTML = '<div style="font-size:.75rem;color:var(--text4);padding:.5rem;">No characters yet.</div>';
+    return;
+  }
+  el.innerHTML = characters.map(c => {
+    const col = classColor(c.class);
+    return `<div class="sidebar-char-item" id="sci-${c.id}" onclick="selectCharForPlace('${c.id}')" title="Click to place on map">
+      <div class="avatar avatar-sm" style="background:${col}20;border-color:${col};color:${col};">${initials(c.name)}</div>
+      <div style="min-width:0;">
+        <div style="font-size:.78rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</div>
+        <div style="font-size:.62rem;color:var(--text4);">${c.class || '—'} · Lv ${c.level || 1}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectCharForPlace(charId) {
+  if (placingCharId === charId) { setPlacingMode(null); return; }
+  setPlacingMode(charId);
+}
+
+function setPlacingMode(charId) {
+  placingCharId = charId;
+  document.querySelectorAll('.sidebar-char-item').forEach(el => el.classList.remove('placing'));
+  const stage = document.getElementById('map-stage');
+  const hint = document.getElementById('place-hint');
+  if (charId) {
+    document.getElementById('sci-' + charId)?.classList.add('placing');
+    stage.style.cursor = 'crosshair';
+    hint.style.display = 'flex';
+  } else {
+    stage.style.cursor = '';
+    hint.style.display = 'none';
+  }
+}
+
+// ── TOKEN PLACEMENT ───────────────────────────────────────────────────────────
+function mapStageClick(e) {
+  if (!placingCharId) return;
+  if (e.target.closest('.map-token')) return;
+
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+
+  const pos = getPosOnImg(e);
+  const token = { id: uid(), characterId: placingCharId, x: pos.x, y: pos.y, size: 1 };
+  m.tokens = m.tokens || [];
+  m.tokens.push(token);
+  m.updatedAt = Date.now();
+
+  saveCurrentMap();
+  renderTokensOnMap();
+  setPlacingMode(null);
+}
+
+function getPosOnImg(e) {
+  const img = document.getElementById('map-img');
+  const r = img.getBoundingClientRect();
+  return {
+    x: Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100)),
+    y: Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100))
+  };
+}
+
+// ── TOKEN RENDERING ───────────────────────────────────────────────────────────
+function renderTokensOnMap() {
+  const m = maps.find(x => x.id === currentMapId);
+  const overlay = document.getElementById('token-overlay');
+  if (!m) { overlay.innerHTML = ''; return; }
+
+  overlay.innerHTML = (m.tokens || []).map(tok => {
+    const c = characters.find(x => x.id === tok.characterId);
+    const col = c ? classColor(c.class) : '#506050';
+    const ini = c ? initials(c.name) : '?';
+    const name = c ? c.name : 'Unknown';
+    const pct = c ? hpPct(c.currentHp || 0, c.maxHp || 1) : 100;
+    const hpC = hpColor(pct);
+    const sz = Math.round((tok.size || 1) * 42);
+
+    const display = c?.icon || ini;
+    const isEmoji = c?.icon && c.icon.length > 0;
+    const displaySize = isEmoji ? Math.round(sz * 0.52) : Math.round(sz * 0.33);
+
+    return `<div class="map-token" id="tok-${tok.id}"
+        style="left:${tok.x.toFixed(2)}%;top:${tok.y.toFixed(2)}%;width:${sz}px;height:${sz}px;border-color:${col};background:${col}28;color:${col};"
+        onpointerdown="startTokenDrag(event,'${tok.id}')"
+        title="${esc(name)}">
+      <span style="font-size:${displaySize}px;line-height:1;pointer-events:none;user-select:none;">${display}</span>
+      <svg viewBox="0 0 36 36" style="position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);pointer-events:none;">
+        <circle cx="18" cy="18" r="16" fill="none" stroke="${hpC}" stroke-width="2.5"
+          stroke-dasharray="${(pct / 100 * 100.5).toFixed(1)} 100.5"
+          stroke-dashoffset="25.1" stroke-linecap="round"
+          transform="rotate(-90 18 18)" opacity="0.7"/>
+      </svg>
+      <div class="token-label">${esc(name)}</div>
+      <button class="token-del" onclick="event.stopPropagation();removeToken('${tok.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ── TOKEN DRAG ────────────────────────────────────────────────────────────────
+function startTokenDrag(e, tokenId) {
+  if (placingCharId) return;
+  e.stopPropagation();
+  e.preventDefault();
+
+  _dragTokenId = tokenId;
+  const tok = document.getElementById('tok-' + tokenId);
+  if (!tok) return;
+
+  const tokR = tok.getBoundingClientRect();
+  _dragOffX = e.clientX - (tokR.left + tokR.width / 2);
+  _dragOffY = e.clientY - (tokR.top + tokR.height / 2);
+
+  tok.classList.add('dragging');
+  tok.setPointerCapture(e.pointerId);
+
+  tok.onpointermove = ev => {
+    const img = document.getElementById('map-img');
+    const r = img.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((ev.clientX - _dragOffX - r.left) / r.width) * 100));
+    const y = Math.max(0, Math.min(100, ((ev.clientY - _dragOffY - r.top) / r.height) * 100));
+    tok.style.left = x.toFixed(2) + '%';
+    tok.style.top = y.toFixed(2) + '%';
+  };
+
+  tok.onpointerup = async ev => {
+    tok.classList.remove('dragging');
+    tok.onpointermove = null;
+    tok.onpointerup = null;
+    tok.releasePointerCapture(ev.pointerId);
+
+    const img = document.getElementById('map-img');
+    const r = img.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((ev.clientX - _dragOffX - r.left) / r.width) * 100));
+    const y = Math.max(0, Math.min(100, ((ev.clientY - _dragOffY - r.top) / r.height) * 100));
+
+    const m = maps.find(mx => mx.id === currentMapId);
+    if (m) {
+      const token = m.tokens.find(t => t.id === _dragTokenId);
+      if (token) { token.x = x; token.y = y; m.updatedAt = Date.now(); }
+    }
+    await saveCurrentMap();
+    _dragTokenId = null;
+  };
+}
+
+async function removeToken(tokenId) {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  m.tokens = m.tokens.filter(t => t.id !== tokenId);
+  m.updatedAt = Date.now();
+  await saveCurrentMap();
+  renderTokensOnMap();
+}
+
+// ── SCENARIOS ─────────────────────────────────────────────────────────────────
+function renderScenarioSelect() {
+  const m = maps.find(x => x.id === currentMapId);
+  const sel = document.getElementById('scenario-sel');
+  const scens = Object.values(m?.scenarios || {}).sort((a, b) => b.savedAt - a.savedAt);
+  const named = scens.filter(s => !s.isQuickSave);
+  sel.innerHTML = '<option value="">— Select snapshot —</option>' +
+    named.map(s => `<option value="${s.id}">${esc(s.name)} · ${new Date(s.savedAt).toLocaleDateString()}</option>`).join('');
+}
+
+async function quickSave() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+
+  const existing = Object.values(m.scenarios || {}).find(s => s.isQuickSave);
+  const scen = { id: existing?.id || uid(), name: '⚡ Quick Save', isQuickSave: true, savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])) };
+  m.scenarios = m.scenarios || {};
+  m.scenarios[scen.id] = scen;
+  m.updatedAt = Date.now();
+  await saveCurrentMap();
+  renderScenarioSelect();
+  flashBtn('quick-save-btn', '✓ Saved!', '⚡ Save');
+}
+
+async function saveNamedScenario() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+
+  const name = prompt('Name this scenario:', `Session pause — ${new Date().toLocaleDateString()}`);
+  if (!name?.trim()) return;
+
+  const scen = { id: uid(), name: name.trim(), savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])) };
+  m.scenarios = m.scenarios || {};
+  m.scenarios[scen.id] = scen;
+  m.updatedAt = Date.now();
+  await saveCurrentMap();
+  renderScenarioSelect();
+  flashBtn('save-scen-btn', '✓ Saved!', 'save-scen-btn');
+}
+
+async function loadScenario() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+
+  const sel = document.getElementById('scenario-sel');
+  const scenId = sel.value;
+  if (!scenId) return;
+
+  const scen = m.scenarios[scenId];
+  if (!scen) return;
+
+  if (!confirm(`Load "${scen.name}"?\n\nCurrent token positions will be replaced.`)) { sel.value = ''; return; }
+
+  m.tokens = JSON.parse(JSON.stringify(scen.tokens));
+  m.updatedAt = Date.now();
+  await saveCurrentMap();
+  renderTokensOnMap();
+  sel.value = '';
+}
+
+async function deleteScenario() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  const sel = document.getElementById('scenario-sel');
+  const scenId = sel.value;
+  if (!scenId) return;
+  const scen = m.scenarios[scenId];
+  if (!scen || !confirm(`Delete scenario "${scen.name}"?`)) return;
+  delete m.scenarios[scenId];
+  m.updatedAt = Date.now();
+  await saveCurrentMap();
+  renderScenarioSelect();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+async function saveCurrentMap() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  await DB.save('maps', m, maps);
+}
+
+function flashBtn(id, text, resetTo) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  const orig = resetTo || btn.textContent;
+  btn.textContent = text;
+  setTimeout(() => btn.textContent = orig, 1800);
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
