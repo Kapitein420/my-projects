@@ -3,355 +3,1018 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Projects</title>
+<title>Tome of Heroes — D&D Campaign Tracker</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
+*{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0d1117;--bg-card:#161b22;--bg-raised:#1c2128;--bg-input:#0d1117;
-  --border:#30363d;--border2:#484f58;
-  --text:#e6edf3;--text2:#8b949e;--text3:#484f58;
-  --blue:#58a6ff;--blue-bg:#0d2137;--blue-border:#1f4060;
-  --green:#3fb950;--amber:#d29922;
-  --r:10px;
-  --font:system-ui,-apple-system,'Segoe UI',sans-serif;
+  --bg:#0f0d09;--bg-card:#18140e;--bg-raised:#211a10;--bg-input:#151209;
+  --border:#3a2c16;--border2:#503e20;
+  --amber:#d4973a;--amber-l:#f0c060;--amber-d:#7a5520;--amber-bg:#1e1506;
+  --text:#ddd0aa;--text2:#9a8060;--text3:#50381a;
+  --red:#b84a3a;--green:#5a8840;--blue:#4070a0;--purple:#8050b0;--teal:#30a080;
+  --r:8px;
 }
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
-
-/* HEADER */
-header{border-bottom:1px solid var(--border);padding:0 2rem;height:60px;display:flex;align-items:center;gap:1rem;background:var(--bg-card);}
-.site-title{font-size:1rem;font-weight:600;color:var(--text);letter-spacing:-.01em;}
-.header-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
-.header-meta{font-size:.75rem;color:var(--text3);}
-
-/* MAIN */
-main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;}
-.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:.75rem;}
-.page-title{font-size:1.3rem;font-weight:600;letter-spacing:-.02em;}
-.page-actions{display:flex;gap:8px;}
-
-/* BUTTONS */
-.btn{padding:7px 16px;border-radius:6px;border:1px solid var(--border2);background:var(--bg-raised);color:var(--text);cursor:pointer;font-size:.82rem;font-family:var(--font);font-weight:500;transition:all .12s;white-space:nowrap;}
-.btn:hover{background:var(--border);border-color:var(--border2);}
+body{font-family:'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
+nav{background:var(--bg-card);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;height:54px;gap:0;}
+.brand{font-size:1.05rem;color:var(--amber);letter-spacing:.08em;margin-right:2rem;white-space:nowrap;}
+.nav-links{display:flex;gap:2px;}
+.nav-btn{padding:6px 14px;border-radius:var(--r);color:var(--text2);cursor:pointer;font-size:.85rem;white-space:nowrap;transition:all .15s;border:none;background:none;font-family:inherit;}
+.nav-btn:hover{color:var(--text);background:var(--bg-raised);}
+.nav-btn.active{color:var(--amber);background:var(--amber-bg);}
+.nav-btn.soon{color:var(--text3);cursor:default;pointer-events:none;}
+main{padding:1.75rem 1.5rem;max-width:1150px;margin:0 auto;}
+.view{display:none;}.view.active{display:block;}
+.btn{padding:8px 18px;border-radius:var(--r);border:1px solid var(--amber-d);background:var(--amber-bg);color:var(--amber-l);cursor:pointer;font-size:.85rem;font-family:inherit;transition:all .15s;}
+.btn:hover{background:var(--amber-d);border-color:var(--amber);}
 .btn:active{transform:scale(.98);}
-.btn-primary{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue);}
-.btn-primary:hover{background:#112840;border-color:var(--blue);}
-.btn-sm{padding:4px 10px;font-size:.76rem;}
-.btn-danger{border-color:#5a1818;color:#f85149;background:transparent;}
-.btn-danger:hover{background:#2a0a0a;}
-.icon-btn{padding:5px 8px;font-size:.9rem;line-height:1;}
+.btn-sm{padding:5px 12px;font-size:.78rem;}
+.btn-ghost{background:transparent;border-color:var(--border2);color:var(--text2);}
+.btn-ghost:hover{background:var(--bg-raised);color:var(--text);}
+.btn-danger{background:transparent;border-color:#3a1010;color:var(--red);}
+.btn-danger:hover{background:#1a0808;border-color:var(--red);}
+.btn-ai{border-color:#3a1a60;background:#1a0a30;color:#b080f0;}
+.btn-ai:hover{background:#2a1050;border-color:#7040c0;}
+.btn-ai:disabled{opacity:.4;cursor:not-allowed;pointer-events:none;}
+.section-label{font-size:.68rem;color:var(--amber);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.6rem;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.list-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
+.view-title{font-size:1.4rem;color:var(--amber);}
+.item-count{font-size:.8rem;color:var(--text3);margin-left:10px;}
+.empty-msg{text-align:center;padding:4rem 1rem;color:var(--text3);}
+.empty-msg h2{font-size:1.1rem;color:var(--text2);margin-bottom:.5rem;}
+.empty-msg p{font-size:.85rem;line-height:1.6;}
 
-/* PROJECT GRID */
-.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;}
+/* CHARACTER CARDS */
+.char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:.9rem;}
+.char-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;cursor:pointer;transition:all .15s;}
+.char-card:hover{border-color:var(--amber-d);background:var(--bg-raised);}
+.char-card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid;flex-shrink:0;}
+.avatar-lg{width:46px;height:46px;font-size:1rem;}
+.avatar-md{width:36px;height:36px;font-size:.8rem;}
+.avatar-sm{width:28px;height:28px;font-size:.62rem;border-width:1.5px;}
+.char-info{flex:1;min-width:0;}
+.char-name{font-size:1rem;font-weight:bold;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.char-sub{font-size:.75rem;color:var(--text2);margin-top:2px;}
+.level-badge{background:var(--amber-bg);border:1px solid var(--amber-d);color:var(--amber);font-size:.68rem;padding:2px 8px;border-radius:20px;}
+.char-bottom{display:flex;align-items:center;gap:1rem;margin-top:8px;}
+.mini-stat{text-align:center;}
+.mini-val{font-size:.95rem;font-weight:bold;color:var(--text);}
+.mini-lbl{font-size:.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
+.hp-bar-wrap{flex:1;background:var(--bg-input);height:5px;border-radius:3px;overflow:hidden;}
+.hp-bar-fill{height:100%;background:var(--green);border-radius:3px;}
 
-.project-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;transition:border-color .12s;position:relative;display:flex;flex-direction:column;gap:.75rem;}
-.project-card:hover{border-color:var(--border2);}
-.project-card-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0;}
+/* SESSION CARDS */
+.session-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:.9rem;}
+.session-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;cursor:pointer;transition:all .15s;}
+.session-card:hover{border-color:var(--amber-d);background:var(--bg-raised);}
+.session-card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.session-num-badge{background:var(--amber-bg);border:1px solid var(--amber-d);color:var(--amber);font-size:.68rem;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.session-title-card{font-size:1rem;font-weight:bold;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.session-meta-card{font-size:.75rem;color:var(--text2);margin-top:2px;}
+.session-summary-card{font-size:.8rem;color:var(--text2);line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.session-party-row{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;align-items:center;}
+.analyzed-badge{display:inline-flex;align-items:center;gap:4px;font-size:.65rem;color:#9060e0;background:#180a28;border:1px solid #3a1a60;border-radius:12px;padding:2px 8px;margin-top:6px;}
 
-.project-top{display:flex;align-items:flex-start;gap:12px;}
-.project-icon{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;background:var(--bg-raised);}
-.project-meta{flex:1;min-width:0;}
-.project-name{font-size:.95rem;font-weight:600;color:var(--text);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.project-desc{font-size:.78rem;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+/* FORM */
+.form-hdr{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+.form-title{font-size:1.2rem;color:var(--amber);}
+.form-actions{display:flex;gap:8px;margin-left:auto;}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:1.25rem;overflow-x:auto;}
+.tab{padding:7px 16px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;font-size:.82rem;white-space:nowrap;transition:all .15s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--amber);border-bottom-color:var(--amber);}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+.fg{display:grid;gap:.85rem;margin-bottom:1.25rem;}
+.fg2{grid-template-columns:1fr 1fr;}.fg3{grid-template-columns:1fr 1fr 1fr;}.fg4{grid-template-columns:repeat(4,1fr);}
+.field{display:flex;flex-direction:column;gap:3px;}
+.field label{font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;}
+.field input,.field select,.field textarea{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-family:inherit;font-size:.88rem;transition:border-color .15s;width:100%;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--amber-d);}
+.field select option{background:#18140e;}
+.field textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
-.project-footer{display:flex;align-items:center;gap:8px;margin-top:auto;}
-.project-tag{font-size:.68rem;background:var(--bg-raised);border:1px solid var(--border);color:var(--text3);padding:2px 8px;border-radius:20px;}
-.project-actions{margin-left:auto;display:flex;gap:4px;opacity:0;transition:opacity .12s;}
-.project-card:hover .project-actions{opacity:1;}
+/* ABILITY SCORES */
+.ability-grid-form{display:grid;grid-template-columns:repeat(6,1fr);gap:.75rem;margin-bottom:1.25rem;}
+.ability-box{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r);padding:12px 6px;text-align:center;}
+.ab-name{font-size:.62rem;color:var(--amber);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px;}
+.ab-input{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:1.25rem;text-align:center;padding:5px 2px;font-family:inherit;font-weight:bold;}
+.ab-input:focus{outline:none;border-color:var(--amber-d);}
+.ab-mod{margin-top:7px;font-size:.95rem;font-weight:bold;color:var(--amber-l);}
+.ab-mod-label{font-size:.6rem;color:var(--text3);margin-top:1px;}
+.prof-display{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center;display:inline-block;min-width:120px;margin-bottom:1.25rem;}
+.prof-val{font-size:1.3rem;font-weight:bold;color:var(--amber-l);}
+.prof-lbl{font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;}
+.saves-row{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem;}
+.save-item{display:flex;align-items:center;gap:6px;font-size:.82rem;}
+.save-check{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border2);background:var(--bg-input);cursor:pointer;appearance:none;}
+.save-check:checked{background:var(--amber);border-color:var(--amber);}
+.skill-check{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border2);background:var(--bg-input);cursor:pointer;appearance:none;flex-shrink:0;}
+.skill-check:checked{background:var(--amber);border-color:var(--amber);}
+.skills-cols{display:grid;grid-template-columns:1fr 1fr;gap:3px 2rem;margin-bottom:1.25rem;}
+.skill-row{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:.82rem;}
+.skill-ab{color:var(--text3);font-size:.72rem;}
+.skill-bonus-val{margin-left:auto;font-size:.78rem;color:var(--amber-l);min-width:30px;text-align:right;}
+.combat-grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:.75rem;margin-bottom:1.25rem;}
+.combat-box-form{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r);padding:10px 8px;text-align:center;}
+.combat-box-form label{display:block;font-size:.6rem;color:var(--amber);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;}
+.combat-box-form input,.combat-box-form select{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:1.1rem;font-weight:bold;text-align:center;padding:5px 2px;font-family:inherit;}
+.combat-box-form input:focus,.combat-box-form select:focus{outline:none;border-color:var(--amber-d);}
 
-.open-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:.78rem;font-family:var(--font);font-weight:500;transition:all .12s;text-decoration:none;white-space:nowrap;}
-.open-btn:hover{background:var(--bg-raised);border-color:var(--border2);color:var(--text);}
-.open-arrow{font-size:.7rem;margin-top:1px;}
+/* CHARACTER DETAIL */
+.detail-hdr{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1rem;}
+.detail-top{display:flex;align-items:flex-start;gap:16px;}
+.detail-info{flex:1;}
+.detail-name{font-size:1.8rem;color:var(--amber);line-height:1.1;margin-bottom:4px;}
+.detail-sub{font-size:.9rem;color:var(--text2);}
+.detail-actions{display:flex;gap:8px;margin-top:1rem;}
+.two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:1rem;}
+.panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem;}
+.ab-display-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:.75rem;}
+.ab-display{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r);padding:9px 6px;text-align:center;}
+.add-name{font-size:.58rem;color:var(--amber);text-transform:uppercase;letter-spacing:.12em;}
+.add-mod{font-size:1.4rem;font-weight:bold;color:var(--text);}
+.add-score{font-size:.72rem;color:var(--text2);}
+.combat-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:.75rem;}
+.cd-box{background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;padding:7px 10px;text-align:center;min-width:54px;}
+.cd-val{font-size:1.1rem;font-weight:bold;color:var(--text);}
+.cd-lbl{font-size:.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.hp-tracker-row{display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;}
+.hp-lbl{font-size:.75rem;color:var(--text2);}
+.hp-inp{width:54px;text-align:center;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 2px;font-size:1rem;font-family:inherit;}
+.hp-inp:focus{outline:none;border-color:var(--amber-d);}
+.hp-sep{color:var(--text3);}
+.hp-bar2{flex:1;min-width:80px;height:7px;background:var(--bg-input);border-radius:4px;overflow:hidden;}
+.hp-bar2-fill{height:100%;background:var(--green);border-radius:4px;}
+.save-btn{padding:3px 8px;font-size:.72rem;border-radius:5px;border:1px solid var(--amber-d);background:var(--amber-bg);color:var(--amber);cursor:pointer;font-family:inherit;}
+.save-btn:hover{background:var(--amber-d);}
+.skills-display{display:grid;grid-template-columns:1fr 1fr;gap:2px 1rem;}
+.sd-row{display:flex;align-items:center;gap:6px;padding:2px 0;font-size:.78rem;}
+.sd-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);flex-shrink:0;}
+.sd-dot.prof{background:var(--amber);}
+.sd-bonus{margin-left:auto;font-size:.75rem;color:var(--amber-l);}
+.saves-display{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.save-disp{display:flex;align-items:center;gap:6px;font-size:.78rem;padding:3px 0;}
+.story-entry{margin-bottom:10px;}
+.story-lbl{font-size:.68rem;color:var(--amber);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;}
+.story-val{font-size:.83rem;color:var(--text2);line-height:1.6;}
 
-/* EMPTY STATE */
-.empty{text-align:center;padding:5rem 1rem;color:var(--text3);}
-.empty h2{font-size:1rem;color:var(--text2);margin-bottom:.5rem;font-weight:500;}
-.empty p{font-size:.82rem;line-height:1.6;max-width:340px;margin:0 auto 1.25rem;}
+/* SESSION DETAIL */
+.session-detail-hdr{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1rem;}
+.sd-session-num{font-size:.72rem;color:var(--amber);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px;}
+.sd-session-title{font-size:1.7rem;color:var(--amber);line-height:1.1;margin-bottom:6px;}
+.sd-session-meta{font-size:.85rem;color:var(--text2);display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center;}
+.party-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:.75rem;}
+.party-member{display:flex;align-items:center;gap:6px;background:var(--bg-raised);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 6px;font-size:.78rem;color:var(--text2);}
+.sd-actions{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;}
+.session-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:1rem;}
 
-/* MODAL OVERLAY */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:1rem;}
-.overlay.open{display:flex;}
-.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;width:100%;max-width:480px;}
-.modal-title{font-size:1rem;font-weight:600;margin-bottom:1.25rem;color:var(--text);}
-.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;}
+/* KEY EVENTS */
+.event-card{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:.65rem;}
+.event-card-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;}
+.event-type-badge{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;padding:2px 8px;border-radius:12px;flex-shrink:0;margin-top:2px;font-weight:bold;}
+.t-combat{background:#2a0a0a;color:#e06050;border:1px solid #5a1a1a;}
+.t-story{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-d);}
+.t-discovery{background:#0a2520;color:#50c090;border:1px solid #1a5040;}
+.t-roleplay{background:#1a0a30;color:#a070e0;border:1px solid #3a1a60;}
+.t-other{background:var(--bg-input);color:var(--text3);border:1px solid var(--border);}
+.event-title{font-size:.9rem;font-weight:bold;color:var(--text);}
+.event-desc{font-size:.8rem;color:var(--text2);line-height:1.55;margin-bottom:6px;}
+.event-chars{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;}
+.event-char-tag{font-size:.65rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text2);padding:1px 7px;border-radius:10px;}
+.prompt-toggle{font-size:.72rem;color:var(--amber-d);cursor:pointer;background:none;border:none;font-family:inherit;padding:0;text-decoration:underline;text-underline-offset:2px;}
+.prompt-toggle:hover{color:var(--amber);}
+.prompt-box{margin-top:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:.78rem;color:var(--text2);line-height:1.55;display:none;}
+.prompt-box.open{display:block;}
+.copy-btn{font-size:.68rem;color:var(--text3);background:none;border:1px solid var(--border);border-radius:4px;padding:2px 7px;cursor:pointer;font-family:inherit;margin-top:5px;}
+.copy-btn:hover{color:var(--text2);}
 
-/* FORM FIELDS */
-.field{display:flex;flex-direction:column;gap:4px;margin-bottom:.9rem;}
-.field label{font-size:.72rem;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.06em;}
-.field input,.field textarea,.field select{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--font);font-size:.86rem;width:100%;transition:border-color .12s;}
-.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--blue-border);}
-.field select option{background:var(--bg-card);}
-.field textarea{resize:vertical;min-height:70px;line-height:1.5;}
-.field-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+/* AI PANEL */
+.ai-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem;}
+.ai-loading{text-align:center;padding:1.5rem;color:#8050c0;}
+.spin{display:inline-block;font-size:1.4rem;animation:spin 2s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ai-loading p{font-size:.82rem;color:var(--text2);margin-top:.5rem;}
+.npc-list{display:flex;flex-direction:column;gap:5px;margin-bottom:.75rem;}
+.npc-row{background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;padding:8px 10px;}
+.npc-name{font-size:.85rem;font-weight:bold;color:var(--text);}
+.npc-desc{font-size:.78rem;color:var(--text2);margin-top:2px;line-height:1.5;}
+.plot-list{list-style:none;display:flex;flex-direction:column;gap:4px;margin-bottom:.75rem;}
+.plot-list li{font-size:.8rem;color:var(--text2);padding:4px 8px;background:var(--bg-raised);border-left:2px solid var(--amber-d);border-radius:0 4px 4px 0;line-height:1.5;}
+.loot-wrap{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.75rem;}
+.loot-tag{font-size:.72rem;background:var(--amber-bg);border:1px solid var(--amber-d);color:var(--amber);padding:2px 9px;border-radius:12px;}
 
-/* COLOR PICKER */
-.color-swatches{display:flex;gap:8px;flex-wrap:wrap;}
-.swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .12s;}
-.swatch.selected,.swatch:hover{border-color:var(--text);transform:scale(1.15);}
+/* TRANSCRIPT */
+.transcript-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem;}
+.transcript-body{font-family:'Courier New',monospace;font-size:.78rem;color:var(--text2);line-height:1.8;white-space:pre-wrap;word-break:break-word;max-height:580px;overflow-y:auto;padding:2px;}
+.transcript-body::-webkit-scrollbar{width:4px;}
+.transcript-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 
-/* SEARCH */
-.search-wrap{position:relative;max-width:280px;}
-.search-wrap input{background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px 6px 30px;font-family:var(--font);font-size:.82rem;width:100%;}
-.search-wrap input:focus{outline:none;border-color:var(--blue-border);}
-.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:.8rem;pointer-events:none;}
+/* SESSION FORM */
+.char-check-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem;margin-bottom:1.25rem;}
+.char-check-item{display:flex;align-items:center;gap:8px;background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;padding:8px 10px;cursor:pointer;transition:border-color .15s;}
+.char-check-item:hover{border-color:var(--border2);}
+.char-check-item.checked{border-color:var(--amber-d);background:var(--amber-bg);}
+.char-check-item input[type=checkbox]{appearance:none;width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border2);background:var(--bg-input);flex-shrink:0;cursor:pointer;}
+.char-check-item input[type=checkbox]:checked{background:var(--amber);border-color:var(--amber);}
+.char-check-name{font-size:.82rem;color:var(--text);}
+.char-check-sub{font-size:.68rem;color:var(--text2);}
+.hint{font-size:.75rem;color:var(--text3);margin-bottom:.5rem;line-height:1.5;}
 
-/* BACKUP BAR */
-.backup-bar{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
-.backup-bar-text{font-size:.75rem;color:var(--text3);flex:1;}
-.backup-bar-text strong{color:var(--text2);}
+.coming-soon{text-align:center;padding:5rem 2rem;color:var(--text3);}
+.coming-soon h2{color:var(--text2);font-size:1.4rem;margin-bottom:.75rem;}
+.coming-soon p{font-size:.88rem;max-width:380px;margin:0 auto;line-height:1.7;}
 
-@media(max-width:540px){
-  .project-grid{grid-template-columns:1fr;}
-  .field-row{grid-template-columns:1fr;}
-  header{padding:0 1rem;}
-  main{padding:1.25rem 1rem;}
+@media(max-width:640px){
+  .ability-grid-form{grid-template-columns:repeat(3,1fr);}
+  .fg2,.fg3,.fg4{grid-template-columns:1fr;}
+  .two-col,.session-layout{grid-template-columns:1fr;}
+  .skills-cols,.saves-display{grid-template-columns:1fr;}
 }
 </style>
 </head>
 <body>
-<header>
-  <div class="site-title">&#9632; My Projects</div>
-  <div class="header-right">
-    <span class="header-meta" id="header-meta"></span>
-    <button class="btn btn-sm" onclick="exportProjects()" title="Download backup">&#8595; Export</button>
-    <button class="btn btn-sm" onclick="document.getElementById('import-input').click()" title="Restore from backup">&#8593; Import</button>
-    <input type="file" id="import-input" accept=".json" style="display:none" onchange="importProjects(event)">
+<nav>
+  <div class="brand">⚔ Tome of Heroes</div>
+  <div class="nav-links">
+    <button class="nav-btn active" onclick="navTo('characters',this)">Characters</button>
+    <button class="nav-btn" onclick="navTo('sessions',this)">Sessions</button>
+    <button class="nav-btn soon">Timeline</button>
   </div>
-</header>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0;">
+    <span id="data-status" style="font-size:.68rem;color:var(--text3);white-space:nowrap;"></span>
+    <button class="nav-btn" onclick="exportData()" title="Download all data as JSON backup" style="font-size:.72rem;padding:4px 10px;">⬇ Export</button>
+    <button class="nav-btn" onclick="importData()" title="Restore from a backup file" style="font-size:.72rem;padding:4px 10px;">⬆ Import</button>
+    <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImportFile(event)">
+    <button class="nav-btn" id="cloud-btn" onclick="openCloudModal()" style="font-size:.72rem;padding:4px 10px;color:var(--text3);">💾 Local</button>
+  </div>
+</nav>
 
+<!-- CLOUD SETTINGS MODAL -->
+<div id="cloud-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)closeCloudModal()">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;width:100%;max-width:500px;" onclick="event.stopPropagation()">
+    <div style="font-size:1rem;color:var(--amber);margin-bottom:.25rem;">☁ Cloud Database</div>
+    <div id="cloud-modal-status" style="font-size:.75rem;color:var(--text2);margin-bottom:1.25rem;line-height:1.5;"></div>
+
+    <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:.9rem;">
+      <label style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;">Supabase Project URL</label>
+      <input id="sb-url" type="text" placeholder="https://xxxxxxxxxxxx.supabase.co" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:.86rem;width:100%;">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:1.25rem;">
+      <label style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;">Anon Public Key</label>
+      <input id="sb-key" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:inherit;font-size:.86rem;width:100%;">
+    </div>
+
+    <div id="migrate-section" style="display:none;background:var(--amber-bg);border:1px solid var(--amber-d);border-radius:8px;padding:.85rem;margin-bottom:1rem;font-size:.8rem;color:var(--text2);line-height:1.5;">
+      <strong style="color:var(--amber-l);display:block;margin-bottom:.3rem;">Connected to Supabase</strong>
+      You have local data that hasn't been pushed to the cloud yet. Click below to migrate it — this is safe to run multiple times.
+      <button onclick="migrateToCloud()" style="margin-top:.6rem;display:block;padding:5px 14px;border-radius:6px;border:1px solid var(--amber-d);background:var(--amber-bg);color:var(--amber-l);cursor:pointer;font-family:inherit;font-size:.78rem;">⬆ Push local data to cloud</button>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+      <button id="sb-disconnect-btn" onclick="disconnectCloud()" style="display:none;padding:7px 14px;border-radius:6px;border:1px solid #3a1010;background:transparent;color:var(--red);cursor:pointer;font-family:inherit;font-size:.82rem;">Disconnect</button>
+      <button onclick="closeCloudModal()" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;font-size:.82rem;">Cancel</button>
+      <button onclick="testAndConnect()" style="padding:7px 14px;border-radius:6px;border:1px solid var(--amber-d);background:var(--amber-bg);color:var(--amber-l);cursor:pointer;font-family:inherit;font-size:.82rem;" id="sb-connect-btn">Test &amp; Connect</button>
+    </div>
+  </div>
+</div>
 <main>
-  <div class="page-header">
-    <div class="page-title">Projects</div>
-    <div class="page-actions">
-      <div class="search-wrap">
-        <span class="search-icon">&#128269;</span>
-        <input type="text" placeholder="Search projects..." id="search-input" oninput="renderProjects()">
-      </div>
-      <button class="btn btn-primary" onclick="openModal()">+ New project</button>
+
+<!-- ── CHARACTER LIST ── -->
+<div class="view active" id="view-char-list">
+  <div class="list-header">
+    <div><span class="view-title">Characters</span><span class="item-count" id="char-count"></span></div>
+    <button class="btn" onclick="showAddCharForm()">+ Add Character</button>
+  </div>
+  <div class="char-grid" id="char-grid"></div>
+  <div class="empty-msg" id="char-empty" style="display:none"><h2>No characters yet</h2><p>Add your first character to begin tracking your campaign's heroes.</p></div>
+</div>
+
+<!-- ── CHARACTER FORM ── -->
+<div class="view" id="view-char-form">
+  <div class="form-hdr">
+    <div class="form-title" id="char-form-title">New Character</div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="showCharList()">Cancel</button>
+      <button class="btn" onclick="submitCharForm()">Save Character</button>
     </div>
   </div>
-
-  <div class="backup-bar">
-    <div class="backup-bar-text" id="storage-info">Loading...</div>
-    <button class="btn btn-sm" onclick="exportProjects()">&#8595; Backup now</button>
+  <div class="tabs" id="char-tabs">
+    <button class="tab active" onclick="charTab('identity',this)">⚜ Identity</button>
+    <button class="tab" onclick="charTab('abilities',this)">✦ Abilities</button>
+    <button class="tab" onclick="charTab('combat',this)">⚡ Combat</button>
+    <button class="tab" onclick="charTab('profs',this)">⬡ Proficiencies</button>
+    <button class="tab" onclick="charTab('story',this)">📖 Story</button>
   </div>
-
-  <div class="project-grid" id="project-grid"></div>
-  <div class="empty" id="empty-state" style="display:none">
-    <h2>No projects yet</h2>
-    <p>Add your first project — paste in the file path or URL, give it a name and description, and it shows up here as a card you can launch any time.</p>
-    <button class="btn btn-primary" onclick="openModal()">+ Add your first project</button>
+  <div class="tab-panel active" id="ctab-identity">
+    <div class="fg fg2"><div class="field"><label>Character Name *</label><input id="f-name" type="text"></div><div class="field"><label>Player Name</label><input id="f-player" type="text"></div></div>
+    <div class="fg fg3">
+      <div class="field"><label>Class *</label><select id="f-class"><option value="">— Select —</option><option>Artificer</option><option>Barbarian</option><option>Bard</option><option>Cleric</option><option>Druid</option><option>Fighter</option><option>Monk</option><option>Paladin</option><option>Ranger</option><option>Rogue</option><option>Sorcerer</option><option>Warlock</option><option>Wizard</option><option>Other</option></select></div>
+      <div class="field"><label>Subclass</label><input id="f-subclass" type="text"></div>
+      <div class="field"><label>Level</label><input id="f-level" type="number" min="1" max="20" value="1" oninput="updateProfBonus()"></div>
+    </div>
+    <div class="fg fg3">
+      <div class="field"><label>Race</label><input id="f-race" type="text"></div>
+      <div class="field"><label>Background</label><select id="f-background"><option value="">— Select —</option><option>Acolyte</option><option>Charlatan</option><option>Criminal</option><option>Entertainer</option><option>Folk Hero</option><option>Guild Artisan</option><option>Hermit</option><option>Noble</option><option>Outlander</option><option>Sage</option><option>Sailor</option><option>Soldier</option><option>Urchin</option><option>Other</option></select></div>
+      <div class="field"><label>Alignment</label><select id="f-alignment"><option value="">— Select —</option><option>Lawful Good</option><option>Neutral Good</option><option>Chaotic Good</option><option>Lawful Neutral</option><option>True Neutral</option><option>Chaotic Neutral</option><option>Lawful Evil</option><option>Neutral Evil</option><option>Chaotic Evil</option></select></div>
+    </div>
+    <div class="fg fg2"><div class="field"><label>Experience Points</label><input id="f-xp" type="number" min="0" value="0"></div><div class="field"><label>Languages</label><input id="f-languages" type="text"></div></div>
   </div>
-</main>
-
-<!-- ADD / EDIT MODAL -->
-<div class="overlay" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-title" id="modal-title">New project</div>
-    <input type="hidden" id="editing-id">
-
-    <div class="field">
-      <label>Project name *</label>
-      <input id="f-pname" type="text" placeholder="e.g. D&D Campaign Tracker">
+  <div class="tab-panel" id="ctab-abilities">
+    <div class="section-label">Ability Scores</div>
+    <div class="ability-grid-form">
+      <div class="ability-box"><div class="ab-name">STR</div><input class="ab-input" id="f-str" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('str')"><div class="ab-mod" id="mod-str">+0</div><div class="ab-mod-label">modifier</div></div>
+      <div class="ability-box"><div class="ab-name">DEX</div><input class="ab-input" id="f-dex" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('dex');updateAllSkills()"><div class="ab-mod" id="mod-dex">+0</div><div class="ab-mod-label">modifier</div></div>
+      <div class="ability-box"><div class="ab-name">CON</div><input class="ab-input" id="f-con" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('con')"><div class="ab-mod" id="mod-con">+0</div><div class="ab-mod-label">modifier</div></div>
+      <div class="ability-box"><div class="ab-name">INT</div><input class="ab-input" id="f-int" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('int');updateAllSkills()"><div class="ab-mod" id="mod-int">+0</div><div class="ab-mod-label">modifier</div></div>
+      <div class="ability-box"><div class="ab-name">WIS</div><input class="ab-input" id="f-wis" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('wis');updateAllSkills()"><div class="ab-mod" id="mod-wis">+0</div><div class="ab-mod-label">modifier</div></div>
+      <div class="ability-box"><div class="ab-name">CHA</div><input class="ab-input" id="f-cha" type="number" min="1" max="30" value="10" oninput="updateAbilityMod('cha');updateAllSkills()"><div class="ab-mod" id="mod-cha">+0</div><div class="ab-mod-label">modifier</div></div>
     </div>
-    <div class="field">
-      <label>Description</label>
-      <textarea id="f-pdesc" placeholder="What does this app do?"></textarea>
+    <div class="section-label">Proficiency Bonus</div>
+    <div class="prof-display"><div class="prof-val" id="prof-bonus-display">+2</div><div class="prof-lbl">Proficiency Bonus</div></div>
+    <div class="fg fg2"><div class="field"><label>Inspiration</label><select id="f-inspiration"><option value="0">No</option><option value="1">Yes</option></select></div><div class="field"><label>Passive Perception</label><input id="f-passive" type="number" value="10"></div></div>
+  </div>
+  <div class="tab-panel" id="ctab-combat">
+    <div class="section-label">Hit Points</div>
+    <div class="fg fg3"><div class="field"><label>Max HP</label><input id="f-maxhp" type="number" min="1" value="8"></div><div class="field"><label>Current HP</label><input id="f-curhp" type="number" value="8"></div><div class="field"><label>Temp HP</label><input id="f-temphp" type="number" value="0"></div></div>
+    <div class="section-label" style="margin-top:.5rem;">Combat Stats</div>
+    <div class="combat-grid-form">
+      <div class="combat-box-form"><label>Armor Class</label><input id="f-ac" type="number" value="10"></div>
+      <div class="combat-box-form"><label>Initiative</label><input id="f-init" type="number" value="0"></div>
+      <div class="combat-box-form"><label>Speed (ft)</label><input id="f-speed" type="number" value="30"></div>
+      <div class="combat-box-form"><label>Hit Dice</label><select id="f-hitdice" style="font-size:.85rem;font-weight:normal;"><option>d6</option><option selected>d8</option><option>d10</option><option>d12</option></select></div>
     </div>
+    <div class="field" style="margin-bottom:1.25rem;"><label>Attacks &amp; Spellcasting</label><textarea id="f-attacks" placeholder="Longsword: +5 to hit, 1d8+3 slashing"></textarea></div>
+    <div class="field" style="margin-bottom:1rem;"><label>Equipment</label><textarea id="f-equipment"></textarea></div>
+    <div class="fg fg3"><div class="field"><label>Copper (CP)</label><input id="f-cp" type="number" value="0"></div><div class="field"><label>Silver (SP)</label><input id="f-sp" type="number" value="0"></div><div class="field"><label>Gold (GP)</label><input id="f-gp" type="number" value="0"></div></div>
+  </div>
+  <div class="tab-panel" id="ctab-profs">
+    <div class="section-label">Saving Throws</div>
+    <div class="saves-row">
+      <label class="save-item"><input type="checkbox" class="save-check" id="save-str"> Strength</label>
+      <label class="save-item"><input type="checkbox" class="save-check" id="save-dex"> Dexterity</label>
+      <label class="save-item"><input type="checkbox" class="save-check" id="save-con"> Constitution</label>
+      <label class="save-item"><input type="checkbox" class="save-check" id="save-int"> Intelligence</label>
+      <label class="save-item"><input type="checkbox" class="save-check" id="save-wis"> Wisdom</label>
+      <label class="save-item"><input type="checkbox" class="save-check" id="save-cha"> Charisma</label>
+    </div>
+    <div class="section-label">Skills</div>
+    <div class="skills-cols" id="skills-form"></div>
+    <div class="field"><label>Other Proficiencies</label><textarea id="f-proficiencies"></textarea></div>
+  </div>
+  <div class="tab-panel" id="ctab-story">
+    <div class="fg fg2"><div class="field"><label>Personality Traits</label><textarea id="f-traits"></textarea></div><div class="field"><label>Ideals</label><textarea id="f-ideals"></textarea></div></div>
+    <div class="fg fg2"><div class="field"><label>Bonds</label><textarea id="f-bonds"></textarea></div><div class="field"><label>Flaws</label><textarea id="f-flaws"></textarea></div></div>
+    <div class="field" style="margin-bottom:1.25rem;"><label>Backstory</label><textarea id="f-backstory" style="min-height:110px;"></textarea></div>
+    <div class="fg fg3"><div class="field"><label>Age</label><input id="f-age" type="text"></div><div class="field"><label>Height</label><input id="f-height" type="text"></div><div class="field"><label>Weight</label><input id="f-weight" type="text"></div></div>
+    <div class="fg fg3"><div class="field"><label>Eyes</label><input id="f-eyes" type="text"></div><div class="field"><label>Hair</label><input id="f-hair" type="text"></div><div class="field"><label>Skin</label><input id="f-skin" type="text"></div></div>
+    <div class="field"><label>Features &amp; Traits</label><textarea id="f-features"></textarea></div>
+    <div class="field" style="margin-top:1rem;"><label>Notes</label><textarea id="f-notes"></textarea></div>
+  </div>
+</div>
 
-    <div class="field-row">
-      <div class="field">
-        <label>File or URL *</label>
-        <input id="f-purl" type="text" placeholder="dnd-tracker/index.html">
+<!-- ── CHARACTER DETAIL ── -->
+<div class="view" id="view-char-detail">
+  <div class="detail-hdr">
+    <div class="detail-top">
+      <div class="avatar avatar-lg" id="d-avatar" style="width:60px;height:60px;font-size:1.3rem;"></div>
+      <div class="detail-info"><div class="detail-name" id="d-name"></div><div class="detail-sub" id="d-sub"></div>
+        <div class="detail-actions">
+          <button class="btn btn-ghost btn-sm" onclick="showCharList()">← Characters</button>
+          <button class="btn btn-sm" onclick="editCurrentChar()">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCurrentChar()">Delete</button>
+        </div>
       </div>
-      <div class="field">
-        <label>Category</label>
-        <select id="f-pcat">
-          <option value="">— None —</option>
-          <option>Games &amp; hobby</option>
-          <option>Productivity</option>
-          <option>Finance</option>
-          <option>Health</option>
-          <option>Creative</option>
-          <option>Work</option>
-          <option>Other</option>
-        </select>
-      </div>
     </div>
-
-    <div class="field-row">
-      <div class="field">
-        <label>Icon (emoji)</label>
-        <input id="f-picon" type="text" placeholder="&#9876; &#128218; &#128202;" maxlength="4" style="font-size:1.1rem;">
-      </div>
-      <div class="field">
-        <label>Status</label>
-        <select id="f-pstatus">
-          <option value="active">Active</option>
-          <option value="wip">Work in progress</option>
-          <option value="paused">Paused</option>
-        </select>
-      </div>
+  </div>
+  <div class="two-col">
+    <div>
+      <div class="panel"><div class="section-label">Ability Scores</div><div class="ab-display-grid" id="d-abilities"></div><div class="section-label" style="margin-top:.75rem;">Saving Throws</div><div class="saves-display" id="d-saves"></div></div>
+      <div class="panel" id="d-appear-panel"><div class="section-label">Appearance</div><div id="d-appearance"></div></div>
     </div>
-
-    <div class="field">
-      <label>Accent color</label>
-      <div class="color-swatches" id="color-swatches"></div>
-      <input type="hidden" id="f-pcolor" value="#58a6ff">
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveProject()">Save project</button>
+    <div>
+      <div class="panel">
+        <div class="section-label">Combat</div><div class="combat-row" id="d-combat"></div>
+        <div class="section-label">Hit Points</div>
+        <div class="hp-tracker-row"><span class="hp-lbl">HP</span><input class="hp-inp" id="d-curhp-inp" type="number"><span class="hp-sep">/</span><input class="hp-inp" id="d-maxhp-inp" type="number" readonly style="opacity:.6;cursor:default;"><div class="hp-bar2"><div class="hp-bar2-fill" id="d-hp-bar"></div></div><button class="save-btn" onclick="saveHpEdit()">Save</button></div>
+        <div style="margin-top:.5rem;"><div class="section-label">Attacks</div><div id="d-attacks" style="font-size:.82rem;color:var(--text2);line-height:1.7;white-space:pre-wrap;"></div></div>
+        <div style="margin-top:.75rem;"><div class="section-label">Equipment</div><div id="d-equipment" style="font-size:.82rem;color:var(--text2);line-height:1.6;white-space:pre-wrap;"></div></div>
+        <div style="margin-top:.75rem;display:flex;gap:1.5rem;font-size:.8rem;color:var(--text2);"><span><span style="color:var(--amber);">GP</span> <span id="d-gp">0</span></span><span><span style="color:var(--text3);">SP</span> <span id="d-sp">0</span></span><span><span style="color:var(--text3);">CP</span> <span id="d-cp">0</span></span></div>
+      </div>
+      <div class="panel"><div class="section-label">Skills</div><div class="skills-display" id="d-skills"></div></div>
+      <div class="panel"><div class="section-label">Personality &amp; Story</div><div id="d-story"></div></div>
     </div>
   </div>
 </div>
 
+<!-- ── SESSION LIST ── -->
+<div class="view" id="view-sessions">
+  <div class="list-header">
+    <div><span class="view-title">Sessions</span><span class="item-count" id="session-count"></span></div>
+    <button class="btn" onclick="showAddSessionForm()">+ Log Session</button>
+  </div>
+  <div class="session-grid" id="session-grid"></div>
+  <div class="empty-msg" id="session-empty" style="display:none"><h2>No sessions logged yet</h2><p>Log your first session. Paste in transcripts and let AI extract key events, NPCs, and generate cinematic image prompts.</p></div>
+</div>
+
+<!-- ── SESSION FORM ── -->
+<div class="view" id="view-session-form">
+  <div class="form-hdr">
+    <div class="form-title" id="session-form-title">Log New Session</div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="showSessionList()">Cancel</button>
+      <button class="btn" onclick="submitSessionForm()">Save Session</button>
+    </div>
+  </div>
+  <div class="section-label">Session Info</div>
+  <div class="fg fg4" style="margin-bottom:1.25rem;">
+    <div class="field"><label>Session #</label><input id="sf-number" type="number" min="1" value="1"></div>
+    <div class="field" style="grid-column:span 2;"><label>Session Title *</label><input id="sf-title" type="text" placeholder="e.g. The Tomb of Annihilation"></div>
+    <div class="field"><label>Date Played</label><input id="sf-date" type="date"></div>
+  </div>
+  <div class="fg fg3" style="margin-bottom:1.25rem;">
+    <div class="field"><label>Location / Setting</label><input id="sf-location" type="text" placeholder="e.g. Undermountain, Level 3"></div>
+    <div class="field"><label>DM Name</label><input id="sf-dm" type="text"></div>
+    <div class="field"><label>Next Session Hook</label><input id="sf-hook" type="text" placeholder="What was left unresolved?"></div>
+  </div>
+  <div class="section-label">Party Present</div>
+  <div class="char-check-grid" id="sf-party-grid"></div>
+  <div class="section-label">Session Summary</div>
+  <div class="field" style="margin-bottom:1.25rem;"><label>Your summary / DM notes (AI can also generate this from the transcript)</label><textarea id="sf-summary" style="min-height:90px;" placeholder="Brief summary of what happened..."></textarea></div>
+  <div class="section-label">Transcript</div>
+  <p class="hint">Paste your session transcript — raw chat logs, notes, voice-to-text, anything. The AI will parse it to extract key events and build image prompts per scene.</p>
+  <div class="field" style="margin-bottom:1rem;"><textarea id="sf-transcript" style="min-height:240px;font-family:'Courier New',monospace;font-size:.8rem;" placeholder="[DM] You arrive at the stone door carved with serpentine figures...&#10;[Player] I check for traps. Rolling Perception... 17.&#10;[DM] You notice a thin wire stretched across the threshold..."></textarea></div>
+  <div class="fg fg2"><div class="field"><label>Tags (comma separated)</label><input id="sf-tags" type="text" placeholder="combat, dungeon, betrayal..."></div></div>
+</div>
+
+<!-- ── SESSION DETAIL ── -->
+<div class="view" id="view-session-detail">
+  <div class="session-detail-hdr">
+    <div class="sd-session-num" id="sd-num"></div>
+    <div class="sd-session-title" id="sd-title"></div>
+    <div class="sd-session-meta" id="sd-meta"></div>
+    <div class="party-row" id="sd-party"></div>
+    <div class="sd-actions">
+      <button class="btn btn-ghost btn-sm" onclick="showSessionList()">← Sessions</button>
+      <button class="btn btn-sm" onclick="editCurrentSession()">Edit</button>
+      <button class="btn btn-ai btn-sm" id="ai-btn" onclick="runAIAnalysis()">✦ Analyze with AI</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCurrentSession()">Delete</button>
+    </div>
+  </div>
+  <div class="session-layout">
+    <div>
+      <div class="ai-panel">
+        <div class="section-label">AI Analysis</div>
+        <div id="ai-content"><p style="font-size:.82rem;color:var(--text3);line-height:1.7;">Click <strong style="color:#9060e0;">✦ Analyze with AI</strong> to extract key events, NPCs, loot &amp; plot threads from your transcript — and generate a cinematic image prompt for each scene.</p></div>
+      </div>
+      <div class="panel" id="sd-summary-panel" style="display:none;">
+        <div class="section-label">Session Summary</div>
+        <div id="sd-summary" style="font-size:.85rem;color:var(--text2);line-height:1.7;"></div>
+      </div>
+      <div class="panel" id="sd-hook-panel" style="display:none;">
+        <div class="section-label">Next Session Hook</div>
+        <div id="sd-hook-txt" style="font-size:.85rem;color:var(--amber-l);line-height:1.6;font-style:italic;"></div>
+      </div>
+      <div class="panel" id="sd-tags-panel" style="display:none;">
+        <div class="section-label">Tags</div>
+        <div id="sd-tags-display" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      </div>
+    </div>
+    <div>
+      <div class="transcript-panel">
+        <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;"><span>Transcript</span><span id="sd-wc" style="font-size:.68rem;color:var(--text3);font-weight:normal;text-transform:none;letter-spacing:0;"></span></div>
+        <div class="transcript-body" id="sd-transcript"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TIMELINE ── -->
+<div class="view" id="view-timeline">
+  <div class="coming-soon"><div style="font-size:2.5rem;margin-bottom:1rem;">🗺</div><h2>Campaign Timeline</h2><p>Scroll through your campaign's history with AI-generated scene illustrations and story highlights. Coming next.</p></div>
+</div>
+
+</main>
 <script>
-const COLORS=['#58a6ff','#3fb950','#d29922','#e05252','#a371f7','#f78166','#39d353','#56d3b0','#e3b341','#ff7b72'];
-const STATUS_LABELS={active:'Active',wip:'In progress',paused:'Paused'};
-const STATUS_COLORS={active:'var(--green)',wip:'var(--amber)',paused:'var(--text3)'};
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const SKILLS=[
+  {name:'Acrobatics',ab:'dex',key:'acrobatics'},{name:'Animal Handling',ab:'wis',key:'animalHandling'},
+  {name:'Arcana',ab:'int',key:'arcana'},{name:'Athletics',ab:'str',key:'athletics'},
+  {name:'Deception',ab:'cha',key:'deception'},{name:'History',ab:'int',key:'history'},
+  {name:'Insight',ab:'wis',key:'insight'},{name:'Intimidation',ab:'cha',key:'intimidation'},
+  {name:'Investigation',ab:'int',key:'investigation'},{name:'Medicine',ab:'wis',key:'medicine'},
+  {name:'Nature',ab:'int',key:'nature'},{name:'Perception',ab:'wis',key:'perception'},
+  {name:'Performance',ab:'cha',key:'performance'},{name:'Persuasion',ab:'cha',key:'persuasion'},
+  {name:'Religion',ab:'int',key:'religion'},{name:'Sleight of Hand',ab:'dex',key:'sleightOfHand'},
+  {name:'Stealth',ab:'dex',key:'stealth'},{name:'Survival',ab:'wis',key:'survival'},
+];
+const CLASS_COLORS={Artificer:'#b06020',Barbarian:'#c04030',Bard:'#9050b0',Cleric:'#c0a020',Druid:'#507030',Fighter:'#608090',Monk:'#30a090',Paladin:'#c09030',Ranger:'#406030',Rogue:'#504060',Sorcerer:'#b03060',Warlock:'#5030a0',Wizard:'#3060b0',Other:'#706050'};
+const ABS=['str','dex','con','int','wis','cha'];
+const AB_NAMES={str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',cha:'CHA'};
+const TYPE_CLASS={combat:'t-combat',story:'t-story',discovery:'t-discovery',roleplay:'t-roleplay',other:'t-other'};
 
-let projects=[];
-let editingId=null;
+// ── STATE ──────────────────────────────────────────────────────────────────
+let characters=[],sessions=[],editingCharId=null,currentCharId=null,editingSessionId=null,currentSessionId=null;
 
-// Storage
-function load(){try{const r=localStorage.getItem('my-projects');if(r)projects=JSON.parse(r);}catch(e){}}
-function save(){try{localStorage.setItem('my-projects',JSON.stringify(projects));updateMeta();}catch(e){alert('Save error: '+e.message);}}
+// ── DATABASE LAYER ───────────────────────────────────────────────────────
+// Works in two modes: localStorage (default) or Supabase (cloud).
+// Switch modes via the ☁ button in the nav. Data migrates with one click.
+const DB = {
+  sb: null, // {url, key} when Supabase is configured
 
-function updateMeta(){
-  const count=projects.length;
-  const size=(JSON.stringify(projects).length/1024).toFixed(1);
-  document.getElementById('header-meta').textContent=`${count} project${count!==1?'s':''}`;
-  document.getElementById('storage-info').innerHTML=`<strong>${count} project${count!==1?'s':''}</strong> saved locally in your browser &nbsp;·&nbsp; ${size} KB &nbsp;·&nbsp; Data persists as long as you use this browser`;
+  // Default credentials — override via the ☁ settings panel if needed
+  _defaultCreds: {url:'https://qavuogmqssjrsaylthdw.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdnVvZ21xc3NqcnNheWx0aGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTQyMzQsImV4cCI6MjA5MTQ5MDIzNH0.jpP1vHqs2nvy0HEOnoglXOboSDNC-Nm1DZjaTWnSBdw'},
+
+  init() {
+    try {
+      const stored = JSON.parse(localStorage.getItem('_sb_config')||'null');
+      // Use stored config if present, otherwise fall back to baked-in creds
+      this.sb = stored || this._defaultCreds;
+    } catch(e) { this.sb = this._defaultCreds; }
+  },
+
+  get isCloud() { return !!this.sb; },
+
+  _h(extra={}) {
+    return {'apikey':this.sb.key,'Authorization':'Bearer '+this.sb.key,'Content-Type':'application/json',...extra};
+  },
+
+  async _req(path, opts={}) {
+    const r = await fetch(this.sb.url+'/rest/v1'+path, {
+      ...opts, headers:{...this._h(),...(opts.headers||{})}
+    });
+    if(!r.ok){const t=await r.text();throw new Error(t);}
+    return r.status===204?null:r.json();
+  },
+
+  async loadAll() {
+    if(this.isCloud){
+      try{
+        const [ch,se]=await Promise.all([
+          this._req('/characters?select=data&order=created_at.asc'),
+          this._req('/sessions?select=data&order=created_at.asc')
+        ]);
+        characters=ch.map(r=>r.data);
+        sessions=se.map(r=>r.data);
+        return;
+      }catch(e){console.warn('Cloud load failed, using local:',e.message);}
+    }
+    try{characters=JSON.parse(localStorage.getItem('dnd-chars')||'[]');}catch(e){}
+    try{sessions=JSON.parse(localStorage.getItem('dnd-sessions')||'[]');}catch(e){}
+  },
+
+  async saveChar(char) {
+    if(this.isCloud){
+      await this._req('/characters',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates'},
+        body:JSON.stringify({id:char.id,data:char,updated_at:new Date().toISOString()})});
+    } else {
+      try{localStorage.setItem('dnd-chars',JSON.stringify(characters));}catch(e){alert('Save error: '+e.message);}
+    }
+  },
+
+  async deleteChar(id) {
+    if(this.isCloud){
+      await this._req('/characters?id=eq.'+id,{method:'DELETE'});
+    } else {
+      try{localStorage.setItem('dnd-chars',JSON.stringify(characters));}catch(e){alert('Save error: '+e.message);}
+    }
+  },
+
+  async saveSession(session) {
+    if(this.isCloud){
+      await this._req('/sessions',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates'},
+        body:JSON.stringify({id:session.id,data:session,updated_at:new Date().toISOString()})});
+    } else {
+      try{localStorage.setItem('dnd-sessions',JSON.stringify(sessions));}catch(e){alert('Save error: '+e.message);}
+    }
+  },
+
+  async deleteSession(id) {
+    if(this.isCloud){
+      await this._req('/sessions?id=eq.'+id,{method:'DELETE'});
+    } else {
+      try{localStorage.setItem('dnd-sessions',JSON.stringify(sessions));}catch(e){alert('Save error: '+e.message);}
+    }
+  },
+
+  async saveAllLocal() {
+    if(!this.isCloud){
+      localStorage.setItem('dnd-chars',JSON.stringify(characters));
+      localStorage.setItem('dnd-sessions',JSON.stringify(sessions));
+    } else {
+      // Push all records to cloud (used after bulk import)
+      await Promise.all([
+        ...characters.map(c=>this.saveChar(c)),
+        ...sessions.map(s=>this.saveSession(s))
+      ]);
+    }
+  },
+
+  async configure(url,key) {
+    this.sb={url:url.replace(/\/+$/,''),key};
+    localStorage.setItem('_sb_config',JSON.stringify(this.sb));
+  },
+
+  disconnect() {
+    this.sb=null;
+    localStorage.removeItem('_sb_config');
+  },
+
+  async test(url,key) {
+    const r=await fetch(url.replace(/\/+$/,'')+'/rest/v1/characters?limit=1',
+      {headers:{'apikey':key,'Authorization':'Bearer '+key}});
+    if(!r.ok)throw new Error('Tables not found — did you run the SQL setup?');
+    return true;
+  },
+
+  async migrate() {
+    // Push all localStorage data to Supabase
+    const ch=JSON.parse(localStorage.getItem('dnd-chars')||'[]');
+    const se=JSON.parse(localStorage.getItem('dnd-sessions')||'[]');
+    for(const c of ch)await this._req('/characters',{method:'POST',
+      headers:{'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({id:c.id,data:c,updated_at:new Date().toISOString()})});
+    for(const s of se)await this._req('/sessions',{method:'POST',
+      headers:{'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({id:s.id,data:s,updated_at:new Date().toISOString()})});
+    return {chars:ch.length,sessions:se.length};
+  }
+};
+
+// ── BACKUP / RESTORE ───────────────────────────────────────────────────────
+function exportData(){
+  const payload={version:1,exportedAt:new Date().toISOString(),characters,sessions};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  const d=new Date().toISOString().slice(0,10);
+  a.download=`tome-of-heroes-backup-${d}.json`;
+  a.click();URL.revokeObjectURL(a.href);
+}
+function importData(){document.getElementById('import-file-input').click();}
+function handleImportFile(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const payload=JSON.parse(ev.target.result);
+      if(!payload.characters||!payload.sessions)throw new Error('Invalid backup file format.');
+      const mode=characters.length||sessions.length
+        ?confirm(`Merge with existing data?\n\nOK = merge (keeps existing, adds new from backup)\nCancel = replace all (deletes current data)`)
+        :false;
+      if(mode){
+        // Merge: add anything from backup that doesn't already exist by id
+        const newChars=payload.characters.filter(c=>!characters.find(x=>x.id===c.id));
+        const newSess=payload.sessions.filter(s=>!sessions.find(x=>x.id===s.id));
+        characters=[...characters,...newChars];
+        sessions=[...sessions,...newSess];
+        alert(`Imported ${newChars.length} character(s) and ${newSess.length} session(s).`);
+      }else{
+        characters=payload.characters;sessions=payload.sessions;
+        alert(`Restored ${characters.length} character(s) and ${sessions.length} session(s).`);
+      }
+      await DB.saveAllLocal();
+      renderCharList();showDataStatus();
+    }catch(err){alert('Import failed: '+err.message);}
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+function showDataStatus(){
+  const chars=characters.length,sess=sessions.length;
+  const size=JSON.stringify({characters,sessions}).length;
+  const kb=(size/1024).toFixed(1);
+  const cloud=DB.isCloud;
+  const status=document.getElementById('data-status');
+  if(status)status.textContent=`${chars} char${chars!==1?'s':''} · ${sess} session${sess!==1?'s':''} · ${kb} KB`;
+  const btn=document.getElementById('cloud-btn');
+  if(btn){btn.textContent=cloud?'☁ Cloud':'💾 Local';btn.style.color=cloud?'#50c090':'var(--text3)';}
 }
 
-// Render
-function renderProjects(){
-  const query=document.getElementById('search-input').value.toLowerCase().trim();
-  const grid=document.getElementById('project-grid');
-  const empty=document.getElementById('empty-state');
-  const filtered=projects.filter(p=>
-    !query||(p.name||'').toLowerCase().includes(query)||(p.desc||'').toLowerCase().includes(query)||(p.cat||'').toLowerCase().includes(query)
-  );
-  if(!filtered.length){grid.innerHTML='';empty.style.display=query?'none':'block';if(query){grid.innerHTML='<div style="color:var(--text3);font-size:.85rem;padding:2rem 0;">No projects match that search.</div>';}return;}
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function abMod(s){return Math.floor((s-10)/2);}
+function fmtMod(m){return(m>=0?'+':'')+m;}
+function profBonus(lvl){return Math.ceil(lvl/4)+1;}
+function initials(name){return(name||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';}
+function classColor(cls){return CLASS_COLORS[cls]||'#706050';}
+function hpPct(cur,max){return Math.max(0,Math.min(100,Math.round((cur/max)*100)));}
+function fmtDate(d){if(!d)return'';try{return new Date(d+'T00:00:00').toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});}catch(e){return d;}}
+function wordCount(t){return t?t.trim().split(/\s+/).filter(Boolean).length:0;}
+function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function gv(id){return(document.getElementById(id)||document.getElementById('f-'+id))?.value||'';}
+function sv(id,v){const el=document.getElementById(id)||document.getElementById('f-'+id);if(el)el.value=v||'';}
+
+function navTo(section,btn){
+  document.querySelectorAll('.nav-btn:not(.soon)').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(section==='characters')showCharList();
+  else if(section==='sessions')showSessionList();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CHARACTERS
+// ══════════════════════════════════════════════════════════════════════════
+function showCharList(){showView('view-char-list');renderCharList();}
+function renderCharList(){
+  const grid=gv('char-grid'),empty=document.getElementById('char-empty');
+  document.getElementById('char-count').textContent=characters.length?`(${characters.length})`:'';
+  const el=document.getElementById('char-grid');
+  if(!characters.length){el.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
-  grid.innerHTML=filtered.map(p=>{
-    const color=p.color||'#58a6ff';
-    const icon=p.icon||defaultIcon(p.cat);
-    const tag=p.cat?`<span class="project-tag">${p.cat}</span>`:'';
-    const status=p.status&&p.status!=='active'?`<span class="project-tag" style="color:${STATUS_COLORS[p.status]||'var(--text3)'};border-color:transparent;">${STATUS_LABELS[p.status]||p.status}</span>`:'';
-    return`<div class="project-card" id="card-${p.id}">
-      <div class="project-card-accent" style="background:${color};"></div>
-      <div class="project-top">
-        <div class="project-icon" style="background:${color}18;border:1px solid ${color}30;">${icon}</div>
-        <div class="project-meta">
-          <div class="project-name">${p.name||'Untitled'}</div>
-          <div class="project-desc">${p.desc||'No description'}</div>
-        </div>
+  el.innerHTML=characters.map(c=>{
+    const col=classColor(c.class),pct=hpPct(c.currentHp||0,c.maxHp||1);
+    return`<div class="char-card" onclick="showCharDetail('${c.id}')">
+      <div class="char-card-top">
+        <div class="avatar avatar-lg" style="background:${col}22;border-color:${col};color:${col}">${initials(c.name)}</div>
+        <div class="char-info"><div class="char-name">${c.name||'Unnamed'}</div><div class="char-sub">${[c.race,c.class].filter(Boolean).join(' · ')||'No class set'}</div></div>
+        <div class="level-badge">Lv ${c.level||1}</div>
       </div>
-      <div class="project-footer">
-        ${tag}${status}
-        <div class="project-actions">
-          <button class="btn btn-sm icon-btn" onclick="editProject('${p.id}')" title="Edit">&#9998;</button>
-          <button class="btn btn-sm icon-btn btn-danger" onclick="deleteProject('${p.id}')" title="Delete">&#10005;</button>
-        </div>
-        <a class="open-btn" href="${p.url}" target="_blank" rel="noopener" style="margin-left:auto;color:${color};">
-          Open <span class="open-arrow">&#8599;</span>
-        </a>
+      <div class="char-bottom">
+        <div class="mini-stat"><div class="mini-val">${c.currentHp||0}/${c.maxHp||0}</div><div class="mini-lbl">HP</div></div>
+        <div class="mini-stat"><div class="mini-val">${c.ac||10}</div><div class="mini-lbl">AC</div></div>
+        <div class="hp-bar-wrap"><div class="hp-bar-fill" style="width:${pct}%"></div></div>
       </div>
     </div>`;
   }).join('');
 }
+function buildSkillsForm(){
+  document.getElementById('skills-form').innerHTML=SKILLS.map(s=>`
+    <label class="skill-row"><input type="checkbox" class="skill-check" id="skill-${s.key}" oninput="updateSkillBonus('${s.key}','${s.ab}')">
+    <span>${s.name}</span><span class="skill-ab">(${s.ab.toUpperCase()})</span>
+    <span class="skill-bonus-val" id="sbonus-${s.key}">+0</span></label>`).join('');
+}
+function charTab(name,btn){
+  document.querySelectorAll('[id^="ctab-"]').forEach(p=>p.classList.remove('active'));
+  document.getElementById('ctab-'+name).classList.add('active');
+  document.querySelectorAll('#char-tabs .tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+}
+function showAddCharForm(){editingCharId=null;document.getElementById('char-form-title').textContent='New Character';resetCharForm();showView('view-char-form');charTab('identity',document.querySelector('#char-tabs .tab'));}
+function showEditCharForm(id){const c=characters.find(x=>x.id===id);if(!c)return;editingCharId=id;document.getElementById('char-form-title').textContent='Edit — '+c.name;resetCharForm();fillCharForm(c);showView('view-char-form');charTab('identity',document.querySelector('#char-tabs .tab'));}
+function resetCharForm(){
+  const defs={level:1,str:10,dex:10,con:10,int:10,wis:10,cha:10,passive:10,maxhp:8,curhp:8,temphp:0,ac:10,init:0,speed:30,xp:0,cp:0,sp:0,gp:0};
+  ['name','player','class','subclass','level','race','background','alignment','xp','languages','str','dex','con','int','wis','cha','passive','inspiration','maxhp','curhp','temphp','ac','init','speed','hitdice','attacks','equipment','cp','sp','gp','traits','ideals','bonds','flaws','backstory','age','height','weight','eyes','hair','skin','features','notes','proficiencies'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=defs[f]!==undefined?defs[f]:'';});
+  document.getElementById('f-hitdice').value='d8';document.getElementById('f-inspiration').value='0';
+  ABS.forEach(a=>{const el=document.getElementById('save-'+a);if(el)el.checked=false;});
+  SKILLS.forEach(s=>{const el=document.getElementById('skill-'+s.key);if(el)el.checked=false;});
+  updateProfBonus();ABS.forEach(a=>updateAbilityMod(a));updateAllSkills();
+}
+function fillCharForm(c){
+  sv('name',c.name);sv('player',c.player);sv('class',c.class);sv('subclass',c.subclass);sv('level',c.level||1);sv('race',c.race);sv('background',c.background);sv('alignment',c.alignment);sv('xp',c.xp||0);sv('languages',c.languages);
+  sv('str',c.str||10);sv('dex',c.dex||10);sv('con',c.con||10);sv('int',c.int||10);sv('wis',c.wis||10);sv('cha',c.cha||10);sv('passive',c.passive||10);sv('inspiration',c.inspiration||0);
+  sv('maxhp',c.maxHp||8);sv('curhp',c.currentHp||8);sv('temphp',c.tempHp||0);sv('ac',c.ac||10);sv('init',c.initiative||0);sv('speed',c.speed||30);
+  document.getElementById('f-hitdice').value=c.hitDice||'d8';
+  sv('attacks',c.attacks);sv('equipment',c.equipment);sv('cp',c.cp||0);sv('sp',c.sp||0);sv('gp',c.gp||0);
+  sv('traits',c.traits);sv('ideals',c.ideals);sv('bonds',c.bonds);sv('flaws',c.flaws);sv('backstory',c.backstory);sv('age',c.age);sv('height',c.height);sv('weight',c.weight);sv('eyes',c.eyes);sv('hair',c.hair);sv('skin',c.skin);sv('features',c.features);sv('notes',c.notes);sv('proficiencies',c.proficiencies);
+  ABS.forEach(a=>{const el=document.getElementById('save-'+a);if(el)el.checked=!!(c.saves&&c.saves[a]);});
+  SKILLS.forEach(s=>{const el=document.getElementById('skill-'+s.key);if(el)el.checked=!!(c.skills&&c.skills[s.key]);});
+  updateProfBonus();ABS.forEach(a=>updateAbilityMod(a));updateAllSkills();
+}
+function updateAbilityMod(ab){const s=parseInt(document.getElementById('f-'+ab).value)||10;document.getElementById('mod-'+ab).textContent=fmtMod(abMod(s));}
+function updateProfBonus(){const lvl=parseInt(document.getElementById('f-level').value)||1;document.getElementById('prof-bonus-display').textContent=fmtMod(profBonus(lvl));updateAllSkills();}
+function updateSkillBonus(key,ab){const s=parseInt(document.getElementById('f-'+ab).value)||10;const lvl=parseInt(document.getElementById('f-level').value)||1;const ch=document.getElementById('skill-'+key).checked;const el=document.getElementById('sbonus-'+key);if(el)el.textContent=fmtMod(abMod(s)+(ch?profBonus(lvl):0));}
+function updateAllSkills(){SKILLS.forEach(s=>updateSkillBonus(s.key,s.ab));}
+function submitCharForm(){
+  const name=gv('name').trim();if(!name){alert('Please enter a character name.');return;}
+  const lvl=parseInt(gv('level'))||1;
+  const skills={},saves={};
+  SKILLS.forEach(s=>{skills[s.key]=document.getElementById('skill-'+s.key).checked;});
+  ABS.forEach(a=>{saves[a]=document.getElementById('save-'+a).checked;});
+  const c={id:editingCharId||uid(),name,player:gv('player'),class:gv('class'),subclass:gv('subclass'),level:lvl,race:gv('race'),background:gv('background'),alignment:gv('alignment'),xp:parseInt(gv('xp'))||0,languages:gv('languages'),str:parseInt(gv('str'))||10,dex:parseInt(gv('dex'))||10,con:parseInt(gv('con'))||10,int:parseInt(gv('int'))||10,wis:parseInt(gv('wis'))||10,cha:parseInt(gv('cha'))||10,passive:parseInt(gv('passive'))||10,inspiration:parseInt(gv('inspiration'))||0,maxHp:parseInt(gv('maxhp'))||8,currentHp:parseInt(gv('curhp'))||8,tempHp:parseInt(gv('temphp'))||0,ac:parseInt(gv('ac'))||10,initiative:parseInt(gv('init'))||0,speed:parseInt(gv('speed'))||30,hitDice:gv('hitdice'),attacks:gv('attacks'),equipment:gv('equipment'),cp:parseInt(gv('cp'))||0,sp:parseInt(gv('sp'))||0,gp:parseInt(gv('gp'))||0,saves,skills,traits:gv('traits'),ideals:gv('ideals'),bonds:gv('bonds'),flaws:gv('flaws'),backstory:gv('backstory'),age:gv('age'),height:gv('height'),weight:gv('weight'),eyes:gv('eyes'),hair:gv('hair'),skin:gv('skin'),features:gv('features'),notes:gv('notes'),proficiencies:gv('proficiencies'),createdAt:editingCharId?(characters.find(x=>x.id===editingCharId)||{}).createdAt||Date.now():Date.now(),updatedAt:Date.now()};
+  if(editingCharId){const i=characters.findIndex(x=>x.id===editingCharId);if(i>-1)characters[i]=c;}else characters.push(c);
+  DB.saveChar(c).then(()=>editingCharId?showCharDetail(c.id):showCharList());
+}
+function showCharDetail(id){
+  currentCharId=id;const c=characters.find(x=>x.id===id);if(!c){showCharList();return;}
+  const col=classColor(c.class),pb=profBonus(c.level||1);
+  const av=document.getElementById('d-avatar');av.textContent=initials(c.name);av.style.cssText=`background:${col}22;border-color:${col};color:${col};width:60px;height:60px;font-size:1.3rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0;border:2px solid;`;
+  document.getElementById('d-name').textContent=c.name||'Unnamed';
+  document.getElementById('d-sub').textContent=[`Level ${c.level||1}`,c.class,c.subclass,c.race,c.background,c.alignment].filter(Boolean).join(' · ');
+  document.getElementById('d-abilities').innerHTML=ABS.map(a=>`<div class="ab-display"><div class="add-name">${AB_NAMES[a]}</div><div class="add-mod">${fmtMod(abMod(c[a]||10))}</div><div class="add-score">${c[a]||10}</div></div>`).join('');
+  document.getElementById('d-saves').innerHTML=ABS.map(a=>{const prof=c.saves&&c.saves[a];return`<div class="save-disp"><div class="sd-dot ${prof?'prof':''}"></div><span>${AB_NAMES[a]}</span><span style="margin-left:auto;font-size:.75rem;color:var(--amber-l)">${fmtMod(abMod(c[a]||10)+(prof?pb:0))}</span></div>`;}).join('');
+  document.getElementById('d-combat').innerHTML=`<div class="cd-box"><div class="cd-val">${c.ac||10}</div><div class="cd-lbl">AC</div></div><div class="cd-box"><div class="cd-val">${fmtMod(c.initiative||0)}</div><div class="cd-lbl">Initiative</div></div><div class="cd-box"><div class="cd-val">${c.speed||30}</div><div class="cd-lbl">Speed</div></div><div class="cd-box"><div class="cd-val">${c.level||1}${c.hitDice||'d8'}</div><div class="cd-lbl">Hit Dice</div></div><div class="cd-box"><div class="cd-val">${fmtMod(pb)}</div><div class="cd-lbl">Prof</div></div>`;
+  document.getElementById('d-curhp-inp').value=c.currentHp||0;document.getElementById('d-maxhp-inp').value=c.maxHp||0;document.getElementById('d-hp-bar').style.width=hpPct(c.currentHp||0,c.maxHp||1)+'%';
+  document.getElementById('d-attacks').textContent=c.attacks||'—';document.getElementById('d-equipment').textContent=c.equipment||'—';
+  document.getElementById('d-gp').textContent=c.gp||0;document.getElementById('d-sp').textContent=c.sp||0;document.getElementById('d-cp').textContent=c.cp||0;
+  document.getElementById('d-skills').innerHTML=SKILLS.map(s=>{const prof=c.skills&&c.skills[s.key];return`<div class="sd-row"><div class="sd-dot ${prof?'prof':''}"></div><span>${s.name}</span><span class="sd-bonus">${fmtMod(abMod(c[s.ab]||10)+(prof?pb:0))}</span></div>`;}).join('');
+  const sf=[{l:'Personality Traits',v:c.traits},{l:'Ideals',v:c.ideals},{l:'Bonds',v:c.bonds},{l:'Flaws',v:c.flaws},{l:'Backstory',v:c.backstory},{l:'Features & Traits',v:c.features},{l:'Other Proficiencies',v:c.proficiencies},{l:'Notes',v:c.notes}];
+  document.getElementById('d-story').innerHTML=sf.filter(f=>f.v).map(f=>`<div class="story-entry"><div class="story-lbl">${f.l}</div><div class="story-val">${f.v}</div></div>`).join('')||'<div style="color:var(--text3);font-size:.83rem;">No story details yet.</div>';
+  const af=[{k:'age',l:'Age'},{k:'height',l:'Height'},{k:'weight',l:'Weight'},{k:'eyes',l:'Eyes'},{k:'hair',l:'Hair'},{k:'skin',l:'Skin'}];
+  const ah=af.filter(f=>c[f.k]).map(f=>`<div style="display:flex;gap:.5rem;margin-bottom:4px;font-size:.82rem;"><span style="color:var(--amber);min-width:60px;">${f.l}</span><span style="color:var(--text2);">${c[f.k]}</span></div>`).join('');
+  document.getElementById('d-appear-panel').style.display=ah?'block':'none';document.getElementById('d-appearance').innerHTML=ah;
+  showView('view-char-detail');
+}
+function saveHpEdit(){const c=characters.find(x=>x.id===currentCharId);if(!c)return;c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(document.getElementById('d-curhp-inp').value)||0));DB.saveChar(c).then(()=>showCharDetail(currentCharId));}
+function editCurrentChar(){showEditCharForm(currentCharId);}
+function deleteCurrentChar(){const c=characters.find(x=>x.id===currentCharId);if(!c||!confirm(`Delete ${c.name}? This cannot be undone.`))return;characters=characters.filter(x=>x.id!==currentCharId);DB.deleteChar(currentCharId).then(showCharList);}
 
-function defaultIcon(cat){
-  const m={Games:'&#9876;','Games & hobby':'&#9876;',Productivity:'&#128203;',Finance:'&#128200;',Health:'&#128153;',Creative:'&#127912;',Work:'&#128188;'};
-  return m[cat]||'&#128196;';
+// ══════════════════════════════════════════════════════════════════════════
+// SESSIONS
+// ══════════════════════════════════════════════════════════════════════════
+function showSessionList(){showView('view-sessions');renderSessionList();}
+function renderSessionList(){
+  const el=document.getElementById('session-grid'),empty=document.getElementById('session-empty');
+  document.getElementById('session-count').textContent=sessions.length?`(${sessions.length})`:'';
+  if(!sessions.length){el.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  const sorted=[...sessions].sort((a,b)=>b.number-a.number);
+  el.innerHTML=sorted.map(s=>{
+    const party=(s.party||[]).map(id=>{const c=characters.find(x=>x.id===id);if(!c)return'';const col=classColor(c.class);return`<div class="avatar avatar-sm" style="background:${col}22;border-color:${col};color:${col}" title="${c.name}">${initials(c.name)}</div>`;}).join('');
+    return`<div class="session-card" onclick="showSessionDetail('${s.id}')">
+      <div class="session-card-top">
+        <div class="session-num-badge">Session ${s.number}</div>
+        <div><div class="session-title-card">${s.title||'Untitled'}</div><div class="session-meta-card">${[fmtDate(s.date),s.location].filter(Boolean).join(' · ')||'No date'}</div></div>
+      </div>
+      ${s.summary?`<div class="session-summary-card">${s.summary}</div>`:''}
+      ${party?`<div class="session-party-row">${party}</div>`:''}
+      ${s.analysis?`<div class="analyzed-badge">✦ AI Analyzed · ${s.analysis.keyEvents?.length||0} events</div>`:''}
+    </div>`;
+  }).join('');
+}
+function buildPartyCheckGrid(){
+  const el=document.getElementById('sf-party-grid');
+  if(!characters.length){el.innerHTML='<div style="font-size:.8rem;color:var(--text3);">No characters yet — create some in the Characters section.</div>';return;}
+  el.innerHTML=characters.map(c=>{const col=classColor(c.class);return`<label class="char-check-item" id="pi-${c.id}"><input type="checkbox" id="pc-${c.id}" onchange="document.getElementById('pi-${c.id}').classList.toggle('checked',this.checked)"><div class="avatar avatar-sm" style="background:${col}22;border-color:${col};color:${col}">${initials(c.name)}</div><div><div class="char-check-name">${c.name}</div><div class="char-check-sub">${[c.class,c.race].filter(Boolean).join(' · ')||'—'}</div></div></label>`;}).join('');
+}
+function showAddSessionForm(){
+  editingSessionId=null;document.getElementById('session-form-title').textContent='Log New Session';
+  resetSessionForm();buildPartyCheckGrid();showView('view-session-form');
+}
+function showEditSessionForm(id){
+  const s=sessions.find(x=>x.id===id);if(!s)return;
+  editingSessionId=id;document.getElementById('session-form-title').textContent='Edit — '+s.title;
+  resetSessionForm();buildPartyCheckGrid();
+  sv('sf-number',s.number||1);sv('sf-title',s.title);sv('sf-date',s.date);sv('sf-location',s.location);sv('sf-dm',s.dm);sv('sf-hook',s.hook);sv('sf-summary',s.summary);sv('sf-transcript',s.transcript);sv('sf-tags',(s.tags||[]).join(', '));
+  (s.party||[]).forEach(id=>{const cb=document.getElementById('pc-'+id);const pi=document.getElementById('pi-'+id);if(cb)cb.checked=true;if(pi)pi.classList.add('checked');});
+  showView('view-session-form');
+}
+function resetSessionForm(){
+  const next=sessions.length?Math.max(...sessions.map(s=>s.number||0))+1:1;
+  sv('sf-number',next);sv('sf-title','');sv('sf-date',new Date().toISOString().split('T')[0]);sv('sf-location','');sv('sf-dm','');sv('sf-hook','');sv('sf-summary','');sv('sf-transcript','');sv('sf-tags','');
+}
+function submitSessionForm(){
+  const title=gv('sf-title').trim();if(!title){alert('Please enter a session title.');return;}
+  const party=characters.filter(c=>document.getElementById('pc-'+c.id)?.checked).map(c=>c.id);
+  const tags=gv('sf-tags').split(',').map(t=>t.trim()).filter(Boolean);
+  const existing=editingSessionId?sessions.find(x=>x.id===editingSessionId):null;
+  const s={id:editingSessionId||uid(),number:parseInt(gv('sf-number'))||1,title,date:gv('sf-date'),location:gv('sf-location'),dm:gv('sf-dm'),hook:gv('sf-hook'),summary:gv('sf-summary'),transcript:gv('sf-transcript'),tags,party,analysis:existing?.analysis||null,createdAt:existing?.createdAt||Date.now(),updatedAt:Date.now()};
+  if(editingSessionId){const i=sessions.findIndex(x=>x.id===editingSessionId);if(i>-1)sessions[i]=s;}else sessions.push(s);
+  DB.saveSession(s).then(()=>showSessionDetail(s.id));
+}
+function showSessionDetail(id){
+  currentSessionId=id;const s=sessions.find(x=>x.id===id);if(!s){showSessionList();return;}
+  document.getElementById('sd-num').textContent=`Session ${s.number}`;
+  document.getElementById('sd-title').textContent=s.title||'Untitled';
+  const meta=[fmtDate(s.date),s.location,s.dm?'DM: '+s.dm:null].filter(Boolean);
+  document.getElementById('sd-meta').innerHTML=meta.map(m=>`<span>${m}</span>`).join('');
+  const party=(s.party||[]).map(id=>{const c=characters.find(x=>x.id===id);if(!c)return'';const col=classColor(c.class);return`<div class="party-member"><div class="avatar avatar-sm" style="background:${col}22;border-color:${col};color:${col}">${initials(c.name)}</div>${c.name}</div>`;}).join('');
+  document.getElementById('sd-party').innerHTML=party;
+  const sp=document.getElementById('sd-summary-panel');if(s.summary){sp.style.display='block';document.getElementById('sd-summary').textContent=s.summary;}else sp.style.display='none';
+  const hp=document.getElementById('sd-hook-panel');if(s.hook){hp.style.display='block';document.getElementById('sd-hook-txt').textContent=s.hook;}else hp.style.display='none';
+  const tp=document.getElementById('sd-tags-panel');if(s.tags?.length){tp.style.display='block';document.getElementById('sd-tags-display').innerHTML=s.tags.map(t=>`<span class="loot-tag">${t}</span>`).join('');}else tp.style.display='none';
+  document.getElementById('sd-transcript').textContent=s.transcript||'No transcript added.';
+  const wc=wordCount(s.transcript);document.getElementById('sd-wc').textContent=wc?`${wc.toLocaleString()} words`:'';
+  if(s.analysis)renderAnalysis(s.analysis,s);
+  else document.getElementById('ai-content').innerHTML='<p style="font-size:.82rem;color:var(--text3);line-height:1.7;">Click <strong style="color:#9060e0;">✦ Analyze with AI</strong> to extract key events, NPCs, loot &amp; plot threads from your transcript — and generate a cinematic image prompt for each scene.</p>';
+  document.getElementById('ai-btn').disabled=false;document.getElementById('ai-btn').textContent='✦ Analyze with AI';
+  showView('view-session-detail');
+}
+function renderAnalysis(analysis,session){
+  let html='';
+  if(analysis.keyEvents?.length){
+    html+='<div class="section-label">Key Events</div>';
+    html+=analysis.keyEvents.map((e,i)=>{
+      const tc=TYPE_CLASS[e.type]||'t-other';
+      const chars=(e.characters||[]).map(n=>`<span class="event-char-tag">${n}</span>`).join('');
+      const prompt=e.imagePrompt?`<button class="prompt-toggle" onclick="togglePrompt(${i})">▸ View image prompt</button><div class="prompt-box" id="eprompt-${i}">${e.imagePrompt.replace(/</g,'&lt;')}<br><button class="copy-btn" onclick="copyPrompt(${i})">Copy prompt</button></div>`:'';
+      return`<div class="event-card"><div class="event-card-top"><span class="event-type-badge ${tc}">${e.type||'event'}</span><div class="event-title">${e.title||'Event'}</div></div><div class="event-desc">${e.description||''}</div>${chars?`<div class="event-chars">${chars}</div>`:''}${prompt}</div>`;
+    }).join('');
+  }
+  if(analysis.npcs?.length){html+='<div class="section-label" style="margin-top:.5rem;">NPCs Encountered</div><div class="npc-list">'+analysis.npcs.map(n=>`<div class="npc-row"><div class="npc-name">${n.name}</div>${n.description?`<div class="npc-desc">${n.description}</div>`:''}</div>`).join('')+'</div>';}
+  if(analysis.loot?.length){html+='<div class="section-label">Loot &amp; Rewards</div><div class="loot-wrap">'+analysis.loot.map(l=>`<span class="loot-tag">${l}</span>`).join('')+'</div>';}
+  if(analysis.plotHooks?.length){html+='<div class="section-label">Plot Threads</div><ul class="plot-list">'+analysis.plotHooks.map(h=>`<li>${h}</li>`).join('')+'</ul>';}
+  if(analysis.summary){const sp=document.getElementById('sd-summary-panel');sp.style.display='block';document.getElementById('sd-summary').textContent=analysis.summary;}
+  document.getElementById('ai-content').innerHTML=html||'<p style="color:var(--text3);font-size:.82rem;">No events extracted.</p>';
+}
+function togglePrompt(i){const box=document.getElementById('eprompt-'+i);const btn=box.previousElementSibling;box.classList.toggle('open');btn.textContent=box.classList.contains('open')?'▾ Hide image prompt':'▸ View image prompt';}
+function copyPrompt(i){const box=document.getElementById('eprompt-'+i);const text=box.textContent.replace('Copy prompt','').trim();navigator.clipboard.writeText(text).then(()=>{const btn=box.querySelector('.copy-btn');btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy prompt',2000);});}
+
+async function runAIAnalysis(){
+  const s=sessions.find(x=>x.id===currentSessionId);if(!s)return;
+  if(!s.transcript&&!s.summary){alert('Add a transcript or summary before analyzing.');return;}
+  const btn=document.getElementById('ai-btn');
+  btn.disabled=true;btn.textContent='Analyzing…';
+  document.getElementById('ai-content').innerHTML='<div class="ai-loading"><div class="spin">⚙</div><p>Consulting the arcane scrolls…<br><span style="font-size:.75rem;color:var(--text3);">Extracting events, NPCs, and building scene prompts</span></p></div>';
+  const partyNames=(s.party||[]).map(id=>characters.find(x=>x.id===id)?.name).filter(Boolean).join(', ')||'Unknown party';
+  const content=(s.transcript||s.summary||'').slice(0,8000);
+  const prompt=`Analyze this D&D session. Respond ONLY with valid JSON, no markdown fences.
+
+Session: ${s.title} (#${s.number})
+Date: ${s.date||'Unknown'} | Location: ${s.location||'Unknown'} | Party: ${partyNames}
+${s.summary?'DM Notes: '+s.summary:''}
+
+Content:
+${content}
+
+Return this JSON:
+{
+  "summary": "2-3 sentence session overview",
+  "keyEvents": [
+    {
+      "title": "Short dramatic event title",
+      "description": "What happened in 1-2 sentences",
+      "type": "combat|story|discovery|roleplay|other",
+      "characters": ["names of characters/NPCs directly involved"],
+      "imagePrompt": "Cinematic image generation prompt for this scene. Specify: fantasy art style (e.g. dark fantasy oil painting), lighting, mood, colors, composition, specific visual details. Write at least 80 words. Make it something a concept artist could paint from."
+    }
+  ],
+  "npcs": [{"name":"NPC name","description":"Their role this session"}],
+  "loot": ["item or reward"],
+  "plotHooks": ["unresolved thread or foreshadowed event"]
 }
 
-// Modal
-function buildSwatches(){
-  const sel=document.getElementById('f-pcolor').value;
-  document.getElementById('color-swatches').innerHTML=COLORS.map(c=>`<div class="swatch${c===sel?' selected':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`).join('');
+Extract 3-7 key events. Image prompts must be vivid and cinematic.`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await resp.json();
+    const raw=data.content?.map(b=>b.text||'').join('')||'';
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const analysis=JSON.parse(clean);
+    const idx=sessions.findIndex(x=>x.id===currentSessionId);
+    if(idx>-1){sessions[idx].analysis=analysis;if(!sessions[idx].summary&&analysis.summary)sessions[idx].summary=analysis.summary;}
+    await DB.saveSession(sessions.find(x=>x.id===currentSessionId));
+    renderAnalysis(analysis,sessions.find(x=>x.id===currentSessionId));
+  }catch(err){
+    document.getElementById('ai-content').innerHTML=`<p style="color:var(--red);font-size:.82rem;">Analysis failed: ${err.message||'Unknown error'}. Check that transcript content exists and try again.</p>`;
+  }
+  btn.disabled=false;btn.textContent='✦ Re-analyze';
 }
-function selectColor(c){document.getElementById('f-pcolor').value=c;buildSwatches();}
-function openModal(id){
-  editingId=id||null;
-  const p=id?projects.find(x=>x.id===id):null;
-  document.getElementById('modal-title').textContent=id?'Edit project':'New project';
-  document.getElementById('editing-id').value=id||'';
-  document.getElementById('f-pname').value=p?.name||'';
-  document.getElementById('f-pdesc').value=p?.desc||'';
-  document.getElementById('f-purl').value=p?.url||'';
-  document.getElementById('f-pcat').value=p?.cat||'';
-  document.getElementById('f-picon').value=p?.icon||'';
-  document.getElementById('f-pstatus').value=p?.status||'active';
-  document.getElementById('f-pcolor').value=p?.color||COLORS[0];
-  buildSwatches();
-  document.getElementById('modal').classList.add('open');
-  setTimeout(()=>document.getElementById('f-pname').focus(),80);
-}
-function closeModal(){document.getElementById('modal').classList.remove('open');}
+function editCurrentSession(){showEditSessionForm(currentSessionId);}
+function deleteCurrentSession(){const s=sessions.find(x=>x.id===currentSessionId);if(!s||!confirm(`Delete Session ${s.number}: "${s.title}"? This cannot be undone.`))return;sessions=sessions.filter(x=>x.id!==currentSessionId);DB.deleteSession(currentSessionId).then(showSessionList);}
 
-function saveProject(){
-  const name=document.getElementById('f-pname').value.trim();
-  const url=document.getElementById('f-purl').value.trim();
-  if(!name){alert('Please enter a project name.');return;}
-  if(!url){alert('Please enter a file path or URL.');return;}
-  const id=editingId||Date.now().toString(36)+Math.random().toString(36).slice(2);
-  const p={id,name,desc:document.getElementById('f-pdesc').value.trim(),url,cat:document.getElementById('f-pcat').value,icon:document.getElementById('f-picon').value.trim(),status:document.getElementById('f-pstatus').value,color:document.getElementById('f-pcolor').value,updatedAt:Date.now(),createdAt:editingId?(projects.find(x=>x.id===editingId)||{}).createdAt||Date.now():Date.now()};
-  if(editingId){const i=projects.findIndex(x=>x.id===editingId);if(i>-1)projects[i]=p;}else projects.push(p);
-  save();closeModal();renderProjects();
+// ── CLOUD SETTINGS UI ─────────────────────────────────────────────────────
+function openCloudModal(){
+  const modal=document.getElementById('cloud-modal');
+  modal.style.display='flex';
+  const isCloud=DB.isCloud;
+  document.getElementById('sb-url').value=DB.sb?.url||'https://qavuogmqssjrsaylthdw.supabase.co';
+  document.getElementById('sb-key').value=DB.sb?.key||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdnVvZ21xc3NqcnNheWx0aGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTQyMzQsImV4cCI6MjA5MTQ5MDIzNH0.jpP1vHqs2nvy0HEOnoglXOboSDNC-Nm1DZjaTWnSBdw';
+  document.getElementById('sb-disconnect-btn').style.display=isCloud?'block':'none';
+  document.getElementById('sb-connect-btn').textContent=isCloud?'Re-test & Reconnect':'Test & Connect';
+  const localHasData=localStorage.getItem('dnd-chars')||localStorage.getItem('dnd-sessions');
+  document.getElementById('migrate-section').style.display=(isCloud&&localHasData)?'block':'none';
+  const statusEl=document.getElementById('cloud-modal-status');
+  if(isCloud){statusEl.innerHTML='<span style="color:#50c090;">&#9679; Connected</span> — data syncs to Supabase on every save. Works across all your devices and browsers.';}
+  else{statusEl.innerHTML='Currently using <strong>browser localStorage</strong> — data stays on this device. Connect Supabase to sync across devices.';}
 }
-function editProject(id){openModal(id);}
-function deleteProject(id){
-  const p=projects.find(x=>x.id===id);
-  if(!p||!confirm(`Remove "${p.name}" from the launcher?\n\nThis only removes it from this list — your actual files are untouched.`))return;
-  projects=projects.filter(x=>x.id!==id);
-  save();renderProjects();
+function closeCloudModal(){document.getElementById('cloud-modal').style.display='none';}
+async function testAndConnect(){
+  const url=document.getElementById('sb-url').value.trim();
+  const key=document.getElementById('sb-key').value.trim();
+  if(!url||!key){alert('Please enter both your Supabase URL and anon key.');return;}
+  const btn=document.getElementById('sb-connect-btn');
+  btn.textContent='Testing...';btn.disabled=true;
+  try{
+    await DB.test(url,key);
+    await DB.configure(url,key);
+    // Reload data from cloud
+    await DB.loadAll();
+    renderCharList();renderSessionList();
+    showDataStatus();
+    // Check if there's local data to migrate
+    const localHasData=localStorage.getItem('dnd-chars')||localStorage.getItem('dnd-sessions');
+    document.getElementById('migrate-section').style.display=localHasData?'block':'none';
+    document.getElementById('sb-disconnect-btn').style.display='block';
+    document.getElementById('cloud-modal-status').innerHTML='<span style="color:#50c090;">&#9679; Connected successfully!</span> Your data now syncs to Supabase.';
+    btn.textContent='Re-test & Reconnect';
+  }catch(err){
+    document.getElementById('cloud-modal-status').innerHTML='<span style="color:#b84a3a;">&#9679; Connection failed:</span> '+err.message+'<br><small style="color:var(--text3)">Check your URL and key, and make sure you ran the SQL setup in Supabase.</small>';
+  }
+  btn.disabled=false;
+}
+async function disconnectCloud(){
+  if(!confirm('Disconnect from Supabase?\n\nYour cloud data stays in Supabase safely. The app will fall back to this browser\'s local storage.'))return;
+  DB.disconnect();
+  // Reload from local
+  await DB.loadAll();
+  renderCharList();renderSessionList();
+  showDataStatus();
+  closeCloudModal();
+}
+async function migrateToCloud(){
+  const btn=event.target;btn.textContent='Migrating...';btn.disabled=true;
+  try{
+    const result=await DB.migrate();
+    alert(`Migrated ${result.chars} character(s) and ${result.sessions} session(s) to Supabase. \n\nYou can now safely use the app from any device.`);
+    document.getElementById('migrate-section').style.display='none';
+  }catch(err){alert('Migration failed: '+err.message);}
+  btn.textContent='⬆ Push local data to cloud';btn.disabled=false;
 }
 
-// Backup
-function exportProjects(){
-  const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),projects},null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`my-projects-backup-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();URL.revokeObjectURL(a.href);
-}
-function importProjects(e){
-  const file=e.target.files[0];if(!file)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    try{
-      const d=JSON.parse(ev.target.result);
-      if(!Array.isArray(d.projects))throw new Error('Invalid backup file.');
-      const merge=projects.length&&confirm('Merge with current projects?\n\nOK = merge\nCancel = replace all');
-      if(merge){const ids=new Set(projects.map(p=>p.id));projects=[...projects,...d.projects.filter(p=>!ids.has(p.id))];}
-      else projects=d.projects;
-      save();renderProjects();
-      alert(`Loaded ${projects.length} project(s).`);
-    }catch(err){alert('Import failed: '+err.message);}
-    e.target.value='';
-  };
-  r.readAsText(file);
-}
-
-// Keyboard shortcut
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')closeModal();
-  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.getElementById('search-input').focus();}
-});
-
-// Init
-load();
-renderProjects();
-updateMeta();
-
-// Seed example project if empty
-if(!projects.length){
-  projects=[{id:'example1',name:'D&D Campaign Tracker',desc:'Track sessions, characters, transcripts and AI-generated scene art for your tabletop campaign.',url:'dnd-tracker/index.html',cat:'Games & hobby',icon:'⚔',status:'active',color:'#d29922',createdAt:Date.now(),updatedAt:Date.now()}];
-  save();renderProjects();
-}
+// ── INIT ──────────────────────────────────────────────────────────────────
+buildSkillsForm();
+DB.init();
+DB.loadAll().then(()=>{renderCharList();showDataStatus();});
 </script>
 </body>
 </html>
