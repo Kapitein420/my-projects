@@ -100,19 +100,29 @@ async function createMap() {
   const prev = document.getElementById('nm-preview');
   let imageUrl = null, imageData = null;
 
+  let videoUrl = null;
   if (urlVal) {
-    imageUrl = urlVal;
+    // Detect YouTube URLs
+    const ytMatch = urlVal.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]+)/);
+    if (ytMatch) {
+      videoUrl = 'https://www.youtube.com/embed/' + ytMatch[1] + '?autoplay=1&mute=1&loop=1&controls=0&playlist=' + ytMatch[1];
+      imageUrl = 'https://img.youtube.com/vi/' + ytMatch[1] + '/maxresdefault.jpg';
+    } else if (urlVal.match(/\.(mp4|webm|ogg)(\?|$)/i)) {
+      videoUrl = urlVal;
+    } else {
+      imageUrl = urlVal;
+    }
   } else if (prev.src.startsWith('data:')) {
     imageData = prev.src;
   } else {
-    document.getElementById('nm-err').textContent = 'Provide an image URL or upload a file.';
+    document.getElementById('nm-err').textContent = 'Provide an image/video URL or upload a file.';
     return;
   }
 
   const btn = document.getElementById('nm-create-btn');
   btn.disabled = true; btn.textContent = 'Creating…';
 
-  const m = { id: uid(), name, imageUrl, imageData, tokens: [], scenarios: {}, createdAt: Date.now(), updatedAt: Date.now() };
+  const m = { id: uid(), name, imageUrl, imageData, videoUrl, tokens: [], scenarios: {}, createdAt: Date.now(), updatedAt: Date.now() };
   maps.push(m);
   await DB.save('maps', m, maps);
   closeNewMapModal();
@@ -139,11 +149,45 @@ function openMapEditor(id) {
   // Header
   document.getElementById('me-name').value = m.name;
 
-  // Load image
+  // Load image or video background
   const img = document.getElementById('map-img');
-  img.src = m.imageData || m.imageUrl || '';
-  img.onload = () => { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); };
-  if (img.complete && img.naturalWidth) { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); }
+  const mapStage = document.getElementById('map-stage');
+
+  // Remove any previous video background
+  const oldVid = mapStage.querySelector('.map-video-bg');
+  if (oldVid) oldVid.remove();
+  const oldIframe = mapStage.querySelector('.map-iframe-bg');
+  if (oldIframe) oldIframe.remove();
+  img.style.display = '';
+
+  if (m.videoUrl && m.videoUrl.includes('youtube.com/embed')) {
+    // YouTube iframe background
+    img.style.display = 'none';
+    const iframe = document.createElement('iframe');
+    iframe.className = 'map-iframe-bg';
+    iframe.src = m.videoUrl;
+    iframe.allow = 'autoplay; encrypted-media';
+    iframe.frameBorder = '0';
+    iframe.style.cssText = 'width:100%;height:600px;display:block;pointer-events:none;border:none;';
+    mapStage.insertBefore(iframe, mapStage.firstChild);
+    // Use thumbnail as fallback for fog/tokens sizing
+    if (m.imageUrl) { img.src = m.imageUrl; img.style.cssText = 'position:absolute;opacity:0;pointer-events:none;width:100%;'; }
+    setTimeout(() => { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); }, 500);
+  } else if (m.videoUrl) {
+    // Direct video file background
+    img.style.display = 'none';
+    const vid = document.createElement('video');
+    vid.className = 'map-video-bg';
+    vid.src = m.videoUrl;
+    vid.autoplay = true; vid.muted = true; vid.loop = true; vid.playsInline = true;
+    vid.style.cssText = 'display:block;width:100%;height:auto;pointer-events:none;';
+    mapStage.insertBefore(vid, mapStage.firstChild);
+    vid.onloadeddata = () => { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); };
+  } else {
+    img.src = m.imageData || m.imageUrl || '';
+    img.onload = () => { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); };
+    if (img.complete && img.naturalWidth) { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); }
+  }
 
   // Sidebar + scenarios
   renderTokenSidebar();
