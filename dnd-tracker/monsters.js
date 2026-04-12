@@ -101,11 +101,17 @@ function renderMonsterSearchResults(query) {
   }
   el.innerHTML = results.map(m => {
     const safeName = m.name.replace(/'/g, "\\'");
-    return '<div class="sidebar-char-item" onclick="pickMonsterForPlacement(\'' + safeName + '\')" title="CR ' + m.cr + ' \u00b7 ' + m.meta + '">' +
-      '<div class="avatar avatar-sm" style="background:#8a202020;border-color:#8a2020;color:#8a2020;font-size:.62rem;">CR</div>' +
-      '<div style="min-width:0;">' +
-        '<div style="font-size:.72rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + m.name + '</div>' +
-        '<div style="font-size:.58rem;color:var(--text4);">CR ' + m.cr + ' \u00b7 HP ' + m.hp + ' \u00b7 AC ' + m.ac + '</div>' +
+    return '<div class="sidebar-char-item" onclick="pickMonsterForPlacement(\'' + safeName + '\')" title="' + m.meta + '" style="padding:8px;gap:10px;">' +
+      '<div style="width:32px;height:32px;border-radius:50%;background:#3a1818;border:2px solid #8a2020;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+        '<span style="font-size:.6rem;font-weight:700;color:#c04040;font-family:var(--font-mono);">' + m.cr + '</span>' +
+      '</div>' +
+      '<div style="min-width:0;flex:1;">' +
+        '<div style="font-size:.78rem;color:#efe4d0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + m.name + '</div>' +
+        '<div style="display:flex;gap:8px;font-size:.62rem;margin-top:2px;">' +
+          '<span style="color:#c04040;">\u2764 ' + m.hp + '</span>' +
+          '<span style="color:#c8a45a;">\u26e8 ' + m.ac + '</span>' +
+          '<span style="color:#8a7868;">' + m.meta.split(',')[0] + '</span>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -122,19 +128,22 @@ function renderMonsterSidebar() {
   }
   el.innerHTML = monsters.map(mon => {
     const pct = Math.round((mon.currentHp / mon.maxHp) * 100);
-    const col = pct > 60 ? '#4a9a40' : pct > 25 ? '#b8902a' : '#8a2020';
-    return '<div class="sidebar-char-item" id="msi-' + mon.id + '" onclick="selectMonsterForPlace(\'' + mon.id + '\')" title="Click to place token">' +
-      '<div class="avatar avatar-sm" style="background:#8a202020;border-color:' + col + ';color:#8a2020;font-size:.55rem;position:relative;">' +
-        '<span style="font-size:.5rem;">' + mon.cr + '</span>' +
-        '<div style="position:absolute;bottom:-2px;left:0;right:0;height:3px;border-radius:2px;background:rgba(0,0,0,.3);">' +
-          '<div style="width:' + pct + '%;height:100%;border-radius:2px;background:' + col + ';"></div>' +
+    const hpCol = pct > 60 ? '#4a9a40' : pct > 25 ? '#b8902a' : '#a03030';
+    const isDead = mon.currentHp <= 0;
+    return '<div class="sidebar-char-item" id="msi-' + mon.id + '" onclick="selectMonsterForPlace(\'' + mon.id + '\')" title="Click to place token" style="padding:8px;gap:8px;' + (isDead ? 'opacity:.4;' : '') + '">' +
+      '<div style="min-width:0;flex:1;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">' +
+          '<span style="font-size:.78rem;color:' + (isDead ? '#5a4e40' : '#efe4d0') + ';font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (isDead ? 'text-decoration:line-through;' : '') + '">' + mon.displayName + '</span>' +
+          '<span style="font-size:.58rem;color:#c8a45a;flex-shrink:0;margin-left:4px;">\u26e8 ' + mon.ac + '</span>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<div style="flex:1;height:5px;background:#1e1810;border-radius:3px;overflow:hidden;">' +
+            '<div style="width:' + pct + '%;height:100%;background:' + hpCol + ';border-radius:3px;transition:width .3s;"></div>' +
+          '</div>' +
+          '<span style="font-size:.62rem;color:' + hpCol + ';font-family:var(--font-mono);white-space:nowrap;min-width:42px;text-align:right;">' + mon.currentHp + '/' + mon.maxHp + '</span>' +
         '</div>' +
       '</div>' +
-      '<div style="min-width:0;flex:1;">' +
-        '<div style="font-size:.7rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + mon.displayName + '</div>' +
-        '<div style="font-size:.58rem;color:var(--text4);">HP ' + mon.currentHp + '/' + mon.maxHp + ' \u00b7 AC ' + mon.ac + '</div>' +
-      '</div>' +
-      '<button class="btn btn-sm" style="padding:0 3px;font-size:.6rem;min-width:0;background:none;border:none;cursor:pointer;color:var(--red);" onclick="event.stopPropagation();removeMonsterFromEncounter(\'' + mon.id + '\')">\u2715</button>' +
+      '<button style="padding:2px 4px;font-size:.55rem;background:none;border:none;cursor:pointer;color:#6a3030;flex-shrink:0;" onclick="event.stopPropagation();removeMonsterFromEncounter(\'' + mon.id + '\')">\u2715</button>' +
     '</div>';
   }).join('');
 }
