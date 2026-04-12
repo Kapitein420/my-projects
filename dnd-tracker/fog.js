@@ -384,16 +384,14 @@ function fogPointerDown(e) {
   const py = e.clientY - rect.top;
 
   if (_fogTool === 'zone') {
-    // Toggle hex in selection
+    // Toggle hex in/out of zone selection
     const hex = pixelToHex(px, py, r);
     if (!hex) return;
     const key = hexKey(hex[0], hex[1]);
-    if (e.shiftKey || _zoneSelection.size > 0) {
-      // Multi-select mode
-      if (_zoneSelection.has(key)) _zoneSelection.delete(key);
-      else _zoneSelection.add(key);
-    } else {
-      // Single click — toggle individual hex reveal
+    if (_zoneSelection.has(key)) _zoneSelection.delete(key);
+    else _zoneSelection.add(key);
+    // Also toggle individual reveal with Ctrl+click
+    if (e.ctrlKey || e.metaKey) {
       const idx = (fog.revealedHexes || []).findIndex(h => h[0] === hex[0] && h[1] === hex[1]);
       if (idx >= 0) {
         fog.revealedHexes.splice(idx, 1);

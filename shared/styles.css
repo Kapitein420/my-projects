@@ -399,6 +399,10 @@ h1, h2, h3, h4 {
 .cond-concentrating { background:#0e1820;color:#3898c8;border-color:#183858; }
 
 /* ── SCROLLBAR ───────────────────────────────────────────── */
+/* Hide number input spinners globally */
+input[type=number]{-moz-appearance:textfield;}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #c4b498; border-radius: 3px; }
