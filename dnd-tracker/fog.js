@@ -13,6 +13,7 @@ let _fogCacheCtx = null;
 let _fogTool = 'none';       // 'none' | 'zone' | 'brush'
 let _brushMode = 'reveal';   // 'reveal' | 'fog'
 let _brushSize = 20;         // brush radius in display px
+let _brushCursorPos = null;  // {x, y} in canvas pixels for brush cursor
 let _brushStrokeInProgress = null;
 let _zoneSelection = new Set(); // hex keys being selected for zone creation
 let _resizeObs = null;
@@ -115,10 +116,26 @@ function initFogSystem(mapObj) {
   _fogCanvas.addEventListener('pointerdown', fogPointerDown);
   _fogCanvas.addEventListener('pointermove', fogPointerMove);
   _fogCanvas.addEventListener('pointerup', fogPointerUp);
+
+  // Brush cursor tracking (works even when pointer-events: none via the stage)
+  const stage = document.getElementById('map-stage');
+  if (stage) {
+    stage.addEventListener('pointermove', fogBrushCursorTrack);
+    stage.addEventListener('pointerleave', () => { _brushCursorPos = null; renderFog(); });
+  }
+}
+
+function fogBrushCursorTrack(e) {
+  if (_fogTool !== 'brush' || !_fogCanvas) return;
+  const rect = _fogCanvas.getBoundingClientRect();
+  _brushCursorPos = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  renderFog();
 }
 
 function teardownFogSystem() {
   if (_resizeObs) { _resizeObs.disconnect(); _resizeObs = null; }
+  const stage = document.getElementById('map-stage');
+  if (stage) stage.removeEventListener('pointermove', fogBrushCursorTrack);
   if (_fogCanvas) {
     _fogCanvas.removeEventListener('pointerdown', fogPointerDown);
     _fogCanvas.removeEventListener('pointermove', fogPointerMove);
@@ -126,6 +143,7 @@ function teardownFogSystem() {
   }
   _fogMap = null;
   _fogTool = 'none';
+  _brushCursorPos = null;
   _zoneSelection.clear();
 }
 
@@ -166,7 +184,7 @@ function renderFog() {
 
   // 1. Fill with fog
   ctx.globalCompositeOperation = 'source-over';
-  ctx.fillStyle = isDm ? 'rgba(15, 18, 25, 0.45)' : 'rgba(15, 18, 25, 0.95)';
+  ctx.fillStyle = isDm ? 'rgba(15, 18, 25, 0.45)' : 'rgba(15, 18, 25, 1.0)';
   ctx.fillRect(0, 0, w, h);
 
   // 2. Build revealed set
@@ -214,7 +232,7 @@ function renderFog() {
   for (const stroke of (fog.brushStrokes || [])) {
     if (stroke.mode === 'fog' && stroke.points.length > 0) {
       ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = isDm ? 'rgba(15, 18, 25, 0.45)' : 'rgba(15, 18, 25, 0.95)';
+      ctx.fillStyle = isDm ? 'rgba(15, 18, 25, 0.45)' : 'rgba(15, 18, 25, 1.0)';
       drawBrushStroke(ctx, stroke, w, h);
     }
   }
@@ -225,7 +243,7 @@ function renderFog() {
       ctx.globalCompositeOperation = 'destination-out';
     } else {
       ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = isDm ? 'rgba(15, 18, 25, 0.45)' : 'rgba(15, 18, 25, 0.95)';
+      ctx.fillStyle = isDm ? 'rgba(15, 18, 25, 0.45)' : 'rgba(15, 18, 25, 1.0)';
     }
     drawBrushStroke(ctx, _brushStrokeInProgress, w, h);
   }
@@ -236,6 +254,21 @@ function renderFog() {
     drawHexGrid(ctx, w, h, r);
     drawZoneOutlines(ctx, w, h, r);
     drawZoneSelection(ctx, w, h, r);
+  }
+
+  // 8. Brush cursor indicator
+  if (_fogTool === 'brush' && _brushCursorPos && isDm) {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.beginPath();
+    ctx.arc(_brushCursorPos.x, _brushCursorPos.y, _brushSize, 0, Math.PI * 2);
+    ctx.strokeStyle = _brushMode === 'reveal' ? 'rgba(100, 220, 255, 0.8)' : 'rgba(255, 100, 100, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Inner fill preview
+    ctx.fillStyle = _brushMode === 'reveal' ? 'rgba(100, 220, 255, 0.1)' : 'rgba(255, 100, 100, 0.1)';
+    ctx.fill();
   }
 }
 

@@ -147,8 +147,11 @@ function openMapEditor(id) {
 
   // Sidebar + scenarios
   renderTokenSidebar();
+  if (typeof renderMonsterSidebar === 'function') renderMonsterSidebar();
+  if (typeof renderMonsterSearchResults === 'function') renderMonsterSearchResults('');
   renderScenarioSelect();
   setPlacingMode(null);
+  if (typeof clearMonsterPlacing === 'function') clearMonsterPlacing();
 }
 
 async function saveMapName() {
@@ -187,6 +190,8 @@ function selectCharForPlace(charId) {
 
 function setPlacingMode(charId) {
   placingCharId = charId;
+  // Clear monster placing when selecting a character
+  if (charId && typeof clearMonsterPlacing === 'function') { placingMonsterId = null; }
   document.querySelectorAll('.sidebar-char-item').forEach(el => el.classList.remove('placing'));
   const stage = document.getElementById('map-stage');
   const hint = document.getElementById('place-hint');
@@ -203,15 +208,32 @@ function setPlacingMode(charId) {
 // ── TOKEN PLACEMENT ───────────────────────────────────────────────────────────
 function mapStageClick(e) {
   if (_fogTool !== 'none') return; // fog tool active, don't place tokens
-  if (!placingCharId) return;
   if (e.target.closest('.map-token')) return;
+  if (e.target.closest('#monster-popup')) return;
+  // Hide monster popup on map click
+  if (typeof hideMonsterPopup === 'function') hideMonsterPopup();
+
   const img = document.getElementById('map-img');
-  if (!img || !img.naturalWidth) return; // image not loaded yet
+  if (!img || !img.naturalWidth) return;
 
   const m = maps.find(x => x.id === currentMapId);
   if (!m) return;
-
   const pos = getPosOnImg(e);
+
+  // Monster placement
+  if (typeof placingMonsterId !== 'undefined' && placingMonsterId) {
+    const token = { id: uid(), monsterId: placingMonsterId, x: pos.x, y: pos.y, size: 1 };
+    m.tokens = m.tokens || [];
+    m.tokens.push(token);
+    m.updatedAt = Date.now();
+    saveCurrentMap();
+    renderTokensOnMap();
+    clearMonsterPlacing();
+    return;
+  }
+
+  // Character placement
+  if (!placingCharId) return;
   const token = { id: uid(), characterId: placingCharId, x: pos.x, y: pos.y, size: 1 };
   m.tokens = m.tokens || [];
   m.tokens.push(token);
@@ -237,27 +259,44 @@ function renderTokensOnMap() {
   const overlay = document.getElementById('token-overlay');
   if (!m) { overlay.innerHTML = ''; return; }
 
-  // Clean orphan tokens (character was deleted)
+  // Clean orphan character tokens
   const before = (m.tokens || []).length;
-  m.tokens = (m.tokens || []).filter(tok => characters.some(c => c.id === tok.characterId));
+  m.tokens = (m.tokens || []).filter(tok => {
+    if (tok.characterId) return characters.some(c => c.id === tok.characterId);
+    if (tok.monsterId) return (m.monsters || []).some(mon => mon.id === tok.monsterId);
+    return false;
+  });
   if (m.tokens.length < before) saveCurrentMap();
 
+  const fogView = m.fog?.viewMode || 'dm';
+  const fogOn = m.fog?.enabled;
+
   overlay.innerHTML = m.tokens.map(tok => {
-    const c = characters.find(x => x.id === tok.characterId);
-    const col = c ? classColor(c.class) : '#506050';
-    const ini = c ? initials(c.name) : '?';
-    const name = c ? c.name : 'Unknown';
-    const pct = c ? hpPct(c.currentHp || 0, c.maxHp || 1) : 100;
-    const hpC = hpColor(pct);
+    const isMonster = !!tok.monsterId;
+    let col, name, pct, hpC, display, displaySize;
     const sz = Math.round((tok.size || 1) * 42);
 
-    const display = c?.icon || ini;
-    const isEmoji = c?.icon && c.icon.length > 0;
-    const displaySize = isEmoji ? Math.round(sz * 0.52) : Math.round(sz * 0.33);
+    if (isMonster) {
+      const mon = (m.monsters || []).find(x => x.id === tok.monsterId);
+      if (!mon) return '';
+      col = '#8a2020';
+      name = mon.displayName || mon.templateName;
+      pct = hpPct(mon.currentHp || 0, mon.maxHp || 1);
+      hpC = hpColor(pct);
+      display = initials(name);
+      displaySize = Math.round(sz * 0.33);
+    } else {
+      const c = characters.find(x => x.id === tok.characterId);
+      col = c ? classColor(c.class) : '#506050';
+      name = c ? c.name : 'Unknown';
+      pct = c ? hpPct(c.currentHp || 0, c.maxHp || 1) : 100;
+      hpC = hpColor(pct);
+      display = c?.icon || initials(name);
+      const isEmoji = c?.icon && c.icon.length > 0;
+      displaySize = isEmoji ? Math.round(sz * 0.52) : Math.round(sz * 0.33);
+    }
 
     // Fog visibility
-    const fogView = m.fog?.viewMode || 'dm';
-    const fogOn = m.fog?.enabled;
     let tokVis = '';
     if (fogOn && typeof isPositionRevealed === 'function') {
       const revealed = isPositionRevealed(tok.x, tok.y);
@@ -265,17 +304,27 @@ function renderTokensOnMap() {
       else if (!revealed && fogView === 'dm') tokVis = 'opacity:0.4;';
     }
 
-    return `<div class="map-token" id="tok-${tok.id}"
-        style="left:${tok.x.toFixed(2)}%;top:${tok.y.toFixed(2)}%;width:${sz}px;height:${sz}px;border-color:${col};background:${col}28;color:${col};${tokVis}"
-        onpointerdown="startTokenDrag(event,'${tok.id}')"
-        title="${esc(name)}">
-      <span style="font-size:${displaySize}px;line-height:1;pointer-events:none;user-select:none;">${display}</span>
-      <svg viewBox="0 0 36 36" style="position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);pointer-events:none;">
+    // In player view, hide monster HP ring
+    const showHpRing = !(isMonster && fogView === 'player');
+    const hpSvg = showHpRing ? `<svg viewBox="0 0 36 36" style="position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);pointer-events:none;">
         <circle cx="18" cy="18" r="16" fill="none" stroke="${hpC}" stroke-width="2.5"
           stroke-dasharray="${(pct / 100 * 100.5).toFixed(1)} 100.5"
           stroke-dashoffset="25.1" stroke-linecap="round"
           transform="rotate(-90 18 18)" opacity="0.7"/>
-      </svg>
+      </svg>` : '';
+
+    // Monster tokens: click to show popup in DM view
+    const clickHandler = isMonster
+      ? `onclick="event.stopPropagation();showMonsterPopup('${tok.monsterId}',this)"`
+      : '';
+
+    return `<div class="map-token" id="tok-${tok.id}"
+        style="left:${tok.x.toFixed(2)}%;top:${tok.y.toFixed(2)}%;width:${sz}px;height:${sz}px;border-color:${col};background:${col}28;color:${col};${tokVis}"
+        onpointerdown="startTokenDrag(event,'${tok.id}')"
+        ${clickHandler}
+        title="${esc(name)}">
+      <span style="font-size:${displaySize}px;line-height:1;pointer-events:none;user-select:none;">${display}</span>
+      ${hpSvg}
       <div class="token-label">${esc(name)}</div>
       <button class="token-del" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation();removeToken('${tok.id}')">✕</button>
     </div>`;
@@ -353,7 +402,7 @@ async function quickSave() {
   if (!m) return;
 
   const existing = Object.values(m.scenarios || {}).find(s => s.isQuickSave);
-  const scen = { id: existing?.id || uid(), name: '⚡ Quick Save', isQuickSave: true, savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), fog: JSON.parse(JSON.stringify(m.fog || {})) };
+  const scen = { id: existing?.id || uid(), name: '⚡ Quick Save', isQuickSave: true, savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), monsters: JSON.parse(JSON.stringify(m.monsters || [])), fog: JSON.parse(JSON.stringify(m.fog || {})) };
   m.scenarios = m.scenarios || {};
   m.scenarios[scen.id] = scen;
   m.updatedAt = Date.now();
@@ -369,7 +418,7 @@ async function saveNamedScenario() {
   const name = prompt('Name this scenario:', `Session pause — ${new Date().toLocaleDateString()}`);
   if (!name?.trim()) return;
 
-  const scen = { id: uid(), name: name.trim(), savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), fog: JSON.parse(JSON.stringify(m.fog || {})) };
+  const scen = { id: uid(), name: name.trim(), savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), monsters: JSON.parse(JSON.stringify(m.monsters || [])), fog: JSON.parse(JSON.stringify(m.fog || {})) };
   m.scenarios = m.scenarios || {};
   m.scenarios[scen.id] = scen;
   m.updatedAt = Date.now();
@@ -392,10 +441,12 @@ async function loadScenario() {
   if (!confirm(`Load "${scen.name}"?\n\nCurrent token positions will be replaced.`)) { sel.value = ''; return; }
 
   m.tokens = JSON.parse(JSON.stringify(scen.tokens));
+  if (scen.monsters) m.monsters = JSON.parse(JSON.stringify(scen.monsters));
   if (scen.fog) m.fog = JSON.parse(JSON.stringify(scen.fog));
   m.updatedAt = Date.now();
   await saveCurrentMap();
   renderTokensOnMap();
+  if (typeof renderMonsterSidebar === 'function') renderMonsterSidebar();
   if (typeof initFogSystem === 'function') initFogSystem(m);
   sel.value = '';
 }
