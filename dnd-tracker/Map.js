@@ -235,7 +235,12 @@ function renderTokensOnMap() {
   const overlay = document.getElementById('token-overlay');
   if (!m) { overlay.innerHTML = ''; return; }
 
-  overlay.innerHTML = (m.tokens || []).map(tok => {
+  // Clean orphan tokens (character was deleted)
+  const before = (m.tokens || []).length;
+  m.tokens = (m.tokens || []).filter(tok => characters.some(c => c.id === tok.characterId));
+  if (m.tokens.length < before) saveCurrentMap();
+
+  overlay.innerHTML = m.tokens.map(tok => {
     const c = characters.find(x => x.id === tok.characterId);
     const col = c ? classColor(c.class) : '#506050';
     const ini = c ? initials(c.name) : '?';
@@ -408,6 +413,11 @@ function flashBtn(id, text, resetTo) {
   const orig = resetTo || btn.textContent;
   btn.textContent = text;
   setTimeout(() => btn.textContent = orig, 1800);
+}
+
+function toggleSnapshotPanel() {
+  const panel = document.getElementById('snapshot-panel');
+  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
 function esc(s) {

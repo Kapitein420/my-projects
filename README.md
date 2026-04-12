@@ -54,8 +54,16 @@ create table sessions (
   updated_at timestamptz not null default now()
 );
 
+create table maps (
+  id text primary key,
+  data jsonb not null default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table characters disable row level security;
 alter table sessions disable row level security;
+alter table maps disable row level security;
 ```
 
 Credentials are baked into the app files. To update them, open the `☁ Cloud` button in the app nav and paste new values — or ask Claude to update the files directly.

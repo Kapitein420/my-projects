@@ -941,9 +941,9 @@ async function init(){
 }
 
 function updateStatus(){
-  const kb=(JSON.stringify({characters,sessions}).length/1024).toFixed(1);
+  const kb=(JSON.stringify({characters,sessions,maps}).length/1024).toFixed(1);
   const st=document.getElementById('data-status');
-  if(st)st.textContent=`${characters.length}c · ${sessions.length}s · ${kb}KB`;
+  if(st)st.textContent=`${characters.length}c · ${sessions.length}s · ${maps.length}m · ${kb}KB`;
   const btn=document.getElementById('cloud-btn');
   if(btn){btn.textContent=DB.isCloud?'☁ Cloud':'💾 Local';btn.style.color=DB.isCloud?'var(--glow)':'var(--text4)';}
 }
@@ -996,7 +996,7 @@ function quickHp(id,delta){
   const c=characters.find(x=>x.id===id);if(!c)return;
   c.currentHp=Math.max(0,Math.min(c.maxHp,c.currentHp+delta));
   const inp=document.getElementById('qhp-'+id);if(inp)inp.value=c.currentHp;
-  DB.save('characters',c,characters).then(()=>renderCharList());
+  DB.save('characters',c,characters).then(()=>{renderCharList();if(currentMapId)renderTokensOnMap();});
 }
 function quickHpSet(id,val){
   const c=characters.find(x=>x.id===id);if(!c)return;
@@ -1009,6 +1009,7 @@ function quickHpSet(id,val){
     const pct=hpPct(c.currentHp,c.maxHp);
     if(bar){bar.style.width=pct+'%';bar.style.background=hpColor(pct);}
   }
+  if(currentMapId)renderTokensOnMap();
 }
 
 // Card click: open detail or toggle select in bulk mode
@@ -1166,7 +1167,7 @@ function showCharDetail(id){
   const ap=document.getElementById('d-appear-panel');ap.style.display=ah?'block':'none';document.getElementById('d-appearance').innerHTML=ah;
   showView('view-char-detail');
 }
-async function saveHp(){const c=characters.find(x=>x.id===currentCharId);if(!c)return;c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(document.getElementById('d-curhp').value)||0));await DB.save('characters',c,characters);showCharDetail(currentCharId);}
+async function saveHp(){const c=characters.find(x=>x.id===currentCharId);if(!c)return;c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(document.getElementById('d-curhp').value)||0));await DB.save('characters',c,characters);showCharDetail(currentCharId);if(currentMapId)renderTokensOnMap();}
 function editCurrentChar(){showEditCharForm(currentCharId);}
 async function deleteCurrentChar(){const c=characters.find(x=>x.id===currentCharId);if(!c||!confirm(`Delete ${c.name}?`))return;characters=characters.filter(x=>x.id!==currentCharId);await DB.remove('characters',currentCharId,characters);updateStatus();showCharList();}
 
@@ -1297,8 +1298,8 @@ async function disconnectCloud(){
 async function migrateToCloud(){
   const btn=event.target;btn.textContent='Migrating…';btn.disabled=true;
   try{
-    const r=await DB.migrate([{name:'characters',key:'toh-characters'},{name:'sessions',key:'toh-sessions'}]);
-    alert(`Migrated ${r.characters||0} character(s) and ${r.sessions||0} session(s).`);
+    const r=await DB.migrate([{name:'characters',key:'toh-characters'},{name:'sessions',key:'toh-sessions'},{name:'maps',key:'toh-maps'}]);
+    alert(`Migrated ${r.characters||0} character(s), ${r.sessions||0} session(s), and ${r.maps||0} map(s).`);
     document.getElementById('migrate-panel').style.display='none';
   }catch(err){alert('Migration failed: '+err.message);}
   btn.textContent='⬆ Push to cloud';btn.disabled=false;
@@ -1306,7 +1307,7 @@ async function migrateToCloud(){
 
 // ── BACKUP ─────────────────────────────────────────────────
 function exportData(){
-  const blob=new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),characters,sessions},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),characters,sessions,maps},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`tome-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);
 }
 function handleImport(e){
@@ -1317,10 +1318,10 @@ function handleImport(e){
       const d=JSON.parse(ev.target.result);
       if(!d.characters||!d.sessions)throw new Error('Invalid backup format.');
       const merge=characters.length&&confirm('Merge? OK = merge, Cancel = replace all');
-      if(merge){const ids=new Set(characters.map(c=>c.id));characters=[...characters,...d.characters.filter(c=>!ids.has(c.id))];const sids=new Set(sessions.map(s=>s.id));sessions=[...sessions,...d.sessions.filter(s=>!sids.has(s.id))];}
-      else{characters=d.characters;sessions=d.sessions;}
-      await DB.saveAll('characters',characters);await DB.saveAll('sessions',sessions);
-      renderCharList();updateStatus();alert(`Loaded ${characters.length} character(s) and ${sessions.length} session(s).`);
+      if(merge){const ids=new Set(characters.map(c=>c.id));characters=[...characters,...d.characters.filter(c=>!ids.has(c.id))];const sids=new Set(sessions.map(s=>s.id));sessions=[...sessions,...d.sessions.filter(s=>!sids.has(s.id))];if(d.maps){const mids=new Set(maps.map(m=>m.id));maps=[...maps,...d.maps.filter(m=>!mids.has(m.id))];}}
+      else{characters=d.characters;sessions=d.sessions;if(d.maps)maps=d.maps;}
+      await DB.saveAll('characters',characters);await DB.saveAll('sessions',sessions);if(maps.length)await DB.saveAll('maps',maps);
+      renderCharList();updateStatus();alert(`Loaded ${characters.length} character(s), ${sessions.length} session(s), and ${maps.length} map(s).`);
     }catch(err){alert('Import failed: '+err.message);}
     e.target.value='';
   };
