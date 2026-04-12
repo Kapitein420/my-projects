@@ -482,6 +482,18 @@
 .fog-sub-controls input[type=range]{width:70px;accent-color:var(--glow);}
 .fog-zone-panel{position:absolute;right:0;top:calc(100% + 4px);z-index:100;background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r-lg);padding:.75rem;min-width:220px;max-height:280px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.6);}
 
+/* Fullscreen player view */
+.player-fullscreen{position:fixed;inset:0;z-index:9999;background:#0a0e0c;display:flex;align-items:center;justify-content:center;overflow:auto;}
+.player-fullscreen .pf-stage{position:relative;display:inline-block;max-width:100vw;max-height:100vh;}
+.player-fullscreen .pf-img{display:block;max-width:100vw;max-height:100vh;object-fit:contain;}
+.player-fullscreen #pf-fog{position:absolute;inset:0;pointer-events:none;}
+.player-fullscreen .pf-overlay{position:absolute;inset:0;pointer-events:none;}
+.player-fullscreen .pf-token{position:absolute;transform:translate(-50%,-50%);border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:600;pointer-events:none;}
+.player-fullscreen .pf-token-label{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--font-display);font-size:11px;color:#ddd;background:rgba(6,16,10,.85);padding:1px 6px;border-radius:3px;}
+.player-fullscreen .pf-token-img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
+.player-fullscreen .pf-round{position:fixed;top:16px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:1rem;color:var(--glow);background:rgba(6,16,10,.85);padding:6px 20px;border-radius:var(--r-lg);border:1px solid var(--glow-dd);z-index:10000;letter-spacing:.08em;}
+.player-fullscreen .pf-turn-name{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:1.3rem;color:var(--text);background:rgba(6,16,10,.9);padding:8px 28px;border-radius:var(--r-lg);border:1px solid var(--border2);z-index:10000;}
+
 .notes-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:.75rem;display:flex;flex-direction:column;gap:.5rem;overflow:hidden;}
 .notes-panel textarea{flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font-body);font-size:.75rem;padding:.5rem;resize:none;line-height:1.5;}
 .notes-panel textarea:focus{outline:none;border-color:var(--glow-dd);}
@@ -622,10 +634,8 @@
         <label>Token Image <span style="font-size:.6rem;color:var(--text4);">(optional — overrides icon on map)</span></label>
         <div style="display:flex;gap:6px;align-items:center;">
           <input id="f-imageUrl" type="text" placeholder="Paste image URL..." style="flex:1;" oninput="previewCharImage()">
-          <label class="btn btn-sm btn-ghost" style="cursor:pointer;flex-shrink:0;font-size:.68rem;">
-            Upload
-            <input type="file" accept="image/*" style="display:none;" onchange="handleCharImageUpload(event)">
-          </label>
+          <input type="file" id="f-imageFile" accept="image/*" style="display:none;" onchange="handleCharImageUpload(event)">
+          <button class="btn btn-sm btn-ghost" type="button" style="flex-shrink:0;font-size:.68rem;" onclick="document.getElementById('f-imageFile').click()">Upload</button>
         </div>
         <div id="char-img-preview" style="display:none;margin-top:6px;">
           <img id="char-img-preview-img" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--border);" alt="Preview">
@@ -839,6 +849,8 @@
     <button class="btn btn-sm btn-ghost" id="fog-view-btn" onclick="setFogViewMode(_fogMap?.fog?.viewMode==='dm'?'player':'dm')">⚔ DM View</button>
     <button class="btn btn-sm btn-ghost" id="fog-toggle-btn" onclick="toggleFogEnabled()">🌫 Fog: OFF</button>
     <button class="btn btn-sm btn-ghost" id="combat-start-btn" onclick="showCombatSetup()">⚔ Combat</button>
+    <button class="btn btn-sm btn-ghost" onclick="openPlayerFullscreen()" title="Open fullscreen player view (ESC to close)">📺 Player Screen</button>
+    <button class="btn btn-sm btn-ghost" onclick="copyPlayerLink()" title="Copy link for a separate player screen" id="copy-player-link-btn">🔗 Link</button>
     <div style="position:relative;">
       <button class="btn btn-ghost btn-sm" onclick="toggleSnapshotPanel()" id="snap-toggle-btn" title="Named snapshots">⋮ Snapshots</button>
       <div id="snapshot-panel" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:100;background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r-lg);padding:.75rem;min-width:240px;box-shadow:0 8px 32px rgba(0,0,0,.6);">
@@ -1055,15 +1067,6 @@ function navTo(section,btn){
 }
 
 // ── LOAD / STATUS ──────────────────────────────────────────
-async function init(){
-  [characters,sessions]=await Promise.all([DB.load('characters'),DB.load('sessions')]);
-  await loadMaps();
-  buildSkillsForm();
-  buildConditionPicker();
-  renderCharList();
-  updateStatus();
-}
-
 function updateStatus(){
   const kb=(JSON.stringify({characters,sessions,maps}).length/1024).toFixed(1);
   const st=document.getElementById('data-status');
@@ -1475,8 +1478,258 @@ function handleImport(e){
   r.readAsText(file);
 }
 
+// ── FULLSCREEN PLAYER VIEW ─────────────────────────────────
+async function openPlayerFullscreen(mapId) {
+  const id = mapId || currentMapId;
+  if (!id) return;
+  const m = maps.find(x => x.id === id);
+  if (!m) return;
+
+  // Force player view mode for fog
+  const savedView = m.fog?.viewMode;
+  if (m.fog) m.fog.viewMode = 'player';
+
+  const container = document.getElementById('player-fullscreen');
+  container.style.display = 'flex';
+  container.innerHTML = '';
+
+  // Round/turn display
+  if (m.combat?.active) {
+    const current = m.combat.entries?.[m.combat.turnIndex];
+    const roundEl = document.createElement('div');
+    roundEl.className = 'pf-round';
+    roundEl.textContent = 'Round ' + m.combat.round;
+    container.appendChild(roundEl);
+    if (current) {
+      const turnEl = document.createElement('div');
+      turnEl.className = 'pf-turn-name';
+      turnEl.textContent = current.name + "'s Turn";
+      container.appendChild(turnEl);
+    }
+  }
+
+  // Stage
+  const stage = document.createElement('div');
+  stage.className = 'pf-stage';
+
+  const img = document.createElement('img');
+  img.className = 'pf-img';
+  img.src = m.imageData || m.imageUrl || '';
+  stage.appendChild(img);
+
+  // Fog canvas
+  const fogCanvas = document.createElement('canvas');
+  fogCanvas.id = 'pf-fog';
+  stage.appendChild(fogCanvas);
+
+  // Token overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'pf-overlay';
+  stage.appendChild(overlay);
+
+  container.appendChild(stage);
+
+  // Wait for image to load, then render fog + tokens
+  img.onload = () => {
+    fogCanvas.width = img.clientWidth;
+    fogCanvas.height = img.clientHeight;
+    renderPlayerFog(fogCanvas, m);
+    renderPlayerTokens(overlay, m, img);
+  };
+
+  // ESC to close
+  container._escHandler = (e) => { if (e.key === 'Escape') closePlayerFullscreen(); };
+  document.addEventListener('keydown', container._escHandler);
+
+  // Restore DM view
+  if (m.fog && savedView) m.fog.viewMode = savedView;
+}
+
+function renderPlayerFog(canvas, m) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const fog = m.fog;
+  if (!fog?.enabled) return;
+
+  const r = fog.hexSize || 30;
+
+  // Fill with opaque fog
+  ctx.fillStyle = 'rgba(15, 18, 25, 1.0)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Build revealed set
+  const revealedSet = new Set();
+  for (const hex of (fog.revealedHexes || [])) revealedSet.add(hex[0] + ',' + hex[1]);
+  for (const zone of Object.values(fog.zones || {})) {
+    if (zone.revealed) for (const hex of zone.hexes) revealedSet.add(hex[0] + ',' + hex[1]);
+  }
+
+  // Punch out revealed hexes
+  if (revealedSet.size > 0) {
+    ctx.globalCompositeOperation = 'destination-out';
+    const path = new Path2D();
+    for (const key of revealedSet) {
+      const p = key.split(',');
+      const col = +p[0], row = +p[1];
+      const cx = col * 1.5 * r + r;
+      const cy = (row + (col % 2 ? 0.5 : 0)) * Math.sqrt(3) * r + (Math.sqrt(3) * r / 2);
+      for (let i = 0; i < 6; i++) {
+        const angle = Math.PI / 180 * (60 * i);
+        const hx = cx + r * Math.cos(angle);
+        const hy = cy + r * Math.sin(angle);
+        if (i === 0) path.moveTo(hx, hy); else path.lineTo(hx, hy);
+      }
+      path.closePath();
+    }
+    ctx.fillStyle = 'rgba(0,0,0,1)';
+    ctx.fill(path);
+  }
+
+  // Reveal brush strokes
+  for (const stroke of (fog.brushStrokes || [])) {
+    if (stroke.mode === 'reveal' && stroke.points.length > 0) {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.lineWidth = stroke.radius * 2;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      const pts = stroke.points;
+      ctx.moveTo((pts[0].x/100)*w, (pts[0].y/100)*h);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo((pts[i].x/100)*w, (pts[i].y/100)*h);
+      ctx.stroke();
+    }
+  }
+  // Re-fog brush strokes
+  for (const stroke of (fog.brushStrokes || [])) {
+    if (stroke.mode === 'fog' && stroke.points.length > 0) {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = 'rgba(15, 18, 25, 1.0)';
+      ctx.beginPath();
+      ctx.lineWidth = stroke.radius * 2;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(15, 18, 25, 1.0)';
+      const pts = stroke.points;
+      ctx.moveTo((pts[0].x/100)*w, (pts[0].y/100)*h);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo((pts[i].x/100)*w, (pts[i].y/100)*h);
+      ctx.stroke();
+    }
+  }
+}
+
+function renderPlayerTokens(overlay, m, img) {
+  const fogOn = m.fog?.enabled;
+  const r = m.fog?.hexSize || 30;
+  const w = img.clientWidth, h = img.clientHeight;
+
+  overlay.innerHTML = (m.tokens || []).map(tok => {
+    const isMonster = !!tok.monsterId;
+    let col, name, display, imgUrl;
+    const sz = Math.round((tok.size || 1) * 48); // slightly bigger for big screen
+
+    if (isMonster) {
+      const mon = (m.monsters || []).find(x => x.id === tok.monsterId);
+      if (!mon) return '';
+      col = '#8a2020'; name = mon.displayName || mon.templateName;
+      imgUrl = mon.imgUrl; display = initials(name);
+    } else {
+      const c = characters.find(x => x.id === tok.characterId);
+      if (!c) return '';
+      col = classColor(c.class); name = c.name;
+      imgUrl = c.imageUrl; display = c.icon || initials(name);
+    }
+
+    // Check fog visibility
+    if (fogOn) {
+      // Simple hex check
+      const px = (tok.x / 100) * w, py = (tok.y / 100) * h;
+      const hexCol = Math.round((px - r) / (1.5 * r));
+      const hexRow = Math.round((py - Math.sqrt(3) * r / 2) / (Math.sqrt(3) * r) - (hexCol % 2 ? 0.5 : 0));
+      const key = hexCol + ',' + hexRow;
+      let revealed = (m.fog.revealedHexes || []).some(h => h[0] === hexCol && h[1] === hexRow);
+      if (!revealed) {
+        for (const zone of Object.values(m.fog.zones || {})) {
+          if (zone.revealed && zone.hexes.some(h => h[0] === hexCol && h[1] === hexRow)) { revealed = true; break; }
+        }
+      }
+      if (!revealed) return '';
+    }
+
+    // Active turn glow
+    const entityId = isMonster ? (m.monsters || []).find(x => x.id === tok.monsterId)?.id : tok.characterId;
+    const isActive = m.combat?.active && m.combat.entries?.[m.combat.turnIndex]?.id === entityId;
+    const glow = isActive ? 'box-shadow:0 0 0 4px var(--glow),0 0 20px var(--glow);' : '';
+
+    const inner = imgUrl
+      ? '<img class="pf-token-img" src="' + imgUrl + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'\'">' +
+        '<span style="display:none;font-size:' + Math.round(sz*0.33) + 'px;">' + display + '</span>'
+      : '<span style="font-size:' + Math.round(sz*0.33) + 'px;">' + display + '</span>';
+
+    return '<div class="pf-token" style="left:' + tok.x.toFixed(2) + '%;top:' + tok.y.toFixed(2) + '%;width:' + sz + 'px;height:' + sz + 'px;border-color:' + col + ';background:' + col + '28;color:' + col + ';' + glow + '">' +
+      inner +
+      '<div class="pf-token-label">' + name + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function copyPlayerLink() {
+  if (!currentMapId) return;
+  const url = window.location.origin + window.location.pathname + '?player=' + currentMapId;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copy-player-link-btn');
+    if (btn) { const orig = btn.textContent; btn.textContent = '✓ Copied!'; setTimeout(() => btn.textContent = orig, 2000); }
+  }).catch(() => { prompt('Copy this player link:', url); });
+}
+
+function closePlayerFullscreen() {
+  const container = document.getElementById('player-fullscreen');
+  if (container._escHandler) document.removeEventListener('keydown', container._escHandler);
+  container.style.display = 'none';
+  container.innerHTML = '';
+}
+
+// Auto-refresh player view when DM makes changes (poll every 3s)
+let _playerPollInterval = null;
+function startPlayerPoll(mapId) {
+  stopPlayerPoll();
+  _playerPollInterval = setInterval(async () => {
+    const container = document.getElementById('player-fullscreen');
+    if (container.style.display !== 'flex') { stopPlayerPoll(); return; }
+    // Reload map data from DB
+    maps = await DB.load('maps');
+    characters = await DB.load('characters');
+    const m = maps.find(x => x.id === mapId);
+    if (m) openPlayerFullscreen(mapId);
+  }, 3000);
+}
+function stopPlayerPoll() {
+  if (_playerPollInterval) { clearInterval(_playerPollInterval); _playerPollInterval = null; }
+}
+
 // ── INIT ───────────────────────────────────────────────────
+async function init(){
+  // Check for player fullscreen mode via URL param
+  const params = new URLSearchParams(window.location.search);
+  const playerMapId = params.get('player');
+  if (playerMapId) {
+    [characters, sessions] = await Promise.all([DB.load('characters'), DB.load('sessions')]);
+    await loadMaps();
+    // Hide normal UI
+    document.querySelector('.navbar').style.display = 'none';
+    document.querySelector('main').style.display = 'none';
+    openPlayerFullscreen(playerMapId);
+    startPlayerPoll(playerMapId);
+    return;
+  }
+
+  [characters,sessions]=await Promise.all([DB.load('characters'),DB.load('sessions')]);
+  await loadMaps();
+  buildSkillsForm();
+  buildConditionPicker();
+  renderCharList();
+  updateStatus();
+}
 init();
 </script>
+<div id="player-fullscreen" class="player-fullscreen" style="display:none;" onclick="if(event.target===this)closePlayerFullscreen()"></div>
 </body>
 </html>
