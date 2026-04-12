@@ -1498,7 +1498,7 @@ function openCloudModal(){
   const isCloud=DB.isCloud;
   document.getElementById('sb-disc-btn').style.display=isCloud?'block':'none';
   document.getElementById('sb-connect-btn').textContent=isCloud?'Re-test & Reconnect':'Test & Connect';
-  const local=localStorage.getItem('toh-characters')||localStorage.getItem('toh-sessions');
+  const local=localStorage.getItem('toh-characters')||localStorage.getItem('toh-sessions')||localStorage.getItem('toh-maps');
   document.getElementById('migrate-panel').style.display=(isCloud&&local)?'block':'none';
   document.getElementById('cloud-status').innerHTML=isCloud?'<span style="color:var(--glow)">● Connected</span> — data syncs to Supabase on every save.':'Currently using <strong>browser localStorage</strong>. Connect Supabase to sync across devices.';
 }
@@ -1509,11 +1509,21 @@ async function testAndConnect(){
   const btn=document.getElementById('sb-connect-btn');btn.textContent='Testing…';btn.disabled=true;
   try{
     await DB.test(url,key);await DB.configure(url,key);
+    // Check which tables exist
+    const tables=await DB.checkTables(['characters','sessions','maps']);
+    const missing=Object.entries(tables).filter(([k,v])=>!v).map(([k])=>k);
+    if(missing.length){
+      document.getElementById('cloud-status').innerHTML='<span style="color:var(--glow)">● Connected</span> but missing tables: <strong style="color:var(--red);">'+missing.join(', ')+'</strong>. Run the SQL setup in Supabase SQL Editor.';
+    } else {
+      document.getElementById('cloud-status').innerHTML='<span style="color:var(--glow)">● Connected!</span> All tables found. Data syncs to Supabase.';
+    }
     [characters,sessions]=await Promise.all([DB.load('characters'),DB.load('sessions')]);
-  await loadMaps();
-    renderCharList();renderSessionList();updateStatus();
-    document.getElementById('cloud-status').innerHTML='<span style="color:var(--glow)">● Connected!</span> Data now syncs to Supabase.';
+    await loadMaps();
+    renderCharList();updateStatus();
     document.getElementById('sb-disc-btn').style.display='block';btn.textContent='Re-test & Reconnect';
+    // Show migrate if local data exists
+    const local=localStorage.getItem('toh-characters')||localStorage.getItem('toh-sessions')||localStorage.getItem('toh-maps');
+    document.getElementById('migrate-panel').style.display=local?'block':'none';
   }catch(err){document.getElementById('cloud-status').innerHTML=`<span style="color:var(--red)">● Failed:</span> ${err.message}`;}
   btn.disabled=false;
 }
