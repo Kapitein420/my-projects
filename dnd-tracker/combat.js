@@ -82,7 +82,7 @@ function showCombatSetup() {
   if (!overlay) return;
 
   const listHtml = entries.map((e, i) => {
-    const typeTag = e.type === 'monster' ? '<span style="color:#8a2020;font-size:.6rem;">MON</span>' : '<span style="color:#c8a45a;font-size:.6rem;">PC</span>';
+    const typeTag = e.type === 'monster' ? '<span style="color:#8a2020;font-size:.6rem;">MON</span>' : '<span style="color:#c8b070;font-size:.6rem;">PC</span>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);" data-entry-idx="' + i + '">' +
       '<div style="width:28px;text-align:center;">' + typeTag + '</div>' +
       '<div style="flex:1;font-size:.8rem;color:var(--text);">' + e.name + '</div>' +
@@ -269,7 +269,7 @@ function renderInitiativeBar() {
       if (c && c.currentHp <= 0) isDead = true;
     }
 
-    const borderColor = isActive ? '#c8a45a' : isDead ? '#333' : isMon ? '#8a2020' : 'var(--border)';
+    const borderColor = isActive ? '#c8b070' : isDead ? '#333' : isMon ? '#8a2020' : 'var(--border)';
     const bgColor = isActive ? 'var(--glow-bg)' : isDead ? 'rgba(0,0,0,.3)' : 'var(--bg-card)';
     const textColor = isDead ? 'var(--text4)' : 'var(--text)';
     const decoration = isDead ? 'line-through' : 'none';
@@ -291,14 +291,14 @@ function renderInitiativeBar() {
 
     entriesHtml += '<div style="display:flex;flex-direction:column;align-items:center;padding:4px 8px;border:1.5px solid ' + borderColor + ';border-radius:8px;background:' + bgColor + ';min-width:55px;flex-shrink:0;gap:2px;">' +
       portrait +
-      '<div style="font-size:.62rem;color:#efe4d0;text-decoration:' + decoration + ';white-space:nowrap;max-width:65px;overflow:hidden;text-overflow:ellipsis;' + (isDead ? 'opacity:.4;' : '') + '" title="' + e.name + '">' + e.name + '</div>' +
-      '<div style="font-size:.55rem;font-weight:600;color:' + (isActive ? '#c8a45a' : '#8a7868') + ';">' + e.initiative + '</div>' +
+      '<div style="font-size:.62rem;color:#e2dbd0;text-decoration:' + decoration + ';white-space:nowrap;max-width:65px;overflow:hidden;text-overflow:ellipsis;' + (isDead ? 'opacity:.4;' : '') + '" title="' + e.name + '">' + e.name + '</div>' +
+      '<div style="font-size:.55rem;font-weight:600;color:' + (isActive ? '#c8b070' : '#7a7268') + ';">' + e.initiative + '</div>' +
     '</div>';
   }
 
   bar.innerHTML =
     '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
-      '<div style="font-family:var(--font-display);font-size:.65rem;color:#8a6a30;text-transform:uppercase;letter-spacing:.08em;">Round ' + combat.round + '</div>' +
+      '<div style="font-family:var(--font-display);font-size:.65rem;color:#9a8450;text-transform:uppercase;letter-spacing:.08em;">Round ' + combat.round + '</div>' +
       '<div style="font-size:.75rem;color:var(--text);font-weight:500;">' + (current ? current.name : '') + '</div>' +
     '</div>' +
     '<div style="display:flex;gap:5px;overflow-x:auto;flex:1;padding:4px 0;">' + entriesHtml + '</div>' +
@@ -391,13 +391,13 @@ function showDamagePopup(entry, logIdx) {
   popup.innerHTML =
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
       '<span style="font-size:1rem;">' + icon + '</span>' +
-      '<span style="font-size:.8rem;color:#efe4d0;font-weight:500;">' + entry.target.name + '</span>' +
+      '<span style="font-size:.8rem;color:#e2dbd0;font-weight:500;">' + entry.target.name + '</span>' +
       '<span style="font-size:.85rem;color:' + color + ';font-weight:600;">' + (isDamage ? '-' : '+') + entry.value + '</span>' +
     '</div>' +
     '<div style="display:flex;gap:6px;align-items:center;">' +
-      '<span style="font-size:.65rem;color:#8a7868;">from</span>' +
-      '<span style="font-size:.72rem;color:#c8a45a;">' + sourceName + '</span>' +
-      '<input type="text" id="dmg-note-input" placeholder="Fireball, Sneak Attack..." style="flex:1;font-size:.7rem;padding:3px 6px;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:4px;color:#efe4d0;" onkeydown="if(event.key===\'Enter\')saveDamageNote(' + logIdx + ')">' +
+      '<span style="font-size:.65rem;color:#7a7268;">from</span>' +
+      '<span style="font-size:.72rem;color:#c8b070;">' + sourceName + '</span>' +
+      '<input type="text" id="dmg-note-input" placeholder="Fireball, Sneak Attack..." style="flex:1;font-size:.7rem;padding:3px 6px;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:4px;color:#e2dbd0;" onkeydown="if(event.key===\'Enter\')saveDamageNote(' + logIdx + ')">' +
       '<button class="btn btn-sm btn-primary" onclick="saveDamageNote(' + logIdx + ')" style="font-size:.6rem;padding:2px 8px;">Log</button>' +
     '</div>';
 
@@ -428,18 +428,18 @@ function renderCombatLog() {
   const log = m?.combat?.log || [];
 
   if (!log.length) {
-    el.innerHTML = '<div style="font-size:.65rem;color:#5a4e40;padding:.5rem 0;">No events yet. Start combat to begin logging.</div>';
+    el.innerHTML = '<div style="font-size:.65rem;color:#504840;padding:.5rem 0;">No events yet. Start combat to begin logging.</div>';
     return;
   }
 
   // Show newest first
   el.innerHTML = log.slice().reverse().map(e => {
-    let icon = '', color = '#8a7868', text = '';
+    let icon = '', color = '#7a7268', text = '';
     switch (e.type) {
       case 'damage':
         icon = '\u2694'; color = '#c04040';
         text = (e.source?.name || '?') + ' dealt <strong style="color:#c04040">' + e.value + ' dmg</strong> to ' + (e.target?.name || '?');
-        if (e.note) text += ' <span style="color:#8a7868;">(' + e.note + ')</span>';
+        if (e.note) text += ' <span style="color:#7a7268;">(' + e.note + ')</span>';
         break;
       case 'heal':
         icon = '\u2764'; color = '#4a9a40';
@@ -447,28 +447,28 @@ function renderCombatLog() {
         if (e.source) text += ' from ' + e.source.name;
         break;
       case 'kill':
-        icon = '\u2620'; color = '#c8a45a';
-        text = '<strong style="color:#c8a45a">' + (e.target?.name || '?') + ' was slain</strong>';
+        icon = '\u2620'; color = '#c8b070';
+        text = '<strong style="color:#c8b070">' + (e.target?.name || '?') + ' was slain</strong>';
         if (e.source) text += ' by ' + e.source.name;
         break;
       case 'turn_start':
-        icon = '\u25B6'; color = '#8a6a30';
-        text = '<span style="color:#8a6a30;">' + e.note + '</span>';
+        icon = '\u25B6'; color = '#9a8450';
+        text = '<span style="color:#9a8450;">' + e.note + '</span>';
         break;
       case 'combat_start':
-        icon = '\u2694'; color = '#c8a45a';
-        text = '<span style="color:#c8a45a;">' + e.note + '</span>';
+        icon = '\u2694'; color = '#c8b070';
+        text = '<span style="color:#c8b070;">' + e.note + '</span>';
         break;
       case 'combat_end':
-        icon = '\u2691'; color = '#c8a45a';
-        text = '<span style="color:#c8a45a;">' + e.note + '</span>';
+        icon = '\u2691'; color = '#c8b070';
+        text = '<span style="color:#c8b070;">' + e.note + '</span>';
         break;
       case 'note':
-        icon = '\u270E'; color = '#8a7868';
+        icon = '\u270E'; color = '#7a7268';
         text = e.note;
         break;
     }
-    return '<div style="display:flex;gap:6px;padding:3px 0;border-bottom:1px solid rgba(200,164,90,.06);font-size:.68rem;color:#c4b498;line-height:1.4;">' +
+    return '<div style="display:flex;gap:6px;padding:3px 0;border-bottom:1px solid rgba(200,164,90,.06);font-size:.68rem;color:#b0a898;line-height:1.4;">' +
       '<span style="color:' + color + ';flex-shrink:0;width:14px;text-align:center;">' + icon + '</span>' +
       '<div>' + text + '</div>' +
     '</div>';
@@ -523,20 +523,20 @@ function showCombatReport(log, rounds, startedAt) {
   const duration = startedAt ? Math.round((Date.now() - startedAt) / 60000) : 0;
 
   // Build report HTML
-  let html = '<div style="max-height:70vh;overflow-y:auto;color:#efe4d0;">';
+  let html = '<div style="max-height:70vh;overflow-y:auto;color:#e2dbd0;">';
 
   // Header
   html += '<div style="text-align:center;margin-bottom:1.25rem;">' +
-    '<div style="font-family:var(--font-display);font-size:1.2rem;color:#c8a45a;letter-spacing:.1em;">Combat Report</div>' +
-    '<div style="font-size:.72rem;color:#8a7868;margin-top:4px;">' + rounds + ' rounds \u00b7 ~' + duration + ' min \u00b7 ' + kills.length + ' kills</div>' +
+    '<div style="font-family:var(--font-display);font-size:1.2rem;color:#c8b070;letter-spacing:.1em;">Combat Report</div>' +
+    '<div style="font-size:.72rem;color:#7a7268;margin-top:4px;">' + rounds + ' rounds \u00b7 ~' + duration + ' min \u00b7 ' + kills.length + ' kills</div>' +
   '</div>';
 
   // MVP
   if (mvp) {
     html += '<div style="background:rgba(200,164,90,.08);border:1px solid rgba(200,164,90,.2);border-radius:8px;padding:10px;margin-bottom:12px;text-align:center;">' +
-      '<div style="font-size:.55rem;color:#8a6a30;text-transform:uppercase;letter-spacing:.15em;font-family:var(--font-display);">MVP</div>' +
-      '<div style="font-size:1.1rem;color:#c8a45a;font-family:var(--font-display);margin:4px 0;">' + mvp.name + '</div>' +
-      '<div style="font-size:.7rem;color:#c4b498;">' + mvp.total + ' damage dealt \u00b7 ' + mvp.kills + ' kills</div>' +
+      '<div style="font-size:.55rem;color:#9a8450;text-transform:uppercase;letter-spacing:.15em;font-family:var(--font-display);">MVP</div>' +
+      '<div style="font-size:1.1rem;color:#c8b070;font-family:var(--font-display);margin:4px 0;">' + mvp.name + '</div>' +
+      '<div style="font-size:.7rem;color:#b0a898;">' + mvp.total + ' damage dealt \u00b7 ' + mvp.kills + ' kills</div>' +
     '</div>';
   }
 
@@ -545,22 +545,22 @@ function showCombatReport(log, rounds, startedAt) {
     html += '<div style="background:rgba(192,64,64,.08);border:1px solid rgba(192,64,64,.2);border-radius:8px;padding:10px;margin-bottom:12px;text-align:center;">' +
       '<div style="font-size:.55rem;color:#8a3030;text-transform:uppercase;letter-spacing:.15em;font-family:var(--font-display);">Most Dangerous</div>' +
       '<div style="font-size:1.1rem;color:#c04040;font-family:var(--font-display);margin:4px 0;">' + mostDangerous.name + '</div>' +
-      '<div style="font-size:.7rem;color:#c4b498;">' + mostDangerous.total + ' damage dealt</div>' +
+      '<div style="font-size:.7rem;color:#b0a898;">' + mostDangerous.total + ' damage dealt</div>' +
     '</div>';
   }
 
   // Damage leaderboard
   if (dmgLeader.length) {
-    html += '<div style="font-family:var(--font-display);font-size:.55rem;color:#c8a45a;text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;">Damage Dealt</div>';
+    html += '<div style="font-family:var(--font-display);font-size:.55rem;color:#c8b070;text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;">Damage Dealt</div>';
     const maxDmg = dmgLeader[0]?.total || 1;
     html += dmgLeader.map((d, i) => {
       const pct = Math.round((d.total / maxDmg) * 100);
-      const col = d.type === 'monster' ? '#8a2020' : '#c8a45a';
+      const col = d.type === 'monster' ? '#8a2020' : '#c8b070';
       return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
-        '<span style="font-size:.7rem;color:#8a7868;width:16px;">#' + (i + 1) + '</span>' +
-        '<span style="font-size:.72rem;color:#efe4d0;width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + d.name + '</span>' +
+        '<span style="font-size:.7rem;color:#7a7268;width:16px;">#' + (i + 1) + '</span>' +
+        '<span style="font-size:.72rem;color:#e2dbd0;width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + d.name + '</span>' +
         '<div style="flex:1;height:6px;background:#1e1810;border-radius:3px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:3px;"></div></div>' +
-        '<span style="font-size:.7rem;color:#c4b498;font-family:var(--font-mono);min-width:35px;text-align:right;">' + d.total + '</span>' +
+        '<span style="font-size:.7rem;color:#b0a898;font-family:var(--font-mono);min-width:35px;text-align:right;">' + d.total + '</span>' +
       '</div>';
     }).join('');
     html += '<div style="height:12px;"></div>';
@@ -568,9 +568,9 @@ function showCombatReport(log, rounds, startedAt) {
 
   // Kill feed
   if (kills.length) {
-    html += '<div style="font-family:var(--font-display);font-size:.55rem;color:#c8a45a;text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;">Kill Feed</div>';
+    html += '<div style="font-family:var(--font-display);font-size:.55rem;color:#c8b070;text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;">Kill Feed</div>';
     html += kills.map(k =>
-      '<div style="font-size:.7rem;color:#c4b498;padding:2px 0;">\u2620 <strong style="color:#efe4d0;">' + k.killer + '</strong> slew <strong style="color:#c04040;">' + k.victim + '</strong></div>'
+      '<div style="font-size:.7rem;color:#b0a898;padding:2px 0;">\u2620 <strong style="color:#e2dbd0;">' + k.killer + '</strong> slew <strong style="color:#c04040;">' + k.victim + '</strong></div>'
     ).join('');
   }
 

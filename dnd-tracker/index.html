@@ -13,33 +13,33 @@
 /* Character grid */
 /* ── DARK PANEL TEXT SYSTEM ──────────────────────────────── */
 /* All dark-bg elements need light text */
-.panel,.char-card,.map-card,.session-card{color:#efe4d0;}
-.panel .section-label,.panel .hp-lbl{color:#c8a45a;}
-.panel .ab-display-mod,.panel .cd-val,.panel .hp-inp,.panel input,.panel select{color:#efe4d0;}
-.panel .ab-display-score,.panel .save-disp span,.panel .skill-row-d span{color:#c4b498;}
-.panel .sd-bonus{color:#c8a45a;}
-.panel .ab-display-name,.panel .cd-lbl{color:#8a7868;}
-.panel .hp-sep{color:#5a4e40;}
+.panel,.char-card,.map-card,.session-card{color:#e2dbd0;}
+.panel .section-label,.panel .hp-lbl{color:#c8b070;}
+.panel .ab-display-mod,.panel .cd-val,.panel .hp-inp,.panel input,.panel select{color:#e2dbd0;}
+.panel .ab-display-score,.panel .save-disp span,.panel .skill-row-d span{color:#b0a898;}
+.panel .sd-bonus{color:#c8b070;}
+.panel .ab-display-name,.panel .cd-lbl{color:#7a7268;}
+.panel .hp-sep{color:#504840;}
 .panel .hp-bar2{background:#1e1810;}
-.panel textarea{color:#efe4d0;}
+.panel textarea{color:#e2dbd0;}
 .char-card .card-hp-row{background:#1e1810;border-color:#3a3020;}
-.char-card .card-hp-row span{color:#8a7868 !important;}
-.char-card .hp-quick-btn{background:#2c2419;color:#c4b498;border:1px solid #3a3020;}
-.char-card .hp-quick-btn:hover{background:#c8a45a;color:#1e1810;}
-.char-card .hp-quick-inp{color:#efe4d0;}
+.char-card .card-hp-row span{color:#7a7268 !important;}
+.char-card .hp-quick-btn{background:#2c2419;color:#b0a898;border:1px solid #3a3020;}
+.char-card .hp-quick-btn:hover{background:#c8b070;color:#1e1810;}
+.char-card .hp-quick-inp{color:#e2dbd0;}
 
 .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: 1.25rem; }
 
 .char-card {
   background: linear-gradient(135deg, #2c2419 0%, #241e14 100%);
-  border: 1px solid rgba(200,164,90,.15);
+  border: 1px solid rgba(200,176,112,.15);
   border-radius: 16px;
   padding: 1.25rem;
   cursor: pointer;
   transition: border-color .25s, box-shadow .25s, transform .2s;
   position: relative;
   overflow: hidden;
-  color: #efe4d0;
+  color: #e2dbd0;
   box-shadow: 0 4px 20px rgba(40,30,15,.12), 0 1px 4px rgba(40,30,15,.08);
 }
 .char-card::before {
@@ -47,13 +47,13 @@
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  background: linear-gradient(90deg, transparent, rgba(200,164,90,.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(200,176,112,.1), transparent);
   transition: background .3s;
 }
-.char-card:hover { border-color: rgba(200,164,90,.35); box-shadow: 0 12px 36px rgba(40,30,15,.18), 0 0 0 1px rgba(200,164,90,.08); transform: translateY(-3px); }
-.char-card:hover::before { background: linear-gradient(90deg, transparent, rgba(200,164,90,.5), transparent); }
-.char-card.selected { border-color: #c8a45a; background: linear-gradient(135deg, #342a1c 0%, #2a2016 100%); }
-.char-card.selected::before { background: #c8a45a; }
+.char-card:hover { border-color: rgba(200,176,112,.35); box-shadow: 0 12px 36px rgba(40,30,15,.18), 0 0 0 1px rgba(200,176,112,.08); transform: translateY(-3px); }
+.char-card:hover::before { background: linear-gradient(90deg, transparent, rgba(200,176,112,.5), transparent); }
+.char-card.selected { border-color: #c8b070; background: linear-gradient(135deg, #342a1c 0%, #2a2016 100%); }
+.char-card.selected::before { background: #c8b070; }
 
 .card-select-wrap {
   position: absolute;
@@ -87,18 +87,18 @@
 .char-card-name {
   font-family: var(--font-display);
   font-size: 1rem;
-  color: #efe4d0;
+  color: #e2dbd0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-bottom: 3px;
   letter-spacing: .02em;
 }
-.char-card-sub { font-size: .76rem; color: #8a7868; }
+.char-card-sub { font-size: .76rem; color: #7a7268; }
 
-.char-card-bottom { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(200,164,90,.1); }
+.char-card-bottom { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(200,176,112,.1); }
 .mini-stat { text-align: center; min-width: 38px; }
-.mini-val { font-family: var(--font-mono); font-size: .95rem; color: #efe4d0; font-weight: 600; }
+.mini-val { font-family: var(--font-mono); font-size: .95rem; color: #e2dbd0; font-weight: 600; }
 .mini-lbl { font-size: .52rem; color: #6a5a48; text-transform: uppercase; letter-spacing: .08em; font-family: var(--font-display); margin-top: 1px; }
 
 /* Inline HP controls on card */
@@ -227,7 +227,7 @@
 .detail-name {
   font-family: var(--font-display);
   font-size: 1.8rem;
-  color: #c8a45a;
+  color: #c8b070;
   line-height: 1.1;
   margin-bottom: 4px;
 }
@@ -250,7 +250,7 @@
 .saves-display { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; }
 .save-disp { display: flex; align-items: center; gap: 5px; font-size: .76rem; padding: 2px 0; }
 .sd-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
-.sd-dot.prof { background: var(--glow); box-shadow: 0 0 4px rgba(200,164,90,.5); }
+.sd-dot.prof { background: var(--glow); box-shadow: 0 0 4px rgba(200,176,112,.5); }
 .sd-bonus { margin-left: auto; font-family: var(--font-mono); font-size: .72rem; color: var(--glow-d); }
 
 .skills-display { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 1rem; }
@@ -298,7 +298,7 @@
   color: var(--text-on-dark);
   box-shadow: 0 4px 16px rgba(40,30,15,.15);
 }
-.session-card:hover { border-color: rgba(200,164,90,.4); box-shadow: 0 8px 28px rgba(40,30,15,.2); transform: translateY(-2px); }
+.session-card:hover { border-color: rgba(200,176,112,.4); box-shadow: 0 8px 28px rgba(40,30,15,.2); transform: translateY(-2px); }
 .session-card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
 .session-title-c {
   font-family: var(--font-display);
@@ -443,32 +443,32 @@
 
 /* ── MAP SYSTEM ──────────────────────────────────────────── */
 .map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;}
-.map-card{background:var(--bg-card);border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);overflow:hidden;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .15s;position:relative;color:#efe4d0;box-shadow:0 4px 16px rgba(40,30,15,.15);}
-.map-card:hover{border-color:rgba(200,164,90,.4);box-shadow:0 8px 28px rgba(40,30,15,.2);transform:translateY(-2px);}
+.map-card{background:var(--bg-card);border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);overflow:hidden;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .15s;position:relative;color:#e2dbd0;box-shadow:0 4px 16px rgba(40,30,15,.15);}
+.map-card:hover{border-color:rgba(200,176,112,.4);box-shadow:0 8px 28px rgba(40,30,15,.2);transform:translateY(-2px);}
 .map-card-thumb{height:150px;background:#1e1810;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
 .map-card-body{padding:.8rem 1rem;}
-.map-card-name{font-family:var(--font-display);font-size:.9rem;color:#efe4d0;margin-bottom:2px;}
+.map-card-name{font-family:var(--font-display);font-size:.9rem;color:#e2dbd0;margin-bottom:2px;}
 
 /* Dark panel button overrides (map editor, sidebar, toolbar) */
-.map-sidebar .btn,.fog-toolbar .btn,.initiative-bar .btn,.map-toolbar .btn{background:rgba(255,255,255,.06);border-color:rgba(200,164,90,.25);color:#c4b498;}
-.map-sidebar .btn:hover,.fog-toolbar .btn:hover,.initiative-bar .btn:hover,.map-toolbar .btn:hover{background:rgba(255,255,255,.1);border-color:rgba(200,164,90,.4);color:#efe4d0;}
-.map-sidebar .btn-primary,.fog-toolbar .btn-primary,.initiative-bar .btn-primary,.map-toolbar .btn-primary{background:rgba(200,164,90,.15);border-color:#8a6a30;color:#c8a45a;}
-.map-sidebar .btn-primary:hover,.fog-toolbar .btn-primary:hover,.initiative-bar .btn-primary:hover,.map-toolbar .btn-primary:hover{background:rgba(200,164,90,.25);border-color:#c8a45a;color:#efe4d0;}
+.map-sidebar .btn,.fog-toolbar .btn,.initiative-bar .btn,.map-toolbar .btn{background:rgba(255,255,255,.06);border-color:rgba(200,176,112,.25);color:#b0a898;}
+.map-sidebar .btn:hover,.fog-toolbar .btn:hover,.initiative-bar .btn:hover,.map-toolbar .btn:hover{background:rgba(255,255,255,.1);border-color:rgba(200,176,112,.4);color:#e2dbd0;}
+.map-sidebar .btn-primary,.fog-toolbar .btn-primary,.initiative-bar .btn-primary,.map-toolbar .btn-primary{background:rgba(200,176,112,.15);border-color:#9a8450;color:#c8b070;}
+.map-sidebar .btn-primary:hover,.fog-toolbar .btn-primary:hover,.initiative-bar .btn-primary:hover,.map-toolbar .btn-primary:hover{background:rgba(200,176,112,.25);border-color:#c8b070;color:#e2dbd0;}
 .map-card-meta{font-size:.72rem;color:var(--text-on-dark3);font-family:var(--font-mono);}
 .map-card-del{position:absolute;top:8px;right:8px;opacity:0;transition:opacity .15s;}
 .map-card:hover .map-card-del{opacity:1;}
 
 /* Map editor layout */
 .map-editor-wrap{display:grid;grid-template-columns:200px 1fr 220px;gap:.75rem;height:calc(100vh - 180px);min-height:400px;}
-.map-sidebar{background:var(--bg-card);color:#efe4d0;border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:.75rem;display:flex;flex-direction:column;gap:.5rem;overflow-y:auto;}
-.map-sidebar-section{font-family:var(--font-display);font-size:.55rem;color:#c8a45a;text-transform:uppercase;letter-spacing:.18em;margin-bottom:.3rem;padding-bottom:.2rem;border-bottom:1px solid rgba(90,70,40,.3);}
-.sidebar-char-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r);cursor:pointer;transition:background .12s,border-color .12s;border:1px solid transparent;color:#c4b498;}
-.sidebar-char-item:hover{background:rgba(200,164,90,.08);border-color:rgba(200,164,90,.2);}
-.sidebar-char-item.placing{background:rgba(200,164,90,.12);border-color:#8a6a30;}
+.map-sidebar{background:var(--bg-card);color:#e2dbd0;border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:.75rem;display:flex;flex-direction:column;gap:.5rem;overflow-y:auto;}
+.map-sidebar-section{font-family:var(--font-display);font-size:.55rem;color:#c8b070;text-transform:uppercase;letter-spacing:.18em;margin-bottom:.3rem;padding-bottom:.2rem;border-bottom:1px solid rgba(90,70,40,.3);}
+.sidebar-char-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r);cursor:pointer;transition:background .12s,border-color .12s;border:1px solid transparent;color:#b0a898;}
+.sidebar-char-item:hover{background:rgba(200,176,112,.08);border-color:rgba(200,176,112,.2);}
+.sidebar-char-item.placing{background:rgba(200,176,112,.12);border-color:#9a8450;}
 
 .map-main{display:flex;flex-direction:column;gap:.6rem;}
-.map-toolbar{background:var(--bg-card);border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;flex-shrink:0;color:#efe4d0;box-shadow:0 4px 16px rgba(40,30,15,.15);}
-.me-name-inp{background:#1e1810;border:1px solid rgba(90,70,40,.3);border-radius:var(--r);color:#efe4d0;font-family:var(--font-display);font-size:.88rem;padding:5px 10px;min-width:180px;}
+.map-toolbar{background:var(--bg-card);border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;flex-shrink:0;color:#e2dbd0;box-shadow:0 4px 16px rgba(40,30,15,.15);}
+.me-name-inp{background:#1e1810;border:1px solid rgba(90,70,40,.3);border-radius:var(--r);color:#e2dbd0;font-family:var(--font-display);font-size:.88rem;padding:5px 10px;min-width:180px;}
 .me-name-inp:focus{outline:none;border-color:var(--glow-dd);}
 .toolbar-sep{width:1px;height:22px;background:var(--border);flex-shrink:0;}
 .scenario-sel{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font-body);font-size:.78rem;padding:5px 8px;}
@@ -483,14 +483,14 @@
 /* Tokens */
 /* BG3-style tokens */
 .map-token{position:absolute;transform:translate(-50%,-50%);border-radius:50%;border:2.5px solid;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:600;cursor:grab;pointer-events:all;transition:box-shadow .15s,border-color .15s;user-select:none;box-shadow:0 2px 8px rgba(0,0,0,.6),inset 0 0 10px rgba(0,0,0,.3);}
-.map-token:hover{box-shadow:0 0 0 2px rgba(200,164,90,.4),0 2px 12px rgba(0,0,0,.7);border-color:#c8a45a !important;}
-.map-token.dragging{cursor:grabbing;box-shadow:0 0 0 3px rgba(200,164,90,.5),0 8px 24px rgba(0,0,0,.7);z-index:50;}
+.map-token:hover{box-shadow:0 0 0 2px rgba(200,176,112,.4),0 2px 12px rgba(0,0,0,.7);border-color:#c8b070 !important;}
+.map-token.dragging{cursor:grabbing;box-shadow:0 0 0 3px rgba(200,176,112,.5),0 8px 24px rgba(0,0,0,.7);z-index:50;}
 .token-label{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--font-display);font-size:9px;color:#e0d4c0;background:linear-gradient(180deg,rgba(26,20,14,.95),rgba(12,10,8,.95));padding:2px 7px;border-radius:3px;pointer-events:none;border:1px solid rgba(90,72,48,.4);letter-spacing:.03em;}
 .token-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#1a0808;border:1px solid #5a1818;color:#c04040;font-size:9px;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;}
 .map-token:hover .token-del{display:flex;}
 .token-img{width:100%;height:100%;border-radius:50%;object-fit:cover;pointer-events:none;user-select:none;}
-.map-token.active-turn{box-shadow:0 0 0 3px #c8a45a,0 0 20px rgba(200,164,90,.4);animation:turn-pulse 1.5s ease-in-out infinite;border-color:#c8a45a !important;}
-@keyframes turn-pulse{0%,100%{box-shadow:0 0 0 3px #c8a45a,0 0 20px rgba(200,164,90,.4);}50%{box-shadow:0 0 0 5px #c8a45a,0 0 30px rgba(200,164,90,.5);}}
+.map-token.active-turn{box-shadow:0 0 0 3px #c8b070,0 0 20px rgba(200,176,112,.4);animation:turn-pulse 1.5s ease-in-out infinite;border-color:#c8b070 !important;}
+@keyframes turn-pulse{0%,100%{box-shadow:0 0 0 3px #c8b070,0 0 20px rgba(200,176,112,.4);}50%{box-shadow:0 0 0 5px #c8b070,0 0 30px rgba(200,176,112,.5);}}
 
 /* Placement hint */
 .place-hint{display:none;align-items:center;gap:6px;font-size:.72rem;color:var(--glow);font-family:var(--font-display);letter-spacing:.04em;background:var(--glow-bg);border:1px solid var(--glow-dd);border-radius:var(--r);padding:4px 10px;}
@@ -501,10 +501,10 @@
 .nm-or::before,.nm-or::after{content:'';flex:1;height:1px;background:var(--border);}
 
 /* Initiative bar — BG3 style */
-.initiative-bar{display:none;align-items:center;gap:10px;padding:6px 12px;background:var(--bg-card);color:#efe4d0;border:1px solid rgba(90,70,40,.3);border-bottom:2px solid var(--glow-dd);border-radius:var(--r-lg);margin-bottom:.4rem;}
+.initiative-bar{display:none;align-items:center;gap:10px;padding:6px 12px;background:var(--bg-card);color:#e2dbd0;border:1px solid rgba(90,70,40,.3);border-bottom:2px solid var(--glow-dd);border-radius:var(--r-lg);margin-bottom:.4rem;}
 
 /* Fog toolbar */
-.fog-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--bg-card);color:#efe4d0;border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:5px 10px;}
+.fog-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--bg-card);color:#e2dbd0;border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:5px 10px;}
 .fog-toolbar .toolbar-sep{width:1px;height:18px;background:var(--border);margin:0 2px;}
 .fog-sub-controls{display:flex;align-items:center;gap:5px;font-size:.72rem;}
 .fog-sub-controls label{color:var(--text3);font-size:.68rem;font-family:var(--font-display);}
@@ -520,16 +520,16 @@
 .player-fullscreen .pf-token{position:absolute;transform:translate(-50%,-50%);border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:600;pointer-events:none;}
 .player-fullscreen .pf-token-label{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--font-display);font-size:11px;color:#ddd;background:rgba(6,16,10,.85);padding:1px 6px;border-radius:3px;}
 .player-fullscreen .pf-token-img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
-.player-fullscreen .pf-round{position:fixed;top:16px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:1rem;color:var(--glow);background:rgba(26,22,19,.95);padding:8px 24px;border-radius:var(--r-lg);border:1px solid var(--border2);border-bottom:2px solid var(--glow-dd);z-index:10000;letter-spacing:.1em;text-shadow:0 0 12px rgba(200,164,90,.3);}
-.player-fullscreen .pf-turn-name{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:1.4rem;color:var(--text);background:rgba(26,22,19,.95);padding:10px 32px;border-radius:var(--r-lg);border:1px solid var(--border2);border-top:2px solid var(--glow-dd);z-index:10000;text-shadow:0 0 8px rgba(200,164,90,.2);letter-spacing:.05em;}
+.player-fullscreen .pf-round{position:fixed;top:16px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:1rem;color:var(--glow);background:rgba(26,22,19,.95);padding:8px 24px;border-radius:var(--r-lg);border:1px solid var(--border2);border-bottom:2px solid var(--glow-dd);z-index:10000;letter-spacing:.1em;text-shadow:0 0 12px rgba(200,176,112,.3);}
+.player-fullscreen .pf-turn-name{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:1.4rem;color:var(--text);background:rgba(26,22,19,.95);padding:10px 32px;border-radius:var(--r-lg);border:1px solid var(--border2);border-top:2px solid var(--glow-dd);z-index:10000;text-shadow:0 0 8px rgba(200,176,112,.2);letter-spacing:.05em;}
 
-.notes-panel{background:var(--bg-card);color:#efe4d0;border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:.75rem;display:flex;flex-direction:column;gap:.5rem;overflow:hidden;}
-.notes-panel .map-sidebar-section{color:#c8a45a;}
-.notes-tab{background:none;border:none;border-bottom:2px solid transparent;color:#8a7868;font-family:var(--font-display);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:4px 0 6px;cursor:pointer;transition:all .15s;}
-.notes-tab:hover{color:#c4b498;}
-.notes-tab.active{color:#c8a45a;border-bottom-color:#c8a45a;}
-.notes-panel textarea{flex:1;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:var(--r);color:#efe4d0;font-family:var(--font-body);font-size:.75rem;padding:.5rem;resize:none;line-height:1.5;}
-.notes-panel textarea:focus{outline:none;border-color:var(--glow-d);box-shadow:0 0 8px rgba(200,164,90,.1);}
+.notes-panel{background:var(--bg-card);color:#e2dbd0;border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:.75rem;display:flex;flex-direction:column;gap:.5rem;overflow:hidden;}
+.notes-panel .map-sidebar-section{color:#c8b070;}
+.notes-tab{background:none;border:none;border-bottom:2px solid transparent;color:#7a7268;font-family:var(--font-display);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:4px 0 6px;cursor:pointer;transition:all .15s;}
+.notes-tab:hover{color:#b0a898;}
+.notes-tab.active{color:#c8b070;border-bottom-color:#c8b070;}
+.notes-panel textarea{flex:1;background:#1e1810;border:1px solid rgba(200,176,112,.15);border-radius:var(--r);color:#e2dbd0;font-family:var(--font-body);font-size:.75rem;padding:.5rem;resize:none;line-height:1.5;}
+.notes-panel textarea:focus{outline:none;border-color:var(--glow-d);box-shadow:0 0 8px rgba(200,176,112,.1);}
 @media(max-width:900px){.map-editor-wrap{grid-template-columns:200px 1fr;height:auto;}.notes-panel{display:none;}.map-stage-wrap{min-height:300px;}}
 @media(max-width:680px){.map-editor-wrap{grid-template-columns:1fr;height:auto;}.map-sidebar{max-height:200px;}.map-stage-wrap{min-height:300px;}.fog-toolbar{font-size:.65rem;}.fog-sub-controls input[type=range]{width:50px;}}
 
@@ -570,15 +570,15 @@
     <div id="cloud-status" style="font-size:.76rem;color:var(--text3);margin-bottom:1.1rem;line-height:1.5;"></div>
     <div style="margin-bottom:.8rem;"><label class="cloud-field-label">Supabase Project URL</label><input id="sb-url" class="cloud-input" type="text" placeholder="https://xxxx.supabase.co"></div>
     <div style="margin-bottom:1.1rem;"><label class="cloud-field-label">Anon Public Key</label><input id="sb-key" class="cloud-input" type="password" placeholder="eyJ..."></div>
-    <div id="migrate-panel" style="display:none;background:var(--bg-card);border:1px solid rgba(200,164,90,.2);border-radius:var(--r);padding:.75rem;margin-bottom:1rem;font-size:.78rem;color:#c4b498;line-height:1.5;">
-      <strong style="color:#c8a45a;display:block;margin-bottom:3px;">Local data detected</strong>
+    <div id="migrate-panel" style="display:none;background:var(--bg-card);border:1px solid rgba(200,176,112,.2);border-radius:var(--r);padding:.75rem;margin-bottom:1rem;font-size:.78rem;color:#b0a898;line-height:1.5;">
+      <strong style="color:#c8b070;display:block;margin-bottom:3px;">Local data detected</strong>
       Push your existing data to the cloud.
-      <button onclick="migrateToCloud()" style="margin-top:.5rem;display:block;padding:6px 14px;border-radius:6px;border:1px solid rgba(200,164,90,.3);background:var(--bg-card);color:#c8a45a;cursor:pointer;font-family:var(--font-display);font-size:.72rem;">⬆ Push local data to cloud</button>
+      <button onclick="migrateToCloud()" style="margin-top:.5rem;display:block;padding:6px 14px;border-radius:6px;border:1px solid rgba(200,176,112,.3);background:var(--bg-card);color:#c8b070;cursor:pointer;font-family:var(--font-display);font-size:.72rem;">⬆ Push local data to cloud</button>
     </div>
-    <div style="background:var(--bg-card);border:1px solid rgba(200,164,90,.2);border-radius:var(--r);padding:.75rem;margin-bottom:1rem;font-size:.78rem;color:#c4b498;line-height:1.5;">
-      <strong style="color:#c8a45a;display:block;margin-bottom:3px;">Force sync current data</strong>
+    <div style="background:var(--bg-card);border:1px solid rgba(200,176,112,.2);border-radius:var(--r);padding:.75rem;margin-bottom:1rem;font-size:.78rem;color:#b0a898;line-height:1.5;">
+      <strong style="color:#c8b070;display:block;margin-bottom:3px;">Force sync current data</strong>
       Push all characters, sessions, and maps currently loaded to Supabase.
-      <button onclick="forceSyncToCloud()" id="force-sync-btn" style="margin-top:.5rem;display:block;padding:6px 14px;border-radius:6px;border:1px solid rgba(200,164,90,.3);background:var(--bg-card);color:#c8a45a;cursor:pointer;font-family:var(--font-display);font-size:.72rem;">⬆ Sync all to cloud</button>
+      <button onclick="forceSyncToCloud()" id="force-sync-btn" style="margin-top:.5rem;display:block;padding:6px 14px;border-radius:6px;border:1px solid rgba(200,176,112,.3);background:var(--bg-card);color:#c8b070;cursor:pointer;font-family:var(--font-display);font-size:.72rem;">⬆ Sync all to cloud</button>
     </div>
     <div style="display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;">
       <button id="sb-disc-btn" onclick="disconnectCloud()" style="display:none;padding:6px 14px;border-radius:var(--r);border:1px solid var(--red-border);background:transparent;color:var(--red);cursor:pointer;font-family:var(--font-display);font-size:.76rem;">Disconnect</button>
@@ -907,7 +907,7 @@
   <div id="fog-dm-tools" class="fog-toolbar" style="display:none;margin-bottom:.4rem;">
     <button class="btn btn-sm btn-ghost" id="fog-zone-btn" onclick="setFogTool(_fogTool==='zone'?'none':'zone')">⬡ Zones</button>
     <button class="btn btn-sm btn-ghost" id="fog-brush-btn" onclick="setFogTool(_fogTool==='brush'?'none':'brush')">🖌 Brush</button>
-    <button class="btn btn-sm btn-ghost" onclick="revealAllFog()" title="Reveal entire map (clear all fog)" style="color:#c8a45a;">☀ Reveal All</button>
+    <button class="btn btn-sm btn-ghost" onclick="revealAllFog()" title="Reveal entire map (clear all fog)" style="color:#c8b070;">☀ Reveal All</button>
     <button class="btn btn-sm btn-ghost" onclick="resetAllFog()" title="Re-fog entire map" style="color:#a03030;">◼ Fog All</button>
     <div class="toolbar-sep"></div>
 
@@ -934,12 +934,12 @@
     </div>
 
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-      <label style="font-size:.6rem;color:#8a7868;font-family:var(--font-display);">Grid</label>
-      <input type="range" id="fog-grid-opacity" min="0" max="100" value="10" style="width:50px;accent-color:#c8a45a;" oninput="setGridOpacity(+this.value/100)">
+      <label style="font-size:.6rem;color:#7a7268;font-family:var(--font-display);">Grid</label>
+      <input type="range" id="fog-grid-opacity" min="0" max="100" value="10" style="width:50px;accent-color:#c8b070;" oninput="setGridOpacity(+this.value/100)">
       <div style="width:1px;height:14px;background:#3a3020;"></div>
-      <label style="font-size:.6rem;color:#8a7868;font-family:var(--font-display);">Hex</label>
-      <input type="range" min="10" max="80" value="30" style="width:50px;accent-color:#c8a45a;" oninput="setHexSize(+this.value);document.getElementById('fog-hex-size-val').textContent=this.value">
-      <span id="fog-hex-size-val" style="font-size:.6rem;color:#8a7868;font-family:var(--font-mono);min-width:18px;">30</span>
+      <label style="font-size:.6rem;color:#7a7268;font-family:var(--font-display);">Hex</label>
+      <input type="range" min="10" max="80" value="30" style="width:50px;accent-color:#c8b070;" oninput="setHexSize(+this.value);document.getElementById('fog-hex-size-val').textContent=this.value">
+      <span id="fog-hex-size-val" style="font-size:.6rem;color:#7a7268;font-family:var(--font-mono);min-width:18px;">30</span>
     </div>
   </div>
 
@@ -955,7 +955,7 @@
 
         <div class="map-sidebar-section" style="margin-top:.6rem;">Monsters</div>
         <input type="text" id="monster-search" placeholder="Search monsters..." oninput="onMonsterSearch(event)"
-          style="width:100%;font-size:.7rem;padding:4px 8px;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:var(--r);color:#efe4d0;margin-bottom:.4rem;box-sizing:border-box;">
+          style="width:100%;font-size:.7rem;padding:4px 8px;background:#1e1810;border:1px solid rgba(200,176,112,.15);border-radius:var(--r);color:#e2dbd0;margin-bottom:.4rem;box-sizing:border-box;">
         <div id="monster-search-results" style="max-height:120px;overflow-y:auto;"></div>
 
         <div class="map-sidebar-section" style="margin-top:.5rem;font-size:.55rem;">Encounter</div>
@@ -984,7 +984,7 @@
     <!-- Notes + Combat Log panel (right side) -->
     <div class="notes-panel">
       <!-- Tab switcher -->
-      <div style="display:flex;gap:2px;margin-bottom:.5rem;border-bottom:1px solid rgba(200,164,90,.1);">
+      <div style="display:flex;gap:2px;margin-bottom:.5rem;border-bottom:1px solid rgba(200,176,112,.1);">
         <button class="notes-tab active" onclick="switchNotesTab('notes',this)" style="flex:1;">Notes</button>
         <button class="notes-tab" onclick="switchNotesTab('log',this)" style="flex:1;">Combat Log</button>
         <button class="notes-tab" onclick="switchNotesTab('ref',this)" style="flex:1;">Reference</button>
@@ -998,37 +998,37 @@
       <!-- Combat Log tab -->
       <div id="notes-tab-log" class="notes-tab-content" style="display:none;flex-direction:column;flex:1;gap:.4rem;">
         <div id="combat-log-content" style="flex:1;overflow-y:auto;"></div>
-        <button class="btn btn-sm btn-ghost" onclick="addCombatNote()" style="font-size:.62rem;color:#c8a45a;align-self:flex-start;">+ Add Note</button>
+        <button class="btn btn-sm btn-ghost" onclick="addCombatNote()" style="font-size:.62rem;color:#c8b070;align-self:flex-start;">+ Add Note</button>
       </div>
 
       <!-- Reference tab -->
       <div id="notes-tab-ref" class="notes-tab-content" style="display:none;flex-direction:column;flex:1;gap:.4rem;overflow-y:auto;">
         <div class="map-sidebar-section">Spell Lookup</div>
-        <input type="text" placeholder="Search spells..." oninput="onSpellSearch(event)" style="width:100%;font-size:.68rem;padding:4px 8px;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:var(--r);color:#efe4d0;box-sizing:border-box;">
+        <input type="text" placeholder="Search spells..." oninput="onSpellSearch(event)" style="width:100%;font-size:.68rem;padding:4px 8px;background:#1e1810;border:1px solid rgba(200,176,112,.15);border-radius:var(--r);color:#e2dbd0;box-sizing:border-box;">
         <div id="spell-search-results" style="max-height:150px;overflow-y:auto;"></div>
         <div class="map-sidebar-section" style="margin-top:.4rem;">Conditions</div>
         <div id="condition-ref-list" style="max-height:120px;overflow-y:auto;"></div>
         <div class="map-sidebar-section" style="margin-top:.4rem;">Quick Reference</div>
-        <div style="font-size:.58rem;color:#8a7868;line-height:1.5;">
-          <div><strong style="color:#c4b498;">Cover:</strong> Half +2 AC, 3/4 +5 AC, Full untargetable</div>
-          <div><strong style="color:#c4b498;">Actions:</strong> Attack, Cast, Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use Object</div>
-          <div><strong style="color:#c4b498;">Bonus:</strong> Offhand attack, some spells, class features</div>
-          <div><strong style="color:#c4b498;">Reaction:</strong> Opportunity attack, some spells, readied action</div>
+        <div style="font-size:.58rem;color:#7a7268;line-height:1.5;">
+          <div><strong style="color:#b0a898;">Cover:</strong> Half +2 AC, 3/4 +5 AC, Full untargetable</div>
+          <div><strong style="color:#b0a898;">Actions:</strong> Attack, Cast, Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use Object</div>
+          <div><strong style="color:#b0a898;">Bonus:</strong> Offhand attack, some spells, class features</div>
+          <div><strong style="color:#b0a898;">Reaction:</strong> Opportunity attack, some spells, readied action</div>
         </div>
       </div>
 
       <!-- Damage popup (floating) -->
-      <div id="damage-popup" style="display:none;position:absolute;bottom:8px;left:8px;right:8px;background:#2c2419;border:1px solid rgba(200,164,90,.25);border-radius:8px;padding:8px 10px;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,.3);"></div>
+      <div id="damage-popup" style="display:none;position:absolute;bottom:8px;left:8px;right:8px;background:#2c2419;border:1px solid rgba(200,176,112,.25);border-radius:8px;padding:8px 10px;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,.3);"></div>
     </div>
   </div>
 </div>
 
 <!-- COMBAT REPORT MODAL -->
 <div class="overlay" id="combat-report-overlay" onclick="if(event.target===this)closeCombatReport()">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px;background:#2c2419;border-color:rgba(200,164,90,.3);">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px;background:#2c2419;border-color:rgba(200,176,112,.3);">
     <div id="combat-report-content"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">
-      <button class="btn btn-ghost btn-sm" onclick="saveReportToNotes()" style="color:#c8a45a;border-color:rgba(200,164,90,.2);">Save to Notes</button>
+      <button class="btn btn-ghost btn-sm" onclick="saveReportToNotes()" style="color:#c8b070;border-color:rgba(200,176,112,.2);">Save to Notes</button>
       <button class="btn btn-primary btn-sm" onclick="closeCombatReport()">Close</button>
     </div>
   </div>

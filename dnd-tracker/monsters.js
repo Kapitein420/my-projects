@@ -108,11 +108,11 @@ function renderMonsterSearchResults(query) {
         '<span style="font-size:.6rem;font-weight:700;color:#c04040;font-family:var(--font-mono);">' + m.cr + '</span>' +
       '</div>' +
       '<div style="min-width:0;flex:1;">' +
-        '<div style="font-size:.78rem;color:#efe4d0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + m.name + '</div>' +
+        '<div style="font-size:.78rem;color:#e2dbd0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + m.name + '</div>' +
         '<div style="display:flex;gap:8px;font-size:.62rem;margin-top:2px;">' +
           '<span style="color:#c04040;">\u2764 ' + m.hp + '</span>' +
-          '<span style="color:#c8a45a;">\u26e8 ' + m.ac + '</span>' +
-          '<span style="color:#8a7868;">' + m.meta.split(',')[0] + '</span>' +
+          '<span style="color:#c8b070;">\u26e8 ' + m.ac + '</span>' +
+          '<span style="color:#7a7268;">' + m.meta.split(',')[0] + '</span>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -135,16 +135,16 @@ function renderMonsterSidebar() {
     return '<div class="sidebar-char-item" id="msi-' + mon.id + '" onclick="selectMonsterForPlace(\'' + mon.id + '\')" title="Click to place token" style="padding:8px;gap:8px;' + (isDead ? 'opacity:.4;' : '') + '">' +
       '<div style="min-width:0;flex:1;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">' +
-          '<span style="font-size:.78rem;color:' + (isDead ? '#5a4e40' : '#efe4d0') + ';font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (isDead ? 'text-decoration:line-through;' : '') + '">' + mon.displayName + '</span>' +
-          '<span style="font-size:.58rem;color:#c8a45a;flex-shrink:0;margin-left:4px;">\u26e8 ' + mon.ac + '</span>' +
+          '<span style="font-size:.78rem;color:' + (isDead ? '#504840' : '#e2dbd0') + ';font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (isDead ? 'text-decoration:line-through;' : '') + '">' + mon.displayName + '</span>' +
+          '<span style="font-size:.58rem;color:#c8b070;flex-shrink:0;margin-left:4px;">\u26e8 ' + mon.ac + '</span>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:4px;margin-top:2px;">' +
-          '<button onclick="event.stopPropagation();updateMonsterHp(\'' + mon.id + '\',-1)" style="width:18px;height:18px;border-radius:4px;border:1px solid #3a3020;background:#1e1810;color:#c4b498;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);">-</button>' +
+          '<button onclick="event.stopPropagation();updateMonsterHp(\'' + mon.id + '\',-1)" style="width:18px;height:18px;border-radius:4px;border:1px solid #3a3020;background:#1e1810;color:#b0a898;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);">-</button>' +
           '<div style="flex:1;height:5px;background:#1e1810;border-radius:3px;overflow:hidden;">' +
             '<div style="width:' + pct + '%;height:100%;background:' + hpCol + ';border-radius:3px;transition:width .3s;"></div>' +
           '</div>' +
           '<span style="font-size:.6rem;color:' + hpCol + ';font-family:var(--font-mono);white-space:nowrap;min-width:42px;text-align:center;">' + mon.currentHp + '/' + mon.maxHp + '</span>' +
-          '<button onclick="event.stopPropagation();updateMonsterHp(\'' + mon.id + '\',1)" style="width:18px;height:18px;border-radius:4px;border:1px solid #3a3020;background:#1e1810;color:#c4b498;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);">+</button>' +
+          '<button onclick="event.stopPropagation();updateMonsterHp(\'' + mon.id + '\',1)" style="width:18px;height:18px;border-radius:4px;border:1px solid #3a3020;background:#1e1810;color:#b0a898;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);">+</button>' +
         '</div>' +
       '</div>' +
       '<button style="padding:2px 4px;font-size:.55rem;background:none;border:none;cursor:pointer;color:#6a3030;flex-shrink:0;" onclick="event.stopPropagation();removeMonsterFromEncounter(\'' + mon.id + '\')">\u2715</button>' +
@@ -221,18 +221,18 @@ function renderMonsterPopup(monsterId) {
   const pct = Math.round((mon.currentHp / mon.maxHp) * 100);
   const col = pct > 60 ? '#4a9a40' : pct > 25 ? '#b8902a' : '#8a2020';
   popup.innerHTML =
-    '<div style="font-size:.78rem;font-family:var(--font-display);color:#efe4d0;margin-bottom:4px;">' + mon.displayName + '</div>' +
-    '<div style="font-size:.62rem;color:#8a7868;margin-bottom:6px;">' + mon.meta + ' \u00b7 CR ' + mon.cr + '</div>' +
+    '<div style="font-size:.78rem;font-family:var(--font-display);color:#e2dbd0;margin-bottom:4px;">' + mon.displayName + '</div>' +
+    '<div style="font-size:.62rem;color:#7a7268;margin-bottom:6px;">' + mon.meta + ' \u00b7 CR ' + mon.cr + '</div>' +
     '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
-      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#5a4830;color:#c4b498;" onclick="updateMonsterHp(\'' + mon.id + '\',-5)">-5</button>' +
-      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#5a4830;color:#c4b498;" onclick="updateMonsterHp(\'' + mon.id + '\',-1)">-</button>' +
+      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#3a3428;color:#b0a898;" onclick="updateMonsterHp(\'' + mon.id + '\',-5)">-5</button>' +
+      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#3a3428;color:#b0a898;" onclick="updateMonsterHp(\'' + mon.id + '\',-1)">-</button>' +
       '<div style="text-align:center;">' +
-        '<input type="number" value="' + mon.currentHp + '" min="0" max="' + mon.maxHp + '" style="width:50px;text-align:center;font-size:.85rem;font-weight:600;background:#1e1810;border:1px solid #5a4830;border-radius:6px;color:#efe4d0;padding:3px;" onchange="setMonsterHp(\'' + mon.id + '\',this.value)">' +
-        '<div style="font-size:.55rem;color:#8a7868;">/ ' + mon.maxHp + ' HP</div>' +
+        '<input type="number" value="' + mon.currentHp + '" min="0" max="' + mon.maxHp + '" style="width:50px;text-align:center;font-size:.85rem;font-weight:600;background:#1e1810;border:1px solid #3a3428;border-radius:6px;color:#e2dbd0;padding:3px;" onchange="setMonsterHp(\'' + mon.id + '\',this.value)">' +
+        '<div style="font-size:.55rem;color:#7a7268;">/ ' + mon.maxHp + ' HP</div>' +
       '</div>' +
-      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#5a4830;color:#c4b498;" onclick="updateMonsterHp(\'' + mon.id + '\',1)">+</button>' +
-      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#5a4830;color:#c4b498;" onclick="updateMonsterHp(\'' + mon.id + '\',5)">+5</button>' +
-      '<div style="font-size:.65rem;color:#c8a45a;margin-left:4px;">AC ' + mon.ac + '</div>' +
+      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#3a3428;color:#b0a898;" onclick="updateMonsterHp(\'' + mon.id + '\',1)">+</button>' +
+      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#3a3428;color:#b0a898;" onclick="updateMonsterHp(\'' + mon.id + '\',5)">+5</button>' +
+      '<div style="font-size:.65rem;color:#c8b070;margin-left:4px;">AC ' + mon.ac + '</div>' +
     '</div>' +
     '<div style="height:5px;background:#1e1810;border-radius:3px;overflow:hidden;">' +
       '<div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:3px;transition:width .2s;"></div>' +

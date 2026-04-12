@@ -189,8 +189,8 @@ function renderTokenSidebar() {
       <div class="avatar avatar-sm" style="background:${col}20;border-color:${col};color:${col};overflow:hidden;">${imgHtml}</div>
       <div style="min-width:0;flex:1;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-          <span style="font-size:.78rem;color:#efe4d0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</span>
-          <span style="font-size:.55rem;color:#8a7868;flex-shrink:0;margin-left:4px;">${c.class || '—'} Lv${c.level || 1}</span>
+          <span style="font-size:.78rem;color:#e2dbd0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</span>
+          <span style="font-size:.55rem;color:#7a7268;flex-shrink:0;margin-left:4px;">${c.class || '—'} Lv${c.level || 1}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           <div style="flex:1;height:4px;background:#1e1810;border-radius:2px;overflow:hidden;">
