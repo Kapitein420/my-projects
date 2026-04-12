@@ -525,6 +525,9 @@
 
 .notes-panel{background:var(--bg-card);color:#efe4d0;border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:.75rem;display:flex;flex-direction:column;gap:.5rem;overflow:hidden;}
 .notes-panel .map-sidebar-section{color:#c8a45a;}
+.notes-tab{background:none;border:none;border-bottom:2px solid transparent;color:#8a7868;font-family:var(--font-display);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:4px 0 6px;cursor:pointer;transition:all .15s;}
+.notes-tab:hover{color:#c4b498;}
+.notes-tab.active{color:#c8a45a;border-bottom-color:#c8a45a;}
 .notes-panel textarea{flex:1;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:var(--r);color:#efe4d0;font-family:var(--font-body);font-size:.75rem;padding:.5rem;resize:none;line-height:1.5;}
 .notes-panel textarea:focus{outline:none;border-color:var(--glow-d);box-shadow:0 0 8px rgba(200,164,90,.1);}
 @media(max-width:900px){.map-editor-wrap{grid-template-columns:200px 1fr;height:auto;}.notes-panel{display:none;}.map-stage-wrap{min-height:300px;}}
@@ -971,25 +974,55 @@
       </div>
     </div>
 
-    <!-- Notes panel (right side) -->
+    <!-- Notes + Combat Log panel (right side) -->
     <div class="notes-panel">
-      <div class="map-sidebar-section">Session Notes</div>
-      <textarea id="map-notes" placeholder="Session notes, loot, NPC names, reminders..." oninput="saveMapNotes()" style="min-height:100px;"></textarea>
-
-      <div class="map-sidebar-section" style="margin-top:.4rem;">Spell Lookup</div>
-      <input type="text" placeholder="Search spells..." oninput="onSpellSearch(event)" style="width:100%;font-size:.68rem;padding:4px 8px;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:var(--r);color:#efe4d0;box-sizing:border-box;">
-      <div id="spell-search-results" style="max-height:150px;overflow-y:auto;"></div>
-
-      <div class="map-sidebar-section" style="margin-top:.4rem;">Conditions</div>
-      <div id="condition-ref-list" style="max-height:120px;overflow-y:auto;"></div>
-
-      <div class="map-sidebar-section" style="margin-top:.4rem;">Quick Reference</div>
-      <div style="font-size:.58rem;color:#8a7868;line-height:1.5;">
-        <div><strong style="color:#c4b498;">Cover:</strong> Half +2 AC, 3/4 +5 AC, Full untargetable</div>
-        <div><strong style="color:#c4b498;">Actions:</strong> Attack, Cast, Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use Object</div>
-        <div><strong style="color:#c4b498;">Bonus:</strong> Offhand attack, some spells, class features</div>
-        <div><strong style="color:#c4b498;">Reaction:</strong> Opportunity attack, some spells, readied action</div>
+      <!-- Tab switcher -->
+      <div style="display:flex;gap:2px;margin-bottom:.5rem;border-bottom:1px solid rgba(200,164,90,.1);">
+        <button class="notes-tab active" onclick="switchNotesTab('notes',this)" style="flex:1;">Notes</button>
+        <button class="notes-tab" onclick="switchNotesTab('log',this)" style="flex:1;">Combat Log</button>
+        <button class="notes-tab" onclick="switchNotesTab('ref',this)" style="flex:1;">Reference</button>
       </div>
+
+      <!-- Notes tab -->
+      <div id="notes-tab-notes" class="notes-tab-content" style="display:flex;flex-direction:column;flex:1;gap:.4rem;">
+        <textarea id="map-notes" placeholder="Session notes, loot, NPC names, reminders..." oninput="saveMapNotes()" style="flex:1;min-height:100px;"></textarea>
+      </div>
+
+      <!-- Combat Log tab -->
+      <div id="notes-tab-log" class="notes-tab-content" style="display:none;flex-direction:column;flex:1;gap:.4rem;">
+        <div id="combat-log-content" style="flex:1;overflow-y:auto;"></div>
+        <button class="btn btn-sm btn-ghost" onclick="addCombatNote()" style="font-size:.62rem;color:#c8a45a;align-self:flex-start;">+ Add Note</button>
+      </div>
+
+      <!-- Reference tab -->
+      <div id="notes-tab-ref" class="notes-tab-content" style="display:none;flex-direction:column;flex:1;gap:.4rem;overflow-y:auto;">
+        <div class="map-sidebar-section">Spell Lookup</div>
+        <input type="text" placeholder="Search spells..." oninput="onSpellSearch(event)" style="width:100%;font-size:.68rem;padding:4px 8px;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:var(--r);color:#efe4d0;box-sizing:border-box;">
+        <div id="spell-search-results" style="max-height:150px;overflow-y:auto;"></div>
+        <div class="map-sidebar-section" style="margin-top:.4rem;">Conditions</div>
+        <div id="condition-ref-list" style="max-height:120px;overflow-y:auto;"></div>
+        <div class="map-sidebar-section" style="margin-top:.4rem;">Quick Reference</div>
+        <div style="font-size:.58rem;color:#8a7868;line-height:1.5;">
+          <div><strong style="color:#c4b498;">Cover:</strong> Half +2 AC, 3/4 +5 AC, Full untargetable</div>
+          <div><strong style="color:#c4b498;">Actions:</strong> Attack, Cast, Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use Object</div>
+          <div><strong style="color:#c4b498;">Bonus:</strong> Offhand attack, some spells, class features</div>
+          <div><strong style="color:#c4b498;">Reaction:</strong> Opportunity attack, some spells, readied action</div>
+        </div>
+      </div>
+
+      <!-- Damage popup (floating) -->
+      <div id="damage-popup" style="display:none;position:absolute;bottom:8px;left:8px;right:8px;background:#2c2419;border:1px solid rgba(200,164,90,.25);border-radius:8px;padding:8px 10px;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,.3);"></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMBAT REPORT MODAL -->
+<div class="overlay" id="combat-report-overlay" onclick="if(event.target===this)closeCombatReport()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px;background:#2c2419;border-color:rgba(200,164,90,.3);">
+    <div id="combat-report-content"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-ghost btn-sm" onclick="saveReportToNotes()" style="color:#c8a45a;border-color:rgba(200,164,90,.2);">Save to Notes</button>
+      <button class="btn btn-primary btn-sm" onclick="closeCombatReport()">Close</button>
     </div>
   </div>
 </div>
@@ -1154,13 +1187,17 @@ function renderCharList(){
 // Inline HP controls
 function quickHp(id,delta){
   const c=characters.find(x=>x.id===id);if(!c)return;
+  const oldHp=c.currentHp||0;
   c.currentHp=Math.max(0,Math.min(c.maxHp,c.currentHp+delta));
+  if(typeof logHpChange==='function')logHpChange(c.id,c.name,'character',oldHp,c.currentHp);
   const inp=document.getElementById('qhp-'+id);if(inp)inp.value=c.currentHp;
   DB.save('characters',c,characters).then(()=>{renderCharList();if(currentMapId)renderTokensOnMap();});
 }
 function quickHpSet(id,val){
   const c=characters.find(x=>x.id===id);if(!c)return;
+  const oldHp=c.currentHp||0;
   c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(val)||0));
+  if(typeof logHpChange==='function')logHpChange(c.id,c.name,'character',oldHp,c.currentHp);
   DB.save('characters',c,characters);
   // Re-render the card's HP bar only
   const card=document.getElementById('card-'+id);
@@ -1357,7 +1394,7 @@ function showCharDetail(id){
   const ap=document.getElementById('d-appear-panel');ap.style.display=ah?'block':'none';document.getElementById('d-appearance').innerHTML=ah;
   showView('view-char-detail');
 }
-async function saveHp(){const c=characters.find(x=>x.id===currentCharId);if(!c)return;c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(document.getElementById('d-curhp').value)||0));await DB.save('characters',c,characters);showCharDetail(currentCharId);if(currentMapId)renderTokensOnMap();}
+async function saveHp(){const c=characters.find(x=>x.id===currentCharId);if(!c)return;const oldHp=c.currentHp||0;c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(document.getElementById('d-curhp').value)||0));if(typeof logHpChange==='function')logHpChange(c.id,c.name,'character',oldHp,c.currentHp);await DB.save('characters',c,characters);showCharDetail(currentCharId);if(currentMapId)renderTokensOnMap();}
 function editCurrentChar(){showEditCharForm(currentCharId);}
 async function deleteCurrentChar(){const c=characters.find(x=>x.id===currentCharId);if(!c||!confirm(`Delete ${c.name}?`))return;characters=characters.filter(x=>x.id!==currentCharId);await DB.remove('characters',currentCharId,characters);updateStatus();showCharList();}
 
