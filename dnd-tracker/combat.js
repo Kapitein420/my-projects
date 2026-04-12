@@ -486,100 +486,149 @@ function addCombatNote() {
 
 // ── SESSION REPORT ───────────────────────────────────────────
 
-function showCombatReport(log, rounds, startedAt) {
-  if (!log || !log.length) return;
-
-  // Compute stats
-  const damageDealt = {};  // id -> { name, type, total, kills }
-  const damageTaken = {};  // id -> { name, type, total }
-  const kills = [];
-
+function computeCombatStats(log) {
+  const stats = { damageDealt: {}, damageTaken: {}, heals: {}, kills: [], totalDmg: 0, totalHeals: 0 };
   for (const e of log) {
     if (e.type === 'damage' && e.source) {
-      const key = e.source.id;
-      if (!damageDealt[key]) damageDealt[key] = { name: e.source.name, type: e.source.type, total: 0, kills: 0 };
-      damageDealt[key].total += e.value;
+      const k = e.source.id;
+      if (!stats.damageDealt[k]) stats.damageDealt[k] = { name: e.source.name, type: e.source.type, total: 0, kills: 0, hits: 0, biggestHit: 0, methods: {} };
+      stats.damageDealt[k].total += e.value;
+      stats.damageDealt[k].hits++;
+      if (e.value > stats.damageDealt[k].biggestHit) stats.damageDealt[k].biggestHit = e.value;
+      if (e.note) stats.damageDealt[k].methods[e.note] = (stats.damageDealt[k].methods[e.note] || 0) + e.value;
+      stats.totalDmg += e.value;
     }
     if (e.type === 'damage' && e.target) {
-      const key = e.target.id;
-      if (!damageTaken[key]) damageTaken[key] = { name: e.target.name, type: e.target.type, total: 0 };
-      damageTaken[key].total += e.value;
+      const k = e.target.id;
+      if (!stats.damageTaken[k]) stats.damageTaken[k] = { name: e.target.name, type: e.target.type, total: 0 };
+      stats.damageTaken[k].total += e.value;
+    }
+    if (e.type === 'heal' && e.target) {
+      const k = e.target.id;
+      if (!stats.heals[k]) stats.heals[k] = { name: e.target.name, total: 0 };
+      stats.heals[k].total += e.value;
+      stats.totalHeals += e.value;
     }
     if (e.type === 'kill') {
-      kills.push({ killer: e.source?.name || 'Unknown', victim: e.target?.name || 'Unknown' });
-      if (e.source && damageDealt[e.source.id]) damageDealt[e.source.id].kills++;
+      stats.kills.push({ killer: e.source?.name || '?', killerId: e.source?.id, victim: e.target?.name || '?', victimType: e.target?.type });
+      if (e.source && stats.damageDealt[e.source.id]) stats.damageDealt[e.source.id].kills++;
     }
   }
+  return stats;
+}
 
-  // Leaderboards
-  const dmgLeader = Object.values(damageDealt).sort((a, b) => b.total - a.total);
-  const takenLeader = Object.values(damageTaken).sort((a, b) => b.total - a.total);
-
-  // MVP (most damage from characters)
+function showCombatReport(log, rounds, startedAt) {
+  if (!log || !log.length) return;
+  const s = computeCombatStats(log);
+  const dmgLeader = Object.values(s.damageDealt).sort((a, b) => b.total - a.total);
+  const takenLeader = Object.values(s.damageTaken).sort((a, b) => b.total - a.total);
+  const healLeader = Object.values(s.heals).sort((a, b) => b.total - a.total);
   const mvp = dmgLeader.find(d => d.type === 'character');
-  // Most dangerous enemy
+  const tank = takenLeader.find(d => d.type === 'character');
   const mostDangerous = dmgLeader.find(d => d.type === 'monster');
-
   const duration = startedAt ? Math.round((Date.now() - startedAt) / 60000) : 0;
 
-  // Build report HTML
-  let html = '<div style="max-height:70vh;overflow-y:auto;color:#e2dbd0;">';
+  const sectionTitle = (text) => '<div style="font-family:var(--font-display);font-size:.52rem;color:#c8b070;text-transform:uppercase;letter-spacing:.18em;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #2a2620;">' + text + '</div>';
 
-  // Header
-  html += '<div style="text-align:center;margin-bottom:1.25rem;">' +
-    '<div style="font-family:var(--font-display);font-size:1.2rem;color:#c8b070;letter-spacing:.1em;">Combat Report</div>' +
-    '<div style="font-size:.72rem;color:#7a7268;margin-top:4px;">' + rounds + ' rounds \u00b7 ~' + duration + ' min \u00b7 ' + kills.length + ' kills</div>' +
+  let h = '<div style="max-height:75vh;overflow-y:auto;color:#e2dbd0;">';
+
+  // Header with decorative border
+  h += '<div style="text-align:center;padding:16px 0 12px;margin-bottom:8px;border-bottom:1px solid #3a3428;">' +
+    '<div style="font-size:.5rem;color:#7a7268;text-transform:uppercase;letter-spacing:.3em;margin-bottom:4px;">Battle Concluded</div>' +
+    '<div style="font-family:var(--font-display);font-size:1.4rem;color:#c8b070;letter-spacing:.12em;">Combat Report</div>' +
+    '<div style="display:flex;justify-content:center;gap:20px;margin-top:10px;">' +
+      '<div style="text-align:center;"><div style="font-size:1.2rem;font-family:var(--font-mono);color:#e2dbd0;">' + rounds + '</div><div style="font-size:.5rem;color:#7a7268;text-transform:uppercase;">Rounds</div></div>' +
+      '<div style="text-align:center;"><div style="font-size:1.2rem;font-family:var(--font-mono);color:#e2dbd0;">~' + duration + 'm</div><div style="font-size:.5rem;color:#7a7268;text-transform:uppercase;">Duration</div></div>' +
+      '<div style="text-align:center;"><div style="font-size:1.2rem;font-family:var(--font-mono);color:#c04040;">' + s.kills.length + '</div><div style="font-size:.5rem;color:#7a7268;text-transform:uppercase;">Kills</div></div>' +
+      '<div style="text-align:center;"><div style="font-size:1.2rem;font-family:var(--font-mono);color:#c8b070;">' + s.totalDmg + '</div><div style="font-size:.5rem;color:#7a7268;text-transform:uppercase;">Total Dmg</div></div>' +
+    '</div>' +
   '</div>';
 
-  // MVP
+  // Awards row
+  h += '<div style="display:flex;gap:8px;margin:12px 0;">';
   if (mvp) {
-    html += '<div style="background:rgba(200,164,90,.08);border:1px solid rgba(200,164,90,.2);border-radius:8px;padding:10px;margin-bottom:12px;text-align:center;">' +
-      '<div style="font-size:.55rem;color:#9a8450;text-transform:uppercase;letter-spacing:.15em;font-family:var(--font-display);">MVP</div>' +
-      '<div style="font-size:1.1rem;color:#c8b070;font-family:var(--font-display);margin:4px 0;">' + mvp.name + '</div>' +
-      '<div style="font-size:.7rem;color:#b0a898;">' + mvp.total + ' damage dealt \u00b7 ' + mvp.kills + ' kills</div>' +
+    h += '<div style="flex:1;background:#1e1b16;border:1px solid #3a3428;border-radius:10px;padding:10px;text-align:center;">' +
+      '<div style="font-size:1.2rem;margin-bottom:2px;">\u2694</div>' +
+      '<div style="font-size:.48rem;color:#c8b070;text-transform:uppercase;letter-spacing:.12em;font-family:var(--font-display);">MVP</div>' +
+      '<div style="font-size:.85rem;color:#e2dbd0;font-family:var(--font-display);margin:3px 0;">' + mvp.name + '</div>' +
+      '<div style="font-size:.62rem;color:#b0a898;">' + mvp.total + ' dmg \u00b7 ' + mvp.kills + ' kills</div>' +
+      '<div style="font-size:.55rem;color:#7a7268;margin-top:2px;">Biggest hit: ' + mvp.biggestHit + '</div>' +
     '</div>';
   }
-
-  // Most dangerous
   if (mostDangerous) {
-    html += '<div style="background:rgba(192,64,64,.08);border:1px solid rgba(192,64,64,.2);border-radius:8px;padding:10px;margin-bottom:12px;text-align:center;">' +
-      '<div style="font-size:.55rem;color:#8a3030;text-transform:uppercase;letter-spacing:.15em;font-family:var(--font-display);">Most Dangerous</div>' +
-      '<div style="font-size:1.1rem;color:#c04040;font-family:var(--font-display);margin:4px 0;">' + mostDangerous.name + '</div>' +
-      '<div style="font-size:.7rem;color:#b0a898;">' + mostDangerous.total + ' damage dealt</div>' +
+    h += '<div style="flex:1;background:#1e1b16;border:1px solid #3a2020;border-radius:10px;padding:10px;text-align:center;">' +
+      '<div style="font-size:1.2rem;margin-bottom:2px;">\u2620</div>' +
+      '<div style="font-size:.48rem;color:#c04040;text-transform:uppercase;letter-spacing:.12em;font-family:var(--font-display);">Deadliest</div>' +
+      '<div style="font-size:.85rem;color:#e2dbd0;font-family:var(--font-display);margin:3px 0;">' + mostDangerous.name + '</div>' +
+      '<div style="font-size:.62rem;color:#b0a898;">' + mostDangerous.total + ' dmg dealt</div>' +
     '</div>';
   }
+  if (tank) {
+    h += '<div style="flex:1;background:#1e1b16;border:1px solid #3a3428;border-radius:10px;padding:10px;text-align:center;">' +
+      '<div style="font-size:1.2rem;margin-bottom:2px;">\u26e8</div>' +
+      '<div style="font-size:.48rem;color:#b0a898;text-transform:uppercase;letter-spacing:.12em;font-family:var(--font-display);">Tank</div>' +
+      '<div style="font-size:.85rem;color:#e2dbd0;font-family:var(--font-display);margin:3px 0;">' + tank.name + '</div>' +
+      '<div style="font-size:.62rem;color:#b0a898;">' + tank.total + ' dmg taken</div>' +
+    '</div>';
+  }
+  h += '</div>';
 
-  // Damage leaderboard
+  // Damage dealt leaderboard
   if (dmgLeader.length) {
-    html += '<div style="font-family:var(--font-display);font-size:.55rem;color:#c8b070;text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;">Damage Dealt</div>';
+    h += sectionTitle('Damage Dealt');
     const maxDmg = dmgLeader[0]?.total || 1;
-    html += dmgLeader.map((d, i) => {
+    h += dmgLeader.map((d, i) => {
       const pct = Math.round((d.total / maxDmg) * 100);
-      const col = d.type === 'monster' ? '#8a2020' : '#c8b070';
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
-        '<span style="font-size:.7rem;color:#7a7268;width:16px;">#' + (i + 1) + '</span>' +
-        '<span style="font-size:.72rem;color:#e2dbd0;width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + d.name + '</span>' +
-        '<div style="flex:1;height:6px;background:#1e1810;border-radius:3px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:3px;"></div></div>' +
-        '<span style="font-size:.7rem;color:#b0a898;font-family:var(--font-mono);min-width:35px;text-align:right;">' + d.total + '</span>' +
+      const col = d.type === 'monster' ? '#8a3030' : '#c8b070';
+      const topMethod = Object.entries(d.methods || {}).sort((a, b) => b[1] - a[1])[0];
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+        '<span style="font-size:.65rem;color:#504840;width:14px;text-align:right;">' + (i + 1) + '</span>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:2px;">' +
+            '<span style="font-size:.72rem;color:#e2dbd0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + d.name + '</span>' +
+            '<span style="font-size:.72rem;color:' + col + ';font-family:var(--font-mono);flex-shrink:0;margin-left:8px;">' + d.total + '</span>' +
+          '</div>' +
+          '<div style="height:4px;background:#16140f;border-radius:2px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:2px;"></div></div>' +
+          '<div style="font-size:.52rem;color:#504840;margin-top:2px;">' + d.hits + ' hits \u00b7 max ' + d.biggestHit + (topMethod ? ' \u00b7 ' + topMethod[0] : '') + '</div>' +
+        '</div>' +
       '</div>';
     }).join('');
-    html += '<div style="height:12px;"></div>';
+  }
+
+  // Damage taken
+  if (takenLeader.length) {
+    h += sectionTitle('Damage Taken');
+    const maxTaken = takenLeader[0]?.total || 1;
+    h += takenLeader.map(d => {
+      const pct = Math.round((d.total / maxTaken) * 100);
+      const col = d.type === 'monster' ? '#8a3030' : '#b0a898';
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+        '<span style="font-size:.7rem;color:#e2dbd0;width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + d.name + '</span>' +
+        '<div style="flex:1;height:4px;background:#16140f;border-radius:2px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:2px;"></div></div>' +
+        '<span style="font-size:.65rem;color:#b0a898;font-family:var(--font-mono);min-width:30px;text-align:right;">' + d.total + '</span>' +
+      '</div>';
+    }).join('');
   }
 
   // Kill feed
-  if (kills.length) {
-    html += '<div style="font-family:var(--font-display);font-size:.55rem;color:#c8b070;text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;">Kill Feed</div>';
-    html += kills.map(k =>
-      '<div style="font-size:.7rem;color:#b0a898;padding:2px 0;">\u2620 <strong style="color:#e2dbd0;">' + k.killer + '</strong> slew <strong style="color:#c04040;">' + k.victim + '</strong></div>'
-    ).join('');
+  if (s.kills.length) {
+    h += sectionTitle('Kill Feed');
+    h += s.kills.map(k => {
+      const icon = k.victimType === 'monster' ? '\u2620' : '\u2764\ufe0f\u200d\ud83e\ude79';
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:.7rem;padding:3px 0;border-bottom:1px solid #1e1b16;">' +
+        '<span style="width:16px;text-align:center;">\u2620</span>' +
+        '<span style="color:#e2dbd0;font-weight:500;">' + k.killer + '</span>' +
+        '<span style="color:#504840;">\u2192</span>' +
+        '<span style="color:#c04040;font-weight:500;">' + k.victim + '</span>' +
+      '</div>';
+    }).join('');
   }
 
-  html += '</div>';
+  h += '</div>';
 
-  // Show in modal
   const overlay = document.getElementById('combat-report-overlay');
   if (overlay) {
-    document.getElementById('combat-report-content').innerHTML = html;
+    document.getElementById('combat-report-content').innerHTML = h;
     overlay.classList.add('open');
   }
 }
@@ -593,18 +642,173 @@ function saveReportToNotes() {
   const m = maps.find(x => x.id === currentMapId);
   if (!m) return;
   const log = m.combat?.log || [];
-  const damageDealt = {};
-  for (const e of log) {
-    if (e.type === 'damage' && e.source) {
-      if (!damageDealt[e.source.id]) damageDealt[e.source.id] = { name: e.source.name, total: 0, kills: 0 };
-      damageDealt[e.source.id].total += e.value;
-    }
-    if (e.type === 'kill' && e.source && damageDealt[e.source.id]) damageDealt[e.source.id].kills++;
+  const s = computeCombatStats(log);
+  const leaders = Object.values(s.damageDealt).sort((a, b) => b.total - a.total);
+  const kills = s.kills;
+  const date = new Date().toLocaleDateString();
+  let text = '\n=== Combat Report (' + date + ') ===\n';
+  text += 'Total damage: ' + s.totalDmg + ' | Kills: ' + kills.length + '\n\n';
+  text += 'DAMAGE DEALT:\n';
+  text += leaders.map((d, i) => '  #' + (i + 1) + ' ' + d.name + ': ' + d.total + ' dmg, ' + d.hits + ' hits, ' + d.kills + ' kills, max hit ' + d.biggestHit).join('\n');
+  if (kills.length) {
+    text += '\n\nKILL FEED:\n';
+    text += kills.map(k => '  ' + k.killer + ' slew ' + k.victim).join('\n');
   }
-  const leaders = Object.values(damageDealt).sort((a, b) => b.total - a.total);
-  let text = '\n--- Combat Report ---\n';
-  text += leaders.map((d, i) => '#' + (i + 1) + ' ' + d.name + ': ' + d.total + ' dmg, ' + d.kills + ' kills').join('\n');
-  text += '\n---\n';
+  text += '\n===\n';
+
+  m.notes = (m.notes || '') + text;
+  const notesEl = document.getElementById('map-notes');
+  if (notesEl) notesEl.value = m.notes;
+  m.updatedAt = Date.now();
+  saveCurrentMap();
+  closeCombatReport();
+}
+
+// ══════════════════════════════════════════════════════════════
+// END OF SESSION REPORT
+// Aggregates all combat logs + session notes into a comprehensive report
+// ══════════════════════════════════════════════════════════════
+
+function showSessionReport() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+
+  // Collect all combat logs (current + from past combats stored in log)
+  const allLogs = m.combat?.log || [];
+  if (!allLogs.length) {
+    alert('No combat data recorded on this map yet. Run a combat encounter first.');
+    return;
+  }
+
+  const s = computeCombatStats(allLogs);
+  const dmgLeader = Object.values(s.damageDealt).sort((a, b) => b.total - a.total);
+  const takenLeader = Object.values(s.damageTaken).sort((a, b) => b.total - a.total);
+
+  // Separate PC vs monster stats
+  const pcDmg = dmgLeader.filter(d => d.type === 'character');
+  const monDmg = dmgLeader.filter(d => d.type === 'monster');
+  const pcKills = s.kills.filter(k => k.victimType === 'monster').length;
+  const monKills = s.kills.filter(k => k.victimType === 'character').length;
+
+  const sectionTitle = (text) => '<div style="font-family:var(--font-display);font-size:.52rem;color:#c8b070;text-transform:uppercase;letter-spacing:.2em;margin:20px 0 10px;padding-bottom:4px;border-bottom:1px solid #2a2620;">' + text + '</div>';
+
+  let h = '<div style="max-height:80vh;overflow-y:auto;color:#e2dbd0;">';
+
+  // Grand header
+  h += '<div style="text-align:center;padding:20px 0 16px;margin-bottom:12px;border-bottom:2px solid #3a3428;">' +
+    '<div style="font-size:.45rem;color:#504840;text-transform:uppercase;letter-spacing:.4em;margin-bottom:6px;">Session Complete</div>' +
+    '<div style="font-family:var(--font-display);font-size:1.6rem;color:#c8b070;letter-spacing:.14em;margin-bottom:4px;">Session Report</div>' +
+    '<div style="font-size:.7rem;color:#7a7268;">' + (m.name || 'Unnamed Map') + ' \u00b7 ' + new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'}) + '</div>' +
+  '</div>';
+
+  // Summary stats cards
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">';
+  const statCard = (val, label, color) => '<div style="background:#1e1b16;border:1px solid #2a2620;border-radius:8px;padding:8px;text-align:center;">' +
+    '<div style="font-size:1.3rem;font-family:var(--font-mono);color:' + color + ';font-weight:600;">' + val + '</div>' +
+    '<div style="font-size:.45rem;color:#7a7268;text-transform:uppercase;letter-spacing:.1em;margin-top:2px;">' + label + '</div></div>';
+  h += statCard(s.totalDmg, 'Total Damage', '#c8b070');
+  h += statCard(s.kills.length, 'Total Kills', '#c04040');
+  h += statCard(s.totalHeals || 0, 'Total Heals', '#4a9a40');
+  h += statCard(dmgLeader.length, 'Combatants', '#b0a898');
+  h += '</div>';
+
+  // Party performance section
+  if (pcDmg.length) {
+    h += sectionTitle('Party Performance');
+    h += '<div style="display:flex;flex-direction:column;gap:10px;">';
+    const maxPcDmg = pcDmg[0]?.total || 1;
+    h += pcDmg.map((d, i) => {
+      const pct = Math.round((d.total / maxPcDmg) * 100);
+      const topMethods = Object.entries(d.methods || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      // Get character data for portrait
+      const c = characters.find(x => x.name === d.name);
+      const portrait = c?.imageUrl
+        ? '<img src="' + c.imageUrl + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid #3a3428;">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:#2a2620;border:1.5px solid #3a3428;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:#c8b070;font-family:var(--font-display);">' + (d.name?.charAt(0) || '?') + '</div>';
+      return '<div style="display:flex;gap:10px;align-items:flex-start;padding:8px;background:#1a1814;border:1px solid #2a2620;border-radius:8px;">' +
+        portrait +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+            '<span style="font-size:.82rem;color:#e2dbd0;font-weight:500;">' + d.name + '</span>' +
+            '<span style="font-size:.8rem;color:#c8b070;font-family:var(--font-mono);font-weight:600;">' + d.total + ' dmg</span>' +
+          '</div>' +
+          '<div style="height:4px;background:#16140f;border-radius:2px;overflow:hidden;margin-bottom:4px;"><div style="width:' + pct + '%;height:100%;background:#c8b070;border-radius:2px;"></div></div>' +
+          '<div style="display:flex;gap:12px;font-size:.58rem;color:#7a7268;">' +
+            '<span>' + d.hits + ' hits</span>' +
+            '<span>max ' + d.biggestHit + '</span>' +
+            '<span>' + d.kills + ' kills</span>' +
+          '</div>' +
+          (topMethods.length ? '<div style="font-size:.55rem;color:#504840;margin-top:3px;">Top: ' + topMethods.map(m => m[0] + ' (' + m[1] + ')').join(', ') + '</div>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+    h += '</div>';
+  }
+
+  // Enemy stats
+  if (monDmg.length) {
+    h += sectionTitle('Enemy Threats');
+    const maxMonDmg = monDmg[0]?.total || 1;
+    h += monDmg.map(d => {
+      const pct = Math.round((d.total / maxMonDmg) * 100);
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+        '<span style="font-size:.7rem;color:#e2dbd0;width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + d.name + '</span>' +
+        '<div style="flex:1;height:4px;background:#16140f;border-radius:2px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:#8a3030;border-radius:2px;"></div></div>' +
+        '<span style="font-size:.65rem;color:#c04040;font-family:var(--font-mono);min-width:30px;text-align:right;">' + d.total + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  // Kill timeline
+  if (s.kills.length) {
+    h += sectionTitle('Kill Timeline');
+    h += '<div style="display:flex;flex-direction:column;gap:4px;">';
+    h += s.kills.map(k =>
+      '<div style="display:flex;align-items:center;gap:6px;font-size:.68rem;padding:4px 8px;background:#1a1814;border-radius:6px;">' +
+        '<span style="color:#c04040;">\u2620</span>' +
+        '<span style="color:#e2dbd0;font-weight:500;">' + k.killer + '</span>' +
+        '<span style="color:#504840;">\u2192</span>' +
+        '<span style="color:#c04040;">' + k.victim + '</span>' +
+      '</div>'
+    ).join('');
+    h += '</div>';
+  }
+
+  // Session notes excerpt
+  if (m.notes?.trim()) {
+    h += sectionTitle('Session Notes');
+    h += '<div style="font-size:.7rem;color:#b0a898;line-height:1.5;padding:8px;background:#1a1814;border-radius:6px;max-height:100px;overflow-y:auto;white-space:pre-wrap;">' + (m.notes.length > 500 ? m.notes.substring(0, 500) + '...' : m.notes) + '</div>';
+  }
+
+  h += '</div>';
+
+  const overlay = document.getElementById('combat-report-overlay');
+  if (overlay) {
+    document.getElementById('combat-report-content').innerHTML = h;
+    overlay.classList.add('open');
+  }
+}
+
+function saveSessionReportToNotes() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  const allLogs = m.combat?.log || [];
+  const s = computeCombatStats(allLogs);
+  const leaders = Object.values(s.damageDealt).sort((a, b) => b.total - a.total);
+  const date = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+  let text = '\n========================================\n';
+  text += '  SESSION REPORT - ' + date + '\n';
+  text += '  ' + (m.name || 'Unnamed Map') + '\n';
+  text += '========================================\n\n';
+  text += 'STATS: ' + s.totalDmg + ' total dmg | ' + s.kills.length + ' kills | ' + s.totalHeals + ' heals\n\n';
+  text += 'PERFORMANCE:\n';
+  text += leaders.map((d, i) => '  ' + (i + 1) + '. ' + d.name + ': ' + d.total + ' dmg, ' + d.hits + ' hits, ' + d.kills + ' kills').join('\n');
+  if (s.kills.length) {
+    text += '\n\nKILLS:\n';
+    text += s.kills.map(k => '  \u2620 ' + k.killer + ' slew ' + k.victim).join('\n');
+  }
+  text += '\n========================================\n';
 
   m.notes = (m.notes || '') + text;
   const notesEl = document.getElementById('map-notes');
