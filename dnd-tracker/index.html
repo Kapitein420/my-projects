@@ -1483,22 +1483,93 @@ function togglePrompt(i){const b=document.getElementById('ep-'+i);const t=b.prev
 function copyPrompt(i){const b=document.getElementById('ep-'+i);navigator.clipboard.writeText(b.textContent.replace('Copy','').trim()).then(()=>{const btn=b.querySelector('.copy-btn');btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);});}
 async function runAIAnalysis(){
   const s=sessions.find(x=>x.id===currentSessionId);if(!s)return;
-  if(!s.transcript&&!s.summary){alert('Add a transcript or summary first.');return;}
+  if(!s.summary&&!s.notes&&!s.transcript){alert('Add a summary or notes first.');return;}
   const btn=document.getElementById('ai-btn');btn.disabled=true;btn.textContent='Analyzing…';
-  document.getElementById('ai-content').innerHTML=`<div class="ai-loading"><div class="spinner">᛭</div><p>Consulting the arcane scrolls…<br><span style="font-size:.72rem;">Extracting events, NPCs, and building scene prompts</span></p></div>`;
-  const partyNames=(s.party||[]).map(id=>characters.find(x=>x.id===id)?.name).filter(Boolean).join(', ')||'Unknown party';
-  const prompt=`Analyze this D&D session. Respond ONLY with valid JSON, no markdown fences.\nSession: ${s.title} (#${s.number})\nDate: ${s.date||'Unknown'} | Location: ${s.location||'Unknown'} | Party: ${partyNames}\n${s.summary?'DM Notes: '+s.summary:''}\n\nContent:\n${(s.transcript||s.summary||'').slice(0,8000)}\n\nReturn this JSON:\n{\n  "summary": "2-3 sentence overview",\n  "keyEvents": [{"title":"","description":"","type":"combat|story|discovery|roleplay|other","characters":[],"imagePrompt":"80+ word cinematic image generation prompt with art style, lighting, mood, colors, composition"}],\n  "npcs": [{"name":"","description":""}],\n  "loot": ["item"],\n  "plotHooks": ["unresolved thread"]\n}\nExtract 3-7 key events. Image prompts must be vivid and cinematic.`;
-  try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const data=await resp.json();
-    const raw=data.content?.map(b=>b.text||'').join('')||'';
-    const analysis=JSON.parse(raw.replace(/```json|```/g,'').trim());
-    const idx=sessions.findIndex(x=>x.id===currentSessionId);
-    if(idx>-1){sessions[idx].analysis=analysis;if(!sessions[idx].summary&&analysis.summary)sessions[idx].summary=analysis.summary;}
-    await DB.save('sessions',sessions.find(x=>x.id===currentSessionId),sessions);
-    renderAnalysis(analysis);
-  }catch(err){document.getElementById('ai-content').innerHTML=`<p style="color:var(--red);font-size:.78rem;">Analysis failed: ${err.message}</p>`;}
-  btn.disabled=false;btn.textContent='✦ Re-analyze';
+  document.getElementById('ai-content').innerHTML='<div class="ai-loading"><div class="spinner">\u16c1</div><p>Consulting the arcane scrolls\u2026</p></div>';
+
+  // Generate analysis locally from session data
+  setTimeout(() => {
+    try {
+      const text = (s.notes || '') + '\n' + (s.summary || '') + '\n' + (s.transcript || '');
+      const partyNames = (s.party || []).map(id => characters.find(x => x.id === id)?.name).filter(Boolean);
+
+      // Extract key events from text
+      const lines = text.split('\n').filter(l => l.trim().length > 10);
+      const events = [];
+      const loot = [];
+      const npcs = [];
+      const hooks = [];
+
+      // Parse numbered items or lines with keywords
+      for (const line of lines) {
+        const l = line.trim();
+        if (/^\d+\.\s/.test(l) || /^-\s/.test(l)) {
+          const cleaned = l.replace(/^\d+\.\s*|^-\s*/, '');
+          if (/loot|gold|gp|potion|scroll|item|weapon|armor/i.test(cleaned)) {
+            loot.push(cleaned);
+          } else if (/NPC|met|spoke|talked|merchant|innkeeper|guard|king|queen/i.test(cleaned)) {
+            npcs.push({ name: cleaned.split(/[.,:]/)[0].substring(0, 40), description: cleaned });
+          } else if (cleaned.length > 15) {
+            const type = /attack|damage|hit|combat|fight|battle|kill|slay|slew/i.test(cleaned) ? 'combat'
+              : /found|discover|explore|cave|dungeon|room/i.test(cleaned) ? 'discovery'
+              : /talk|persuad|convince|roleplay|conversation/i.test(cleaned) ? 'roleplay'
+              : 'story';
+            events.push({
+              title: cleaned.substring(0, 60),
+              description: cleaned,
+              type: type,
+              characters: partyNames.filter(n => cleaned.toLowerCase().includes(n.toLowerCase())),
+              imagePrompt: 'Fantasy scene: ' + cleaned.substring(0, 120) + '. Dramatic lighting, detailed oil painting style, warm candlelight atmosphere, medieval fantasy setting.'
+            });
+          }
+        }
+      }
+
+      // Extract loot from LOOT: section
+      const lootMatch = text.match(/LOOT:?\s*([\s\S]*?)(?=\n\n|\n[A-Z]|$)/i);
+      if (lootMatch) {
+        lootMatch[1].split('\n').forEach(l => {
+          const item = l.replace(/^[-•*]\s*/, '').trim();
+          if (item.length > 2) loot.push(item);
+        });
+      }
+
+      // If no events found, create a general one from summary
+      if (!events.length && s.summary) {
+        events.push({
+          title: s.title || 'Session Events',
+          description: s.summary,
+          type: 'story',
+          characters: partyNames,
+          imagePrompt: 'Fantasy adventure scene: ' + s.summary.substring(0, 120) + '. Epic cinematic composition, dramatic fantasy oil painting, warm torchlight, detailed characters.'
+        });
+      }
+
+      // Look for unresolved threads
+      if (/but|however|escaped|fled|unfinished|remains|still|next time/i.test(text)) {
+        hooks.push('Unresolved threads from this session require follow-up');
+      }
+
+      const analysis = {
+        summary: s.summary || events[0]?.description || 'Session analysis complete.',
+        keyEvents: events.slice(0, 7),
+        npcs: npcs.slice(0, 5),
+        loot: [...new Set(loot)].slice(0, 10),
+        plotHooks: hooks
+      };
+
+      const idx = sessions.findIndex(x => x.id === currentSessionId);
+      if (idx > -1) {
+        sessions[idx].analysis = analysis;
+        if (!sessions[idx].summary && analysis.summary) sessions[idx].summary = analysis.summary;
+      }
+      DB.save('sessions', sessions.find(x => x.id === currentSessionId), sessions);
+      renderAnalysis(analysis);
+    } catch(err) {
+      document.getElementById('ai-content').innerHTML = '<p style="color:var(--red);font-size:.78rem;">Analysis failed: ' + err.message + '</p>';
+    }
+    btn.disabled = false; btn.textContent = '\u2726 Re-analyze';
+  }, 800);
 }
 function editCurrentSession(){showEditSessionForm(currentSessionId);}
 async function deleteCurrentSession(){const s=sessions.find(x=>x.id===currentSessionId);if(!s||!confirm(`Delete Session ${s.number}: "${s.title}"?`))return;sessions=sessions.filter(x=>x.id!==currentSessionId);await DB.remove('sessions',currentSessionId,sessions);updateStatus();showSessionList();}
