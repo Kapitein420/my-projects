@@ -142,8 +142,8 @@ function openMapEditor(id) {
   // Load image
   const img = document.getElementById('map-img');
   img.src = m.imageData || m.imageUrl || '';
-  img.onload = () => { renderTokensOnMap(); initFogSystem(m); };
-  if (img.complete && img.naturalWidth) { renderTokensOnMap(); initFogSystem(m); }
+  img.onload = () => { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); };
+  if (img.complete && img.naturalWidth) { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); }
 
   // Sidebar + scenarios
   renderTokenSidebar();
@@ -276,6 +276,9 @@ function renderTokensOnMap() {
     let col, name, pct, hpC, display, displaySize;
     const sz = Math.round((tok.size || 1) * 42);
 
+    let imgUrl = null;
+    let entityId = null; // for initiative tracking
+
     if (isMonster) {
       const mon = (m.monsters || []).find(x => x.id === tok.monsterId);
       if (!mon) return '';
@@ -285,6 +288,8 @@ function renderTokensOnMap() {
       hpC = hpColor(pct);
       display = initials(name);
       displaySize = Math.round(sz * 0.33);
+      imgUrl = mon.imgUrl || null;
+      entityId = mon.id;
     } else {
       const c = characters.find(x => x.id === tok.characterId);
       col = c ? classColor(c.class) : '#506050';
@@ -294,6 +299,8 @@ function renderTokensOnMap() {
       display = c?.icon || initials(name);
       const isEmoji = c?.icon && c.icon.length > 0;
       displaySize = isEmoji ? Math.round(sz * 0.52) : Math.round(sz * 0.33);
+      imgUrl = c?.imageUrl || null;
+      entityId = c?.id;
     }
 
     // Fog visibility
@@ -318,12 +325,22 @@ function renderTokensOnMap() {
       ? `onclick="event.stopPropagation();showMonsterPopup('${tok.monsterId}',this)"`
       : '';
 
-    return `<div class="map-token" id="tok-${tok.id}"
+    // Active turn highlight
+    const isActiveTurn = m.combat?.active && m.combat.entries?.[m.combat.turnIndex]?.id === entityId;
+    const turnClass = isActiveTurn ? ' active-turn' : '';
+
+    // Image or text display
+    const innerDisplay = imgUrl
+      ? `<img class="token-img" src="${imgUrl}" alt="${esc(name)}" onerror="this.style.display='none';this.nextElementSibling.style.display=''">`
+        + `<span style="font-size:${displaySize}px;line-height:1;pointer-events:none;user-select:none;display:none;">${display}</span>`
+      : `<span style="font-size:${displaySize}px;line-height:1;pointer-events:none;user-select:none;">${display}</span>`;
+
+    return `<div class="map-token${turnClass}" id="tok-${tok.id}"
         style="left:${tok.x.toFixed(2)}%;top:${tok.y.toFixed(2)}%;width:${sz}px;height:${sz}px;border-color:${col};background:${col}28;color:${col};${tokVis}"
         onpointerdown="startTokenDrag(event,'${tok.id}')"
         ${clickHandler}
         title="${esc(name)}">
-      <span style="font-size:${displaySize}px;line-height:1;pointer-events:none;user-select:none;">${display}</span>
+      ${innerDisplay}
       ${hpSvg}
       <div class="token-label">${esc(name)}</div>
       <button class="token-del" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation();removeToken('${tok.id}')">✕</button>
@@ -402,7 +419,7 @@ async function quickSave() {
   if (!m) return;
 
   const existing = Object.values(m.scenarios || {}).find(s => s.isQuickSave);
-  const scen = { id: existing?.id || uid(), name: '⚡ Quick Save', isQuickSave: true, savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), monsters: JSON.parse(JSON.stringify(m.monsters || [])), fog: JSON.parse(JSON.stringify(m.fog || {})) };
+  const scen = { id: existing?.id || uid(), name: '⚡ Quick Save', isQuickSave: true, savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), monsters: JSON.parse(JSON.stringify(m.monsters || [])), fog: JSON.parse(JSON.stringify(m.fog || {})), combat: JSON.parse(JSON.stringify(m.combat || {})) };
   m.scenarios = m.scenarios || {};
   m.scenarios[scen.id] = scen;
   m.updatedAt = Date.now();
@@ -418,7 +435,7 @@ async function saveNamedScenario() {
   const name = prompt('Name this scenario:', `Session pause — ${new Date().toLocaleDateString()}`);
   if (!name?.trim()) return;
 
-  const scen = { id: uid(), name: name.trim(), savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), monsters: JSON.parse(JSON.stringify(m.monsters || [])), fog: JSON.parse(JSON.stringify(m.fog || {})) };
+  const scen = { id: uid(), name: name.trim(), savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), monsters: JSON.parse(JSON.stringify(m.monsters || [])), fog: JSON.parse(JSON.stringify(m.fog || {})), combat: JSON.parse(JSON.stringify(m.combat || {})) };
   m.scenarios = m.scenarios || {};
   m.scenarios[scen.id] = scen;
   m.updatedAt = Date.now();
@@ -443,11 +460,13 @@ async function loadScenario() {
   m.tokens = JSON.parse(JSON.stringify(scen.tokens));
   if (scen.monsters) m.monsters = JSON.parse(JSON.stringify(scen.monsters));
   if (scen.fog) m.fog = JSON.parse(JSON.stringify(scen.fog));
+  if (scen.combat) m.combat = JSON.parse(JSON.stringify(scen.combat));
   m.updatedAt = Date.now();
   await saveCurrentMap();
   renderTokensOnMap();
   if (typeof renderMonsterSidebar === 'function') renderMonsterSidebar();
   if (typeof initFogSystem === 'function') initFogSystem(m);
+  if (typeof renderInitiativeBar === 'function') renderInitiativeBar();
   sel.value = '';
 }
 

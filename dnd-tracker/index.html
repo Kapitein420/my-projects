@@ -459,6 +459,9 @@
 .token-label{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--font-display);font-size:9px;color:var(--text2);background:rgba(6,16,10,.85);padding:1px 5px;border-radius:3px;pointer-events:none;}
 .token-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#1a0808;border:1px solid var(--red-border);color:var(--red);font-size:9px;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;}
 .map-token:hover .token-del{display:flex;}
+.token-img{width:100%;height:100%;border-radius:50%;object-fit:cover;pointer-events:none;user-select:none;}
+.map-token.active-turn{box-shadow:0 0 0 3px var(--glow),0 0 16px var(--glow);animation:turn-pulse 1.5s ease-in-out infinite;}
+@keyframes turn-pulse{0%,100%{box-shadow:0 0 0 3px var(--glow),0 0 16px var(--glow);}50%{box-shadow:0 0 0 5px var(--glow),0 0 24px var(--glow);}}
 
 /* Placement hint */
 .place-hint{display:none;align-items:center;gap:6px;font-size:.72rem;color:var(--glow);font-family:var(--font-display);letter-spacing:.04em;background:var(--glow-bg);border:1px solid var(--glow-dd);border-radius:var(--r);padding:4px 10px;}
@@ -467,6 +470,9 @@
 .nm-preview-img{width:100%;max-height:160px;object-fit:contain;border-radius:var(--r);border:1px solid var(--border);margin-top:.5rem;background:var(--bg-input);}
 .nm-or{display:flex;align-items:center;gap:.6rem;font-size:.7rem;color:var(--text4);margin:.6rem 0;}
 .nm-or::before,.nm-or::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* Initiative bar */
+.initiative-bar{display:none;align-items:center;gap:10px;padding:6px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:.4rem;}
 
 /* Fog toolbar */
 .fog-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
@@ -608,6 +614,7 @@
           <span onclick="pickIcon('💀')">💀</span><span onclick="pickIcon('🐉')">🐉</span><span onclick="pickIcon('🎶')">🎶</span>
         </div>
       </div>
+      <div class="field" style="grid-column:span 3;"><label>Token Image URL <span style="font-size:.6rem;color:var(--text4);">(optional — overrides icon)</span></label><input id="f-imageUrl" type="text" placeholder="https://..."></div>
     </div>
     <div class="fg fg3">
       <div class="field"><label>Class *</label><select id="f-class"><option value="">— Select —</option><option>Artificer</option><option>Barbarian</option><option>Bard</option><option>Cleric</option><option>Druid</option><option>Fighter</option><option>Monk</option><option>Paladin</option><option>Ranger</option><option>Rogue</option><option>Sorcerer</option><option>Warlock</option><option>Wizard</option><option>Other</option></select></div>
@@ -814,6 +821,7 @@
     <div class="toolbar-sep"></div>
     <button class="btn btn-sm btn-ghost" id="fog-view-btn" onclick="setFogViewMode(_fogMap?.fog?.viewMode==='dm'?'player':'dm')">⚔ DM View</button>
     <button class="btn btn-sm btn-ghost" id="fog-toggle-btn" onclick="toggleFogEnabled()">🌫 Fog: OFF</button>
+    <button class="btn btn-sm btn-ghost" id="combat-start-btn" onclick="showCombatSetup()">⚔ Combat</button>
     <div style="position:relative;">
       <button class="btn btn-ghost btn-sm" onclick="toggleSnapshotPanel()" id="snap-toggle-btn" title="Named snapshots">⋮ Snapshots</button>
       <div id="snapshot-panel" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:100;background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r-lg);padding:.75rem;min-width:240px;box-shadow:0 8px 32px rgba(0,0,0,.6);">
@@ -863,6 +871,9 @@
     </div>
   </div>
 
+  <!-- Initiative bar (shown during combat) -->
+  <div id="initiative-bar" class="initiative-bar"></div>
+
   <div class="map-editor-wrap">
     <!-- Sidebar: characters to place -->
     <div class="map-sidebar">
@@ -896,6 +907,20 @@
         <div class="token-overlay" id="token-overlay"></div>
         <div id="monster-popup" style="display:none;position:absolute;z-index:60;background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r-lg);padding:.6rem;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,.6);"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMBAT SETUP MODAL -->
+<div class="overlay" id="combat-setup-overlay" onclick="if(event.target===this)closeCombatSetup()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:500px;">
+    <div class="modal-title">Initiative Setup</div>
+    <div style="font-size:.72rem;color:var(--text3);margin-bottom:.6rem;">Initiative has been auto-rolled (d20 + DEX mod). Edit values as needed.</div>
+    <div id="combat-setup-list" style="max-height:350px;overflow-y:auto;margin-bottom:.8rem;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost btn-sm" onclick="rerollAllInitiative()">Re-roll All</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeCombatSetup()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="beginCombat()">Begin Combat</button>
     </div>
   </div>
 </div>
@@ -939,6 +964,7 @@
 <script src="../shared/db.js"></script>
 <script src="fog.js"></script>
 <script src="monsters.js"></script>
+<script src="combat.js"></script>
 <script src="map.js"></script>
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────
@@ -1168,14 +1194,14 @@ function showAddCharForm(){editingCharId=null;document.getElementById('char-form
 function showEditCharForm(id){const c=characters.find(x=>x.id===id);if(!c)return;editingCharId=id;document.getElementById('char-form-title').textContent='Edit — '+c.name;resetCharForm();fillCharForm(c);showView('view-char-form');charTab('identity',document.querySelector('#char-tabs .tab'));}
 function resetCharForm(){
   const d={level:1,str:10,dex:10,con:10,int:10,wis:10,cha:10,passive:10,maxhp:8,curhp:8,temphp:0,ac:10,init:0,speed:30,xp:0,cp:0,sp:0,gp:0};
-  ['name','player','icon','class','subclass','level','race','background','alignment','xp','languages','str','dex','con','int','wis','cha','passive','inspiration','maxhp','curhp','temphp','ac','init','speed','hitdice','attacks','equipment','cp','sp','gp','traits','ideals','bonds','flaws','backstory','age','height','weight','eyes','hair','skin','features','notes','proficiencies'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=d[f]!==undefined?d[f]:'';});
+  ['name','player','icon','imageUrl','class','subclass','level','race','background','alignment','xp','languages','str','dex','con','int','wis','cha','passive','inspiration','maxhp','curhp','temphp','ac','init','speed','hitdice','attacks','equipment','cp','sp','gp','traits','ideals','bonds','flaws','backstory','age','height','weight','eyes','hair','skin','features','notes','proficiencies'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=d[f]!==undefined?d[f]:'';});
   document.getElementById('f-hitdice').value='d8';document.getElementById('f-inspiration').value='0';
   ABS.forEach(a=>{const el=document.getElementById('save-'+a);if(el)el.checked=false;});
   SKILLS.forEach(s=>{const el=document.getElementById('skill-'+s.key);if(el)el.checked=false;});
   updateProfBonus();ABS.forEach(a=>updateAbMod(a));updateAllSkills();
 }
 function fillCharForm(c){
-  ['name','player','icon','class','subclass','level','race','background','alignment','xp','languages'].forEach(f=>sv('f-'+f,c[f]));
+  ['name','player','icon','class','subclass','level','race','background','alignment','xp','languages','imageUrl'].forEach(f=>sv('f-'+f,c[f]));
   ABS.forEach(a=>sv('f-'+a,c[a]||10));
   sv('f-passive',c.passive||10);sv('f-inspiration',c.inspiration||0);
   sv('f-maxhp',c.maxHp||8);sv('f-curhp',c.currentHp||8);sv('f-temphp',c.tempHp||0);
@@ -1197,7 +1223,7 @@ async function submitCharForm(){
   SKILLS.forEach(s=>{skills[s.key]=document.getElementById('skill-'+s.key)?.checked||false;});
   ABS.forEach(a=>{saves[a]=document.getElementById('save-'+a)?.checked||false;});
   const existing=editingCharId?characters.find(x=>x.id===editingCharId):null;
-  const c={id:editingCharId||uid(),name,icon:gv('f-icon').trim(),player:gv('f-player'),class:gv('f-class'),subclass:gv('f-subclass'),level:lvl,race:gv('f-race'),background:gv('f-background'),alignment:gv('f-alignment'),xp:parseInt(gv('f-xp'))||0,languages:gv('f-languages'),str:parseInt(gv('f-str'))||10,dex:parseInt(gv('f-dex'))||10,con:parseInt(gv('f-con'))||10,int:parseInt(gv('f-int'))||10,wis:parseInt(gv('f-wis'))||10,cha:parseInt(gv('f-cha'))||10,passive:parseInt(gv('f-passive'))||10,inspiration:parseInt(gv('f-inspiration'))||0,maxHp:parseInt(gv('f-maxhp'))||8,currentHp:parseInt(gv('f-curhp'))||8,tempHp:parseInt(gv('f-temphp'))||0,ac:parseInt(gv('f-ac'))||10,initiative:parseInt(gv('f-init'))||0,speed:parseInt(gv('f-speed'))||30,hitDice:gv('f-hitdice'),attacks:gv('f-attacks'),equipment:gv('f-equipment'),cp:parseInt(gv('f-cp'))||0,sp:parseInt(gv('f-sp'))||0,gp:parseInt(gv('f-gp'))||0,saves,skills,traits:gv('f-traits'),ideals:gv('f-ideals'),bonds:gv('f-bonds'),flaws:gv('f-flaws'),backstory:gv('f-backstory'),age:gv('f-age'),height:gv('f-height'),weight:gv('f-weight'),eyes:gv('f-eyes'),hair:gv('f-hair'),skin:gv('f-skin'),features:gv('f-features'),notes:gv('f-notes'),proficiencies:gv('f-proficiencies'),conditions:existing?.conditions||[],createdAt:existing?.createdAt||Date.now(),updatedAt:Date.now()};
+  const c={id:editingCharId||uid(),name,icon:gv('f-icon').trim(),imageUrl:gv('f-imageUrl').trim()||null,player:gv('f-player'),class:gv('f-class'),subclass:gv('f-subclass'),level:lvl,race:gv('f-race'),background:gv('f-background'),alignment:gv('f-alignment'),xp:parseInt(gv('f-xp'))||0,languages:gv('f-languages'),str:parseInt(gv('f-str'))||10,dex:parseInt(gv('f-dex'))||10,con:parseInt(gv('f-con'))||10,int:parseInt(gv('f-int'))||10,wis:parseInt(gv('f-wis'))||10,cha:parseInt(gv('f-cha'))||10,passive:parseInt(gv('f-passive'))||10,inspiration:parseInt(gv('f-inspiration'))||0,maxHp:parseInt(gv('f-maxhp'))||8,currentHp:parseInt(gv('f-curhp'))||8,tempHp:parseInt(gv('f-temphp'))||0,ac:parseInt(gv('f-ac'))||10,initiative:parseInt(gv('f-init'))||0,speed:parseInt(gv('f-speed'))||30,hitDice:gv('f-hitdice'),attacks:gv('f-attacks'),equipment:gv('f-equipment'),cp:parseInt(gv('f-cp'))||0,sp:parseInt(gv('f-sp'))||0,gp:parseInt(gv('f-gp'))||0,saves,skills,traits:gv('f-traits'),ideals:gv('f-ideals'),bonds:gv('f-bonds'),flaws:gv('f-flaws'),backstory:gv('f-backstory'),age:gv('f-age'),height:gv('f-height'),weight:gv('f-weight'),eyes:gv('f-eyes'),hair:gv('f-hair'),skin:gv('f-skin'),features:gv('f-features'),notes:gv('f-notes'),proficiencies:gv('f-proficiencies'),conditions:existing?.conditions||[],createdAt:existing?.createdAt||Date.now(),updatedAt:Date.now()};
   if(editingCharId){const i=characters.findIndex(x=>x.id===editingCharId);if(i>-1)characters[i]=c;}else characters.push(c);
   await DB.save('characters',c,characters);
   updateStatus();
