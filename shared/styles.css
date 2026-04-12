@@ -7,8 +7,8 @@
 
 /* ── TOKENS ─────────────────────────────────────────────── */
 :root {
-  /* Backgrounds — light parchment dashboard */
-  --bg:         #f4ede4;
+  /* Backgrounds — clean light dashboard */
+  --bg:         #FAFAFA;
   --bg-card:    #2a2218;
   --bg-raised:  #342a20;
   --bg-input:   #1e1810;
