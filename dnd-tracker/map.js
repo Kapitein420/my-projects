@@ -17,6 +17,7 @@ async function loadMaps() {
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
 function showMapList() {
+  if (typeof teardownFogSystem === 'function') teardownFogSystem();
   showView('view-map-list');
   renderMapList();
 }
@@ -141,8 +142,8 @@ function openMapEditor(id) {
   // Load image
   const img = document.getElementById('map-img');
   img.src = m.imageData || m.imageUrl || '';
-  img.onload = () => renderTokensOnMap();
-  if (img.complete && img.naturalWidth) renderTokensOnMap();
+  img.onload = () => { renderTokensOnMap(); initFogSystem(m); };
+  if (img.complete && img.naturalWidth) { renderTokensOnMap(); initFogSystem(m); }
 
   // Sidebar + scenarios
   renderTokenSidebar();
@@ -201,6 +202,7 @@ function setPlacingMode(charId) {
 
 // ── TOKEN PLACEMENT ───────────────────────────────────────────────────────────
 function mapStageClick(e) {
+  if (_fogTool !== 'none') return; // fog tool active, don't place tokens
   if (!placingCharId) return;
   if (e.target.closest('.map-token')) return;
   const img = document.getElementById('map-img');
@@ -253,8 +255,18 @@ function renderTokensOnMap() {
     const isEmoji = c?.icon && c.icon.length > 0;
     const displaySize = isEmoji ? Math.round(sz * 0.52) : Math.round(sz * 0.33);
 
+    // Fog visibility
+    const fogView = m.fog?.viewMode || 'dm';
+    const fogOn = m.fog?.enabled;
+    let tokVis = '';
+    if (fogOn && typeof isPositionRevealed === 'function') {
+      const revealed = isPositionRevealed(tok.x, tok.y);
+      if (!revealed && fogView === 'player') tokVis = 'display:none;';
+      else if (!revealed && fogView === 'dm') tokVis = 'opacity:0.4;';
+    }
+
     return `<div class="map-token" id="tok-${tok.id}"
-        style="left:${tok.x.toFixed(2)}%;top:${tok.y.toFixed(2)}%;width:${sz}px;height:${sz}px;border-color:${col};background:${col}28;color:${col};"
+        style="left:${tok.x.toFixed(2)}%;top:${tok.y.toFixed(2)}%;width:${sz}px;height:${sz}px;border-color:${col};background:${col}28;color:${col};${tokVis}"
         onpointerdown="startTokenDrag(event,'${tok.id}')"
         title="${esc(name)}">
       <span style="font-size:${displaySize}px;line-height:1;pointer-events:none;user-select:none;">${display}</span>
@@ -341,7 +353,7 @@ async function quickSave() {
   if (!m) return;
 
   const existing = Object.values(m.scenarios || {}).find(s => s.isQuickSave);
-  const scen = { id: existing?.id || uid(), name: '⚡ Quick Save', isQuickSave: true, savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])) };
+  const scen = { id: existing?.id || uid(), name: '⚡ Quick Save', isQuickSave: true, savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), fog: JSON.parse(JSON.stringify(m.fog || {})) };
   m.scenarios = m.scenarios || {};
   m.scenarios[scen.id] = scen;
   m.updatedAt = Date.now();
@@ -357,7 +369,7 @@ async function saveNamedScenario() {
   const name = prompt('Name this scenario:', `Session pause — ${new Date().toLocaleDateString()}`);
   if (!name?.trim()) return;
 
-  const scen = { id: uid(), name: name.trim(), savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])) };
+  const scen = { id: uid(), name: name.trim(), savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), fog: JSON.parse(JSON.stringify(m.fog || {})) };
   m.scenarios = m.scenarios || {};
   m.scenarios[scen.id] = scen;
   m.updatedAt = Date.now();
@@ -380,9 +392,11 @@ async function loadScenario() {
   if (!confirm(`Load "${scen.name}"?\n\nCurrent token positions will be replaced.`)) { sel.value = ''; return; }
 
   m.tokens = JSON.parse(JSON.stringify(scen.tokens));
+  if (scen.fog) m.fog = JSON.parse(JSON.stringify(scen.fog));
   m.updatedAt = Date.now();
   await saveCurrentMap();
   renderTokensOnMap();
+  if (typeof initFogSystem === 'function') initFogSystem(m);
   sel.value = '';
 }
 

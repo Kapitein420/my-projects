@@ -448,8 +448,9 @@
 
 .map-stage-wrap{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:auto;position:relative;min-height:0;}
 .map-stage{position:relative;display:inline-block;min-width:100%;cursor:default;}
-.map-img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;pointer-events:none;}
-.token-overlay{position:absolute;inset:0;pointer-events:none;}
+.map-img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;pointer-events:none;position:relative;z-index:1;}
+#fog-canvas{position:absolute;inset:0;z-index:2;pointer-events:none;display:none;}
+.token-overlay{position:absolute;inset:0;pointer-events:none;z-index:3;}
 
 /* Tokens */
 .map-token{position:absolute;transform:translate(-50%,-50%);border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:600;cursor:grab;pointer-events:all;transition:box-shadow .15s;user-select:none;}
@@ -467,7 +468,15 @@
 .nm-or{display:flex;align-items:center;gap:.6rem;font-size:.7rem;color:var(--text4);margin:.6rem 0;}
 .nm-or::before,.nm-or::after{content:'';flex:1;height:1px;background:var(--border);}
 
-@media(max-width:680px){.map-editor-wrap{grid-template-columns:1fr;height:auto;}.map-sidebar{max-height:200px;}.map-stage-wrap{min-height:300px;}}
+/* Fog toolbar */
+.fog-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.fog-toolbar .toolbar-sep{width:1px;height:18px;background:var(--border);margin:0 2px;}
+.fog-sub-controls{display:flex;align-items:center;gap:5px;font-size:.72rem;}
+.fog-sub-controls label{color:var(--text3);font-size:.68rem;font-family:var(--font-display);}
+.fog-sub-controls input[type=range]{width:70px;accent-color:var(--glow);}
+.fog-zone-panel{position:absolute;right:0;top:calc(100% + 4px);z-index:100;background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r-lg);padding:.75rem;min-width:220px;max-height:280px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.6);}
+
+@media(max-width:680px){.map-editor-wrap{grid-template-columns:1fr;height:auto;}.map-sidebar{max-height:200px;}.map-stage-wrap{min-height:300px;}.fog-toolbar{font-size:.65rem;}.fog-sub-controls input[type=range]{width:50px;}}
 
 
 /* ── ICON PICKER ─────────────────────────────────────────── */
@@ -802,6 +811,9 @@
     <input class="me-name-inp" id="me-name" type="text" placeholder="Map name" onblur="saveMapName()">
     <div class="toolbar-sep"></div>
     <button class="btn btn-primary btn-sm" id="quick-save-btn" onclick="quickSave()" title="Save current token positions">⚡ Save</button>
+    <div class="toolbar-sep"></div>
+    <button class="btn btn-sm btn-ghost" id="fog-view-btn" onclick="setFogViewMode(_fogMap?.fog?.viewMode==='dm'?'player':'dm')">⚔ DM View</button>
+    <button class="btn btn-sm btn-ghost" id="fog-toggle-btn" onclick="toggleFogEnabled()">🌫 Fog: OFF</button>
     <div style="position:relative;">
       <button class="btn btn-ghost btn-sm" onclick="toggleSnapshotPanel()" id="snap-toggle-btn" title="Named snapshots">⋮ Snapshots</button>
       <div id="snapshot-panel" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:100;background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r-lg);padding:.75rem;min-width:240px;box-shadow:0 8px 32px rgba(0,0,0,.6);">
@@ -813,6 +825,41 @@
           <button class="btn btn-sm btn-danger" onclick="deleteScenario()">✕</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Fog tools (DM only, shown when fog is enabled) -->
+  <div id="fog-dm-tools" class="fog-toolbar" style="display:none;margin-bottom:.4rem;">
+    <button class="btn btn-sm btn-ghost" id="fog-zone-btn" onclick="setFogTool(_fogTool==='zone'?'none':'zone')">⬡ Zones</button>
+    <button class="btn btn-sm btn-ghost" id="fog-brush-btn" onclick="setFogTool(_fogTool==='brush'?'none':'brush')">🖌 Brush</button>
+    <div class="toolbar-sep"></div>
+
+    <!-- Zone sub-controls -->
+    <div id="fog-zone-controls" class="fog-sub-controls" style="display:none;">
+      <span id="fog-zone-sel-count" style="color:var(--text4);font-size:.65rem;">Click hexes to select</span>
+      <button class="btn btn-sm btn-primary" id="fog-zone-create-btn" onclick="createZoneFromSelection()" disabled style="font-size:.68rem;">+ Create Zone</button>
+      <div style="position:relative;">
+        <button class="btn btn-sm btn-ghost" onclick="toggleFogZonePanel()" style="font-size:.68rem;">⋮ Manage</button>
+        <div id="fog-zone-panel" class="fog-zone-panel" style="display:none;">
+          <div style="font-family:var(--font-display);font-size:.6rem;color:var(--glow-d);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.4rem;">Zones</div>
+          <div id="fog-zone-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Brush sub-controls -->
+    <div id="fog-brush-controls" class="fog-sub-controls" style="display:none;">
+      <button class="btn btn-sm btn-primary" id="fog-brush-reveal" onclick="setBrushMode('reveal')" style="font-size:.68rem;">Reveal</button>
+      <button class="btn btn-sm btn-ghost" id="fog-brush-fog" onclick="setBrushMode('fog')" style="font-size:.68rem;">Re-fog</button>
+      <label>Size</label>
+      <input type="range" id="fog-brush-size" min="5" max="80" value="20" oninput="setBrushSize(+this.value)">
+      <button class="btn btn-sm btn-ghost" onclick="clearAllBrushStrokes()" style="font-size:.65rem;color:var(--red);" title="Clear all brush strokes">Clear</button>
+    </div>
+
+    <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
+      <label style="font-size:.62rem;color:var(--text4);font-family:var(--font-display);">Hex</label>
+      <input type="range" min="10" max="80" value="30" style="width:55px;accent-color:var(--glow);" oninput="setHexSize(+this.value);document.getElementById('fog-hex-size-val').textContent=this.value">
+      <span id="fog-hex-size-val" style="font-size:.62rem;color:var(--text3);font-family:var(--font-mono);min-width:18px;">30</span>
     </div>
   </div>
 
@@ -837,6 +884,7 @@
     <div class="map-stage-wrap">
       <div class="map-stage" id="map-stage" onclick="mapStageClick(event)">
         <img class="map-img" id="map-img" draggable="false" alt="Map">
+        <canvas id="fog-canvas"></canvas>
         <div class="token-overlay" id="token-overlay"></div>
       </div>
     </div>
@@ -880,6 +928,7 @@
 </main>
 
 <script src="../shared/db.js"></script>
+<script src="fog.js"></script>
 <script src="map.js"></script>
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────
