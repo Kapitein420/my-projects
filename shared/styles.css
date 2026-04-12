@@ -7,16 +7,16 @@
 
 /* ── TOKENS ─────────────────────────────────────────────── */
 :root {
-  /* Backgrounds — warm dark brown progression */
-  --bg:         #1a1613;
-  --bg-card:    #211d18;
-  --bg-raised:  #2a2420;
-  --bg-input:   #181410;
-  --bg-hover:   #302820;
+  /* Backgrounds — warm brown, not too dark */
+  --bg:         #241f1a;
+  --bg-card:    #2c2620;
+  --bg-raised:  #362e28;
+  --bg-input:   #201b16;
+  --bg-hover:   #3a3228;
 
   /* Borders — bronze/gold thin lines */
-  --border:     #3a3028;
-  --border2:    #5a4830;
+  --border:     #443828;
+  --border2:    #5e4a34;
   --border3:    #7a6040;
 
   /* Primary accent — warm gold */
@@ -25,11 +25,11 @@
   --glow-dd:    #5a4420;
   --glow-bg:    #241c10;
 
-  /* Text hierarchy — warm cream tones */
-  --text:       #e8dcc8;
-  --text2:      #b8a890;
-  --text3:      #786858;
-  --text4:      #4a3e32;
+  /* Text hierarchy — warm cream tones, readable */
+  --text:       #efe4d0;
+  --text2:      #c4b498;
+  --text3:      #8a7868;
+  --text4:      #5a4e40;
 
   /* Semantic */
   --red:        #c04040;
