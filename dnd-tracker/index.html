@@ -1471,8 +1471,9 @@ function showSessionDetail(id){
   showView('view-session-detail');
 }
 function pollinationsUrl(prompt) {
-  const clean = encodeURIComponent(prompt.substring(0, 300));
-  return 'https://image.pollinations.ai/prompt/' + clean + '?width=768&height=432&nologo=true';
+  // Keep prompt short and simple for reliability
+  const short = prompt.substring(0, 150).replace(/[^\w\s,.-]/g, '').trim();
+  return 'https://image.pollinations.ai/prompt/' + encodeURIComponent(short) + '?width=512&height=288&seed=' + Math.floor(Math.random() * 99999);
 }
 
 function renderAnalysis(a){
@@ -1482,10 +1483,13 @@ function renderAnalysis(a){
     h+=a.keyEvents.map((e,i)=>{
       const cc=TYPE_CSS[e.type]||'t-other';
       const chars=(e.characters||[]).map(n=>`<span class="event-char-tag">${n}</span>`).join('');
-      const imgUrl = e.imagePrompt ? pollinationsUrl(e.imagePrompt) : '';
-      const imgHtml = imgUrl ? `<div style="margin:8px 0;border-radius:8px;overflow:hidden;border:1px solid var(--border2);position:relative;">
-        <img src="${imgUrl}" alt="${(e.title||'').replace(/"/g,'')}" style="width:100%;display:block;min-height:120px;background:#16140f;" loading="lazy" onerror="this.style.display='none'">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:4px 8px;background:rgba(18,16,12,.85);font-size:.55rem;color:#7a7268;">AI Generated Scene</div>
+      const imgUrl = e.generatedImageUrl || (e.imagePrompt ? pollinationsUrl(e.imagePrompt) : '');
+      const imgHtml = imgUrl ? `<div style="margin:8px 0;border-radius:8px;overflow:hidden;border:1px solid var(--border2);position:relative;background:#16140f;min-height:100px;">
+        <div class="img-loading" id="img-load-${i}" style="display:flex;align-items:center;justify-content:center;padding:30px;font-size:.65rem;color:#7a7268;">Generating scene\u2026</div>
+        <img src="${imgUrl}" alt="${(e.title||'').replace(/"/g,'')}" style="width:100%;display:none;" loading="lazy"
+          onload="this.style.display='block';var ld=document.getElementById('img-load-${i}');if(ld)ld.style.display='none';saveEventImage(${i},this.src)"
+          onerror="var ld=document.getElementById('img-load-${i}');if(ld)ld.textContent='Image generation failed \u2014 click Regenerate'">
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:4px 8px;background:rgba(18,16,12,.85);font-size:.55rem;color:#7a7268;">AI Generated</div>
       </div>` : '';
       const prompt=e.imagePrompt?`<button class="prompt-toggle" onclick="togglePrompt(${i})">\u25b8 image prompt</button><div class="prompt-box" id="ep-${i}">${e.imagePrompt}<br><button class="copy-btn" onclick="copyPrompt(${i})">Copy</button> <button class="copy-btn" onclick="regenImage(${i})">Regenerate</button></div>`:'';
       return`<div class="event-card"><div class="event-card-top"><span class="event-type-badge ${cc}">${e.type||'event'}</span><div class="event-title">${e.title||''}</div></div><div class="event-desc">${e.description||''}</div>${imgHtml}${chars?`<div class="event-chars">${chars}</div>`:''}${prompt}</div>`;
@@ -1498,13 +1502,43 @@ function renderAnalysis(a){
   document.getElementById('ai-content').innerHTML=h||'<p class="muted">No events extracted.</p>';
 }
 
+function saveEventImage(i, url) {
+  const s = sessions.find(x => x.id === currentSessionId);
+  if (!s?.analysis?.keyEvents?.[i]) return;
+  // Save the generated image URL and timestamp to the event
+  s.analysis.keyEvents[i].generatedImageUrl = url;
+  s.analysis.keyEvents[i].imageGeneratedAt = Date.now();
+  // Also build/update the session timeline
+  s.timeline = s.timeline || [];
+  const existing = s.timeline.findIndex(t => t.eventIndex === i);
+  const entry = {
+    eventIndex: i,
+    title: s.analysis.keyEvents[i].title,
+    description: s.analysis.keyEvents[i].description,
+    type: s.analysis.keyEvents[i].type,
+    imageUrl: url,
+    timestamp: s.analysis.keyEvents[i].imageGeneratedAt,
+    characters: s.analysis.keyEvents[i].characters || []
+  };
+  if (existing >= 0) s.timeline[existing] = entry;
+  else s.timeline.push(entry);
+  DB.save('sessions', s, sessions);
+}
+
 function regenImage(i){
   const s=sessions.find(x=>x.id===currentSessionId);
   if(!s?.analysis?.keyEvents?.[i]?.imagePrompt) return;
-  // Add random seed to force new generation
-  const prompt = s.analysis.keyEvents[i].imagePrompt + ' seed:' + Math.floor(Math.random()*99999);
-  const img = document.querySelector('.event-card:nth-child(' + (i+2) + ') img');
-  if(img){ img.src = pollinationsUrl(prompt); img.style.display=''; }
+  // Clear saved image so it regenerates fresh
+  delete s.analysis.keyEvents[i].generatedImageUrl;
+  const newUrl = pollinationsUrl(s.analysis.keyEvents[i].imagePrompt);
+  // Find the image element and reset it
+  const cards = document.querySelectorAll('.event-card');
+  if(cards[i]) {
+    const img = cards[i].querySelector('img');
+    const ld = document.getElementById('img-load-' + i);
+    if(img) { img.src = newUrl; img.style.display = 'none'; }
+    if(ld) { ld.style.display = 'flex'; ld.textContent = 'Regenerating\u2026'; }
+  }
 }
 function togglePrompt(i){const b=document.getElementById('ep-'+i);const t=b.previousElementSibling;b.classList.toggle('open');t.textContent=b.classList.contains('open')?'▾ image prompt':'▸ image prompt';}
 function copyPrompt(i){const b=document.getElementById('ep-'+i);navigator.clipboard.writeText(b.textContent.replace('Copy','').trim()).then(()=>{const btn=b.querySelector('.copy-btn');btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);});}
