@@ -153,8 +153,9 @@ function openMapEditor(id) {
   // Load notes
   const notesEl = document.getElementById('map-notes');
   if (notesEl) notesEl.value = m.notes || '';
-  // Render condition reference
+  // Render condition reference + combat log
   if (typeof renderConditionRef === 'function') renderConditionRef();
+  if (typeof renderCombatLog === 'function') renderCombatLog();
   setPlacingMode(null);
   if (typeof clearMonsterPlacing === 'function') clearMonsterPlacing();
 }
@@ -491,6 +492,14 @@ async function deleteScenario() {
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 let _notesTimeout = null;
+function switchNotesTab(tab, btn) {
+  document.querySelectorAll('.notes-tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.notes-tab').forEach(el => el.classList.remove('active'));
+  const panel = document.getElementById('notes-tab-' + tab);
+  if (panel) panel.style.display = 'flex';
+  if (btn) btn.classList.add('active');
+}
+
 function saveMapNotes() {
   clearTimeout(_notesTimeout);
   _notesTimeout = setTimeout(() => {
