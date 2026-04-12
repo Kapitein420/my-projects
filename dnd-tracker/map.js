@@ -425,7 +425,8 @@ async function quickSave() {
   if (!m) return;
 
   const existing = Object.values(m.scenarios || {}).find(s => s.isQuickSave);
-  const scen = { id: existing?.id || uid(), name: '⚡ Quick Save', isQuickSave: true, savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), monsters: JSON.parse(JSON.stringify(m.monsters || [])), fog: JSON.parse(JSON.stringify(m.fog || {})), combat: JSON.parse(JSON.stringify(m.combat || {})) };
+  const charHp = characters.filter(c => (m.tokens||[]).some(t => t.characterId === c.id)).map(c => ({id:c.id, currentHp:c.currentHp, maxHp:c.maxHp}));
+  const scen = { id: existing?.id || uid(), name: '⚡ Quick Save', isQuickSave: true, savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), monsters: JSON.parse(JSON.stringify(m.monsters || [])), fog: JSON.parse(JSON.stringify(m.fog || {})), combat: JSON.parse(JSON.stringify(m.combat || {})), charHp };
   m.scenarios = m.scenarios || {};
   m.scenarios[scen.id] = scen;
   m.updatedAt = Date.now();
@@ -441,7 +442,8 @@ async function saveNamedScenario() {
   const name = prompt('Name this scenario:', `Session pause — ${new Date().toLocaleDateString()}`);
   if (!name?.trim()) return;
 
-  const scen = { id: uid(), name: name.trim(), savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), monsters: JSON.parse(JSON.stringify(m.monsters || [])), fog: JSON.parse(JSON.stringify(m.fog || {})), combat: JSON.parse(JSON.stringify(m.combat || {})) };
+  const charHp = characters.filter(c => (m.tokens||[]).some(t => t.characterId === c.id)).map(c => ({id:c.id, currentHp:c.currentHp, maxHp:c.maxHp}));
+  const scen = { id: uid(), name: name.trim(), savedAt: Date.now(), tokens: JSON.parse(JSON.stringify(m.tokens || [])), monsters: JSON.parse(JSON.stringify(m.monsters || [])), fog: JSON.parse(JSON.stringify(m.fog || {})), combat: JSON.parse(JSON.stringify(m.combat || {})), charHp };
   m.scenarios = m.scenarios || {};
   m.scenarios[scen.id] = scen;
   m.updatedAt = Date.now();
@@ -467,6 +469,13 @@ async function loadScenario() {
   if (scen.monsters) m.monsters = JSON.parse(JSON.stringify(scen.monsters));
   if (scen.fog) m.fog = JSON.parse(JSON.stringify(scen.fog));
   if (scen.combat) m.combat = JSON.parse(JSON.stringify(scen.combat));
+  // Restore character HP from snapshot
+  if (scen.charHp) {
+    for (const hp of scen.charHp) {
+      const c = characters.find(x => x.id === hp.id);
+      if (c) { c.currentHp = hp.currentHp; c.maxHp = hp.maxHp; DB.save('characters', c, characters); }
+    }
+  }
   m.updatedAt = Date.now();
   await saveCurrentMap();
   renderTokensOnMap();
