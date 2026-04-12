@@ -179,11 +179,25 @@ function renderTokenSidebar() {
     const col = classColor(c.class);
     const sideIcon = c.icon || initials(c.name);
     const sideFontSize = c.icon ? "1rem" : ".62rem";
-    return `<div class="sidebar-char-item" id="sci-${c.id}" onclick="selectCharForPlace('${c.id}')" title="Click to place on map">
-      <div class="avatar avatar-sm" style="background:${col}20;border-color:${col};color:${col};font-size:${sideFontSize};">${sideIcon}</div>
-      <div style="min-width:0;">
-        <div style="font-size:.78rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</div>
-        <div style="font-size:.62rem;color:var(--text4);">${c.class || '—'} · Lv ${c.level || 1}</div>
+    const pct = hpPct(c.currentHp || 0, c.maxHp || 1);
+    const hpCol = hpColor(pct);
+    const imgHtml = c.imageUrl
+      ? `<img src="${c.imageUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display=''">`
+        + `<span style="display:none;font-size:${sideFontSize};">${sideIcon}</span>`
+      : `<span style="font-size:${sideFontSize};">${sideIcon}</span>`;
+    return `<div class="sidebar-char-item" id="sci-${c.id}" onclick="selectCharForPlace('${c.id}')" title="Click to place on map" style="padding:8px;gap:8px;">
+      <div class="avatar avatar-sm" style="background:${col}20;border-color:${col};color:${col};overflow:hidden;">${imgHtml}</div>
+      <div style="min-width:0;flex:1;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+          <span style="font-size:.78rem;color:#efe4d0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</span>
+          <span style="font-size:.55rem;color:#8a7868;flex-shrink:0;margin-left:4px;">${c.class || '—'} Lv${c.level || 1}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="flex:1;height:4px;background:#1e1810;border-radius:2px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:${hpCol};border-radius:2px;"></div>
+          </div>
+          <span style="font-size:.58rem;color:${hpCol};font-family:var(--font-mono);white-space:nowrap;">${c.currentHp||0}/${c.maxHp||0}</span>
+        </div>
       </div>
     </div>`;
   }).join('');
