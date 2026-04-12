@@ -118,7 +118,7 @@ function renderMonsterSidebar() {
   }
   el.innerHTML = monsters.map(mon => {
     const pct = Math.round((mon.currentHp / mon.maxHp) * 100);
-    const col = pct > 60 ? '#2a8a50' : pct > 25 ? '#8a7020' : '#8a2020';
+    const col = pct > 60 ? '#4a9a40' : pct > 25 ? '#b8902a' : '#8a2020';
     return '<div class="sidebar-char-item" id="msi-' + mon.id + '" onclick="selectMonsterForPlace(\'' + mon.id + '\')" title="Click to place token">' +
       '<div class="avatar avatar-sm" style="background:#8a202020;border-color:' + col + ';color:#8a2020;font-size:.55rem;position:relative;">' +
         '<span style="font-size:.5rem;">' + mon.cr + '</span>' +
@@ -202,7 +202,7 @@ function renderMonsterPopup(monsterId) {
   if (!popup || !mon || _monsterPopupId !== monsterId) return;
 
   const pct = Math.round((mon.currentHp / mon.maxHp) * 100);
-  const col = pct > 60 ? '#2a8a50' : pct > 25 ? '#8a7020' : '#8a2020';
+  const col = pct > 60 ? '#4a9a40' : pct > 25 ? '#b8902a' : '#8a2020';
   popup.innerHTML =
     '<div style="font-size:.78rem;font-family:var(--font-display);color:var(--text);margin-bottom:4px;">' + mon.displayName + '</div>' +
     '<div style="font-size:.62rem;color:var(--text4);margin-bottom:6px;">' + mon.meta + ' \u00b7 CR ' + mon.cr + '</div>' +

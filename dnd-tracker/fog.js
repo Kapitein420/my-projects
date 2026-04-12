@@ -261,13 +261,13 @@ function renderFog() {
     ctx.globalCompositeOperation = 'source-over';
     ctx.beginPath();
     ctx.arc(_brushCursorPos.x, _brushCursorPos.y, _brushSize, 0, Math.PI * 2);
-    ctx.strokeStyle = _brushMode === 'reveal' ? 'rgba(100, 220, 255, 0.8)' : 'rgba(255, 100, 100, 0.8)';
+    ctx.strokeStyle = _brushMode === 'reveal' ? 'rgba(200, 164, 90, 0.8)' : 'rgba(200, 80, 80, 0.8)';
     ctx.lineWidth = 2;
     ctx.setLineDash([6, 4]);
     ctx.stroke();
     ctx.setLineDash([]);
     // Inner fill preview
-    ctx.fillStyle = _brushMode === 'reveal' ? 'rgba(100, 220, 255, 0.1)' : 'rgba(255, 100, 100, 0.1)';
+    ctx.fillStyle = _brushMode === 'reveal' ? 'rgba(200, 164, 90, 0.1)' : 'rgba(200, 80, 80, 0.1)';
     ctx.fill();
   }
 }
@@ -303,7 +303,7 @@ function drawBrushStroke(ctx, stroke, canvasW, canvasH) {
 
 function drawHexGrid(ctx, w, h, r) {
   const { cols, rows } = getGridBounds(w, h, r);
-  ctx.strokeStyle = 'rgba(100, 180, 255, 0.12)';
+  ctx.strokeStyle = 'rgba(200, 164, 90, 0.10)';
   ctx.lineWidth = 0.5;
 
   for (let col = 0; col < cols; col++) {
@@ -326,7 +326,7 @@ function drawHexGrid(ctx, w, h, r) {
 function drawZoneOutlines(ctx, w, h, r) {
   if (!_fogMap?.fog?.zones) return;
   for (const zone of Object.values(_fogMap.fog.zones)) {
-    const color = zone.revealed ? 'rgba(50, 205, 100, 0.35)' : 'rgba(200, 80, 80, 0.35)';
+    const color = zone.revealed ? 'rgba(200, 164, 90, 0.35)' : 'rgba(200, 80, 80, 0.35)';
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     for (const hex of zone.hexes) {
@@ -344,8 +344,8 @@ function drawZoneOutlines(ctx, w, h, r) {
 
 function drawZoneSelection(ctx, w, h, r) {
   if (_zoneSelection.size === 0) return;
-  ctx.fillStyle = 'rgba(100, 200, 255, 0.25)';
-  ctx.strokeStyle = 'rgba(100, 200, 255, 0.6)';
+  ctx.fillStyle = 'rgba(200, 164, 90, 0.2)';
+  ctx.strokeStyle = 'rgba(200, 164, 90, 0.5)';
   ctx.lineWidth = 1.5;
   for (const key of _zoneSelection) {
     const [col, row] = parseHexKey(key);
