@@ -887,6 +887,7 @@
     <button class="btn btn-sm btn-ghost" id="fog-view-btn" onclick="setFogViewMode(_fogMap?.fog?.viewMode==='dm'?'player':'dm')">⚔ DM View</button>
     <button class="btn btn-sm btn-ghost" id="fog-toggle-btn" onclick="toggleFogEnabled()">🌫 Fog: OFF</button>
     <button class="btn btn-sm btn-ghost" id="combat-start-btn" onclick="showCombatSetup()">⚔ Combat</button>
+    <button class="btn btn-sm btn-ghost" onclick="showSessionReport()" title="Generate session report from all combat data">📊 Report</button>
     <button class="btn btn-sm btn-ghost" onclick="openPlayerFullscreen()" title="Open fullscreen player view (ESC to close)">📺 Player Screen</button>
     <button class="btn btn-sm btn-ghost" onclick="copyPlayerLink()" title="Copy link for a separate player screen" id="copy-player-link-btn">🔗 Link</button>
     <div style="position:relative;">
@@ -1025,10 +1026,11 @@
 
 <!-- COMBAT REPORT MODAL -->
 <div class="overlay" id="combat-report-overlay" onclick="if(event.target===this)closeCombatReport()">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px;background:#2c2419;border-color:rgba(200,176,112,.3);">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:520px;background:var(--bg-card);border-color:rgba(200,176,112,.2);">
     <div id="combat-report-content"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">
-      <button class="btn btn-ghost btn-sm" onclick="saveReportToNotes()" style="color:#c8b070;border-color:rgba(200,176,112,.2);">Save to Notes</button>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;padding-top:.75rem;border-top:1px solid #2a2620;">
+      <button class="btn btn-ghost btn-sm" onclick="saveReportToNotes()" style="color:#c8b070;border-color:#3a3428;">Save to Notes</button>
+      <button class="btn btn-ghost btn-sm" onclick="saveSessionReportToNotes()" style="color:#b0a898;border-color:#3a3428;">Save Full Session</button>
       <button class="btn btn-primary btn-sm" onclick="closeCombatReport()">Close</button>
     </div>
   </div>
