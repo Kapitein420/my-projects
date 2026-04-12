@@ -598,6 +598,7 @@
     <div><span class="view-title">Characters</span> <span class="muted" id="char-count" style="font-size:.78rem;margin-left:6px;font-family:var(--font-mono);"></span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
       <button class="btn btn-ghost btn-sm" id="bulk-toggle-btn" onclick="toggleBulkMode()">☰ Select</button>
+      <button class="btn btn-ghost btn-sm" onclick="importKapiteinCampaign()" title="Import the Kapitein Goorlel campaign">📜 Import Campaign</button>
       <button class="btn btn-primary btn-sm" onclick="showAddCharForm()">+ Character</button>
     </div>
   </div>
@@ -1090,6 +1091,7 @@
 
 <script src="../shared/db.js"></script>
 <script src="fog.js"></script>
+<script src="campaign-setup.js"></script>
 <script src="monsters.js"></script>
 <script src="combat.js"></script>
 <script src="spells.js"></script>
