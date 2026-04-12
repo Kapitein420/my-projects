@@ -65,7 +65,9 @@ function updateMonsterHp(monsterId, delta) {
   saveCurrentMap();
   renderTokensOnMap();
   renderMonsterSidebar();
+  // Re-render popup content and reposition to new token element
   renderMonsterPopup(monsterId);
+  repositionMonsterPopup(monsterId);
 }
 
 function setMonsterHp(monsterId, val) {
@@ -136,11 +138,13 @@ function renderMonsterSidebar() {
           '<span style="font-size:.78rem;color:' + (isDead ? '#5a4e40' : '#efe4d0') + ';font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (isDead ? 'text-decoration:line-through;' : '') + '">' + mon.displayName + '</span>' +
           '<span style="font-size:.58rem;color:#c8a45a;flex-shrink:0;margin-left:4px;">\u26e8 ' + mon.ac + '</span>' +
         '</div>' +
-        '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<div style="display:flex;align-items:center;gap:4px;margin-top:2px;">' +
+          '<button onclick="event.stopPropagation();updateMonsterHp(\'' + mon.id + '\',-1)" style="width:18px;height:18px;border-radius:4px;border:1px solid #3a3020;background:#1e1810;color:#c4b498;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);">-</button>' +
           '<div style="flex:1;height:5px;background:#1e1810;border-radius:3px;overflow:hidden;">' +
             '<div style="width:' + pct + '%;height:100%;background:' + hpCol + ';border-radius:3px;transition:width .3s;"></div>' +
           '</div>' +
-          '<span style="font-size:.62rem;color:' + hpCol + ';font-family:var(--font-mono);white-space:nowrap;min-width:42px;text-align:right;">' + mon.currentHp + '/' + mon.maxHp + '</span>' +
+          '<span style="font-size:.6rem;color:' + hpCol + ';font-family:var(--font-mono);white-space:nowrap;min-width:42px;text-align:center;">' + mon.currentHp + '/' + mon.maxHp + '</span>' +
+          '<button onclick="event.stopPropagation();updateMonsterHp(\'' + mon.id + '\',1)" style="width:18px;height:18px;border-radius:4px;border:1px solid #3a3020;background:#1e1810;color:#c4b498;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);">+</button>' +
         '</div>' +
       '</div>' +
       '<button style="padding:2px 4px;font-size:.55rem;background:none;border:none;cursor:pointer;color:#6a3030;flex-shrink:0;" onclick="event.stopPropagation();removeMonsterFromEncounter(\'' + mon.id + '\')">\u2715</button>' +
@@ -233,6 +237,25 @@ function renderMonsterPopup(monsterId) {
     '<div style="height:5px;background:#1e1810;border-radius:3px;overflow:hidden;">' +
       '<div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:3px;transition:width .2s;"></div>' +
     '</div>';
+}
+
+function repositionMonsterPopup(monsterId) {
+  const popup = document.getElementById('monster-popup');
+  if (!popup || popup.style.display === 'none') return;
+  // Find the token for this monster
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  const tok = (m.tokens || []).find(t => t.monsterId === monsterId);
+  if (!tok) return;
+  const tokenEl = document.getElementById('tok-' + tok.id);
+  if (!tokenEl) return;
+  const tokRect = tokenEl.getBoundingClientRect();
+  const stageWrap = document.querySelector('.map-stage-wrap');
+  if (stageWrap) {
+    const wrapRect = stageWrap.getBoundingClientRect();
+    popup.style.left = (tokRect.right - wrapRect.left + stageWrap.scrollLeft + 8) + 'px';
+    popup.style.top = (tokRect.top - wrapRect.top + stageWrap.scrollTop) + 'px';
+  }
 }
 
 function hideMonsterPopup() {

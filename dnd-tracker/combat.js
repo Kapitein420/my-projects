@@ -274,10 +274,25 @@ function renderInitiativeBar() {
     const textColor = isDead ? 'var(--text4)' : 'var(--text)';
     const decoration = isDead ? 'line-through' : 'none';
 
-    entriesHtml += '<div style="display:flex;flex-direction:column;align-items:center;padding:4px 10px;border:1.5px solid ' + borderColor + ';border-radius:var(--r);background:' + bgColor + ';min-width:55px;flex-shrink:0;">' +
-      '<div style="font-size:.65rem;font-weight:600;color:' + (isActive ? '#c8a45a' : 'var(--text3)') + ';">' + e.initiative + '</div>' +
-      '<div style="font-size:.7rem;color:' + textColor + ';text-decoration:' + decoration + ';white-space:nowrap;max-width:70px;overflow:hidden;text-overflow:ellipsis;" title="' + e.name + '">' + e.name + '</div>' +
-      '<div style="font-size:.5rem;color:' + (isMon ? '#8a2020' : '#8a6a30') + ';">' + (isMon ? 'MON' : 'PC') + '</div>' +
+    // Get portrait
+    let portrait = '';
+    if (isMon) {
+      const mon = (m.monsters || []).find(x => x.id === e.id);
+      if (mon && mon.imgUrl) portrait = '<img src="' + mon.imgUrl + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid ' + borderColor + ';">';
+      else portrait = '<div style="width:28px;height:28px;border-radius:50%;background:#3a1818;border:1.5px solid ' + borderColor + ';display:flex;align-items:center;justify-content:center;font-size:.5rem;color:#c04040;font-family:var(--font-display);">' + (e.name || '?').charAt(0) + '</div>';
+    } else {
+      const c = characters.find(x => x.id === e.id);
+      if (c && c.imageUrl) portrait = '<img src="' + c.imageUrl + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid ' + borderColor + ';">';
+      else {
+        const col = c ? classColor(c.class) : '#5a4830';
+        portrait = '<div style="width:28px;height:28px;border-radius:50%;background:' + col + '20;border:1.5px solid ' + borderColor + ';display:flex;align-items:center;justify-content:center;font-size:.5rem;color:' + col + ';font-family:var(--font-display);">' + (c?.icon || (e.name || '?').charAt(0)) + '</div>';
+      }
+    }
+
+    entriesHtml += '<div style="display:flex;flex-direction:column;align-items:center;padding:4px 8px;border:1.5px solid ' + borderColor + ';border-radius:8px;background:' + bgColor + ';min-width:55px;flex-shrink:0;gap:2px;">' +
+      portrait +
+      '<div style="font-size:.62rem;color:#efe4d0;text-decoration:' + decoration + ';white-space:nowrap;max-width:65px;overflow:hidden;text-overflow:ellipsis;' + (isDead ? 'opacity:.4;' : '') + '" title="' + e.name + '">' + e.name + '</div>' +
+      '<div style="font-size:.55rem;font-weight:600;color:' + (isActive ? '#c8a45a' : '#8a7868') + ';">' + e.initiative + '</div>' +
     '</div>';
   }
 
