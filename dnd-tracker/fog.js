@@ -550,6 +550,40 @@ function deleteZone(zoneId) {
   renderFog();
 }
 
+function revealAllFog() {
+  if (!_fogMap?.fog) return;
+  if (!confirm('Reveal the entire map? All fog will be removed.')) return;
+  const fog = _fogMap.fog;
+  const r = fog.hexSize || 30;
+  const w = _fogCanvas?.width || 1, h = _fogCanvas?.height || 1;
+  const { cols, rows } = getGridBounds(w, h, r);
+  fog.revealedHexes = [];
+  for (let col = 0; col < cols; col++) {
+    for (let row = 0; row < rows; row++) {
+      fog.revealedHexes.push([col, row]);
+    }
+  }
+  fog.brushStrokes = [];
+  _fogMap.updatedAt = Date.now();
+  saveCurrentMap();
+  renderFog();
+  if (typeof renderTokensOnMap === 'function') renderTokensOnMap();
+}
+
+function resetAllFog() {
+  if (!_fogMap?.fog) return;
+  if (!confirm('Re-fog the entire map? All revealed areas will be hidden.')) return;
+  const fog = _fogMap.fog;
+  fog.revealedHexes = [];
+  fog.brushStrokes = [];
+  for (const zone of Object.values(fog.zones || {})) zone.revealed = false;
+  _fogMap.updatedAt = Date.now();
+  saveCurrentMap();
+  renderFogZonePanel();
+  renderFog();
+  if (typeof renderTokensOnMap === 'function') renderTokensOnMap();
+}
+
 function clearAllBrushStrokes() {
   if (!_fogMap?.fog) return;
   if (!confirm('Clear all brush strokes?')) return;

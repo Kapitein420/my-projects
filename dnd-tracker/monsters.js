@@ -208,21 +208,21 @@ function renderMonsterPopup(monsterId) {
   const pct = Math.round((mon.currentHp / mon.maxHp) * 100);
   const col = pct > 60 ? '#4a9a40' : pct > 25 ? '#b8902a' : '#8a2020';
   popup.innerHTML =
-    '<div style="font-size:.78rem;font-family:var(--font-display);color:var(--text);margin-bottom:4px;">' + mon.displayName + '</div>' +
-    '<div style="font-size:.62rem;color:var(--text4);margin-bottom:6px;">' + mon.meta + ' \u00b7 CR ' + mon.cr + '</div>' +
+    '<div style="font-size:.78rem;font-family:var(--font-display);color:#efe4d0;margin-bottom:4px;">' + mon.displayName + '</div>' +
+    '<div style="font-size:.62rem;color:#8a7868;margin-bottom:6px;">' + mon.meta + ' \u00b7 CR ' + mon.cr + '</div>' +
     '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
-      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;" onclick="updateMonsterHp(\'' + mon.id + '\',-5)">-5</button>' +
-      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;" onclick="updateMonsterHp(\'' + mon.id + '\',-1)">-</button>' +
+      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#5a4830;color:#c4b498;" onclick="updateMonsterHp(\'' + mon.id + '\',-5)">-5</button>' +
+      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#5a4830;color:#c4b498;" onclick="updateMonsterHp(\'' + mon.id + '\',-1)">-</button>' +
       '<div style="text-align:center;">' +
-        '<input type="number" value="' + mon.currentHp + '" min="0" max="' + mon.maxHp + '" style="width:45px;text-align:center;font-size:.8rem;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);padding:2px;" onchange="setMonsterHp(\'' + mon.id + '\',this.value)">' +
-        '<div style="font-size:.55rem;color:var(--text4);">/ ' + mon.maxHp + ' HP</div>' +
+        '<input type="number" value="' + mon.currentHp + '" min="0" max="' + mon.maxHp + '" style="width:50px;text-align:center;font-size:.85rem;font-weight:600;background:#1e1810;border:1px solid #5a4830;border-radius:6px;color:#efe4d0;padding:3px;" onchange="setMonsterHp(\'' + mon.id + '\',this.value)">' +
+        '<div style="font-size:.55rem;color:#8a7868;">/ ' + mon.maxHp + ' HP</div>' +
       '</div>' +
-      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;" onclick="updateMonsterHp(\'' + mon.id + '\',1)">+</button>' +
-      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;" onclick="updateMonsterHp(\'' + mon.id + '\',5)">+5</button>' +
-      '<div style="font-size:.65rem;color:var(--text3);margin-left:4px;">AC ' + mon.ac + '</div>' +
+      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#5a4830;color:#c4b498;" onclick="updateMonsterHp(\'' + mon.id + '\',1)">+</button>' +
+      '<button class="btn btn-sm" style="padding:0 6px;font-size:.75rem;background:#362c22;border-color:#5a4830;color:#c4b498;" onclick="updateMonsterHp(\'' + mon.id + '\',5)">+5</button>' +
+      '<div style="font-size:.65rem;color:#c8a45a;margin-left:4px;">AC ' + mon.ac + '</div>' +
     '</div>' +
-    '<div style="height:4px;background:rgba(0,0,0,.3);border-radius:2px;overflow:hidden;">' +
-      '<div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:2px;transition:width .2s;"></div>' +
+    '<div style="height:5px;background:#1e1810;border-radius:3px;overflow:hidden;">' +
+      '<div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:3px;transition:width .2s;"></div>' +
     '</div>';
 }
 
