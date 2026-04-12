@@ -301,9 +301,19 @@ function drawBrushStroke(ctx, stroke, canvasW, canvasH) {
   ctx.stroke();
 }
 
+function setGridOpacity(val) {
+  if (!_fogMap?.fog) return;
+  _fogMap.fog.gridOpacity = Math.max(0, Math.min(1, val));
+  renderFog();
+  _fogMap.updatedAt = Date.now();
+  saveCurrentMap();
+}
+
 function drawHexGrid(ctx, w, h, r) {
+  const opacity = _fogMap?.fog?.gridOpacity ?? 0.10;
+  if (opacity <= 0) return;
   const { cols, rows } = getGridBounds(w, h, r);
-  ctx.strokeStyle = 'rgba(200, 164, 90, 0.10)';
+  ctx.strokeStyle = 'rgba(200, 164, 90, ' + opacity.toFixed(2) + ')';
   ctx.lineWidth = 0.5;
 
   for (let col = 0; col < cols; col++) {
