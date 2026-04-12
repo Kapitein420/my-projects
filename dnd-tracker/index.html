@@ -11,42 +11,48 @@
 /* ── APP-SPECIFIC STYLES ────────────────────────────────── */
 
 /* Character grid */
-/* Dark panel text overrides — panels and cards have dark bg, need light text */
-.panel,.char-card,.map-card{color:var(--text-on-dark);}
+/* ── DARK PANEL TEXT SYSTEM ──────────────────────────────── */
+/* All dark-bg elements need light text */
+.panel,.char-card,.map-card,.session-card{color:#efe4d0;}
 .panel .section-label,.panel .hp-lbl{color:#c8a45a;}
-.panel .ab-display-mod,.panel .cd-val,.panel .hp-inp,.panel input,.panel select{color:var(--text-on-dark);}
-.panel .ab-display-score,.panel .save-disp,.panel .skill-row-d,.panel .sd-bonus{color:var(--text-on-dark2);}
-.panel .ab-display-name,.panel .cd-lbl{color:var(--text-on-dark3);}
-.panel .hp-sep,.panel .hp-bar2{background:#1e1810;}
-.panel textarea{color:var(--text-on-dark);}
-.char-card .card-hp-row span{color:var(--text-on-dark4) !important;}
-.char-card .hp-quick-btn{color:var(--text-on-dark3);}
+.panel .ab-display-mod,.panel .cd-val,.panel .hp-inp,.panel input,.panel select{color:#efe4d0;}
+.panel .ab-display-score,.panel .save-disp span,.panel .skill-row-d span{color:#c4b498;}
+.panel .sd-bonus{color:#c8a45a;}
+.panel .ab-display-name,.panel .cd-lbl{color:#8a7868;}
+.panel .hp-sep{color:#5a4e40;}
+.panel .hp-bar2{background:#1e1810;}
+.panel textarea{color:#efe4d0;}
+.char-card .card-hp-row{background:#1e1810;border-color:#3a3020;}
+.char-card .card-hp-row span{color:#8a7868 !important;}
+.char-card .hp-quick-btn{background:#2c2419;color:#c4b498;border:1px solid #3a3020;}
+.char-card .hp-quick-btn:hover{background:#c8a45a;color:#1e1810;}
+.char-card .hp-quick-inp{color:#efe4d0;}
 
-.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px,1fr)); gap: 1rem; }
+.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: 1.25rem; }
 
 .char-card {
-  background: var(--bg-card);
-  border: 1px solid rgba(90,70,40,.3);
-  border-radius: var(--r-lg);
-  padding: 1.1rem 1.1rem .9rem;
+  background: linear-gradient(135deg, #2c2419 0%, #241e14 100%);
+  border: 1px solid rgba(200,164,90,.15);
+  border-radius: 16px;
+  padding: 1.25rem;
   cursor: pointer;
-  transition: border-color .2s, box-shadow .2s, transform .15s;
+  transition: border-color .25s, box-shadow .25s, transform .2s;
   position: relative;
   overflow: hidden;
   color: #efe4d0;
-  box-shadow: 0 4px 16px rgba(40,30,15,.15), 0 1px 3px rgba(40,30,15,.1);
+  box-shadow: 0 4px 20px rgba(40,30,15,.12), 0 1px 4px rgba(40,30,15,.08);
 }
 .char-card::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 2px;
-  background: transparent;
-  transition: background .2s;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(200,164,90,.1), transparent);
+  transition: background .3s;
 }
-.char-card:hover { border-color: rgba(200,164,90,.4); box-shadow: 0 8px 28px rgba(40,30,15,.2); transform: translateY(-2px); }
-.char-card:hover::before { background: #8a6a30; }
-.char-card.selected { border-color: #c8a45a; background: #342a1c; }
+.char-card:hover { border-color: rgba(200,164,90,.35); box-shadow: 0 12px 36px rgba(40,30,15,.18), 0 0 0 1px rgba(200,164,90,.08); transform: translateY(-3px); }
+.char-card:hover::before { background: linear-gradient(90deg, transparent, rgba(200,164,90,.5), transparent); }
+.char-card.selected { border-color: #c8a45a; background: linear-gradient(135deg, #342a1c 0%, #2a2016 100%); }
 .char-card.selected::before { background: #c8a45a; }
 
 .card-select-wrap {
@@ -80,19 +86,20 @@
 .char-card-info { flex: 1; min-width: 0; }
 .char-card-name {
   font-family: var(--font-display);
-  font-size: .95rem;
-  color: var(--text-on-dark);
+  font-size: 1rem;
+  color: #efe4d0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
+  letter-spacing: .02em;
 }
-.char-card-sub { font-size: .75rem; color: var(--text-on-dark3); }
+.char-card-sub { font-size: .76rem; color: #8a7868; }
 
-.char-card-bottom { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-.mini-stat { text-align: center; min-width: 36px; }
-.mini-val { font-family: var(--font-mono); font-size: .9rem; color: var(--text-on-dark); }
-.mini-lbl { font-size: .55rem; color: var(--text-on-dark4); text-transform: uppercase; letter-spacing: .06em; font-family: var(--font-display); }
+.char-card-bottom { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(200,164,90,.1); }
+.mini-stat { text-align: center; min-width: 38px; }
+.mini-val { font-family: var(--font-mono); font-size: .95rem; color: #efe4d0; font-weight: 600; }
+.mini-lbl { font-size: .52rem; color: #6a5a48; text-transform: uppercase; letter-spacing: .08em; font-family: var(--font-display); margin-top: 1px; }
 
 /* Inline HP controls on card */
 .card-hp-row {
@@ -455,9 +462,9 @@
 .map-editor-wrap{display:grid;grid-template-columns:200px 1fr 220px;gap:.75rem;height:calc(100vh - 180px);min-height:400px;}
 .map-sidebar{background:var(--bg-card);color:#efe4d0;border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:.75rem;display:flex;flex-direction:column;gap:.5rem;overflow-y:auto;}
 .map-sidebar-section{font-family:var(--font-display);font-size:.55rem;color:#c8a45a;text-transform:uppercase;letter-spacing:.18em;margin-bottom:.3rem;padding-bottom:.2rem;border-bottom:1px solid rgba(90,70,40,.3);}
-.sidebar-char-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r);cursor:pointer;transition:background .12s,border-color .12s;border:1px solid transparent;}
-.sidebar-char-item:hover{background:var(--glow-bg);border-color:var(--border);}
-.sidebar-char-item.placing{background:var(--glow-bg);border-color:var(--glow-d);}
+.sidebar-char-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r);cursor:pointer;transition:background .12s,border-color .12s;border:1px solid transparent;color:#c4b498;}
+.sidebar-char-item:hover{background:rgba(200,164,90,.08);border-color:rgba(200,164,90,.2);}
+.sidebar-char-item.placing{background:rgba(200,164,90,.12);border-color:#8a6a30;}
 
 .map-main{display:flex;flex-direction:column;gap:.6rem;}
 .map-toolbar{background:var(--bg-card);border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;flex-shrink:0;color:#efe4d0;box-shadow:0 4px 16px rgba(40,30,15,.15);}
@@ -517,7 +524,8 @@
 .player-fullscreen .pf-turn-name{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:1.4rem;color:var(--text);background:rgba(26,22,19,.95);padding:10px 32px;border-radius:var(--r-lg);border:1px solid var(--border2);border-top:2px solid var(--glow-dd);z-index:10000;text-shadow:0 0 8px rgba(200,164,90,.2);letter-spacing:.05em;}
 
 .notes-panel{background:var(--bg-card);color:#efe4d0;border:1px solid rgba(90,70,40,.3);border-radius:var(--r-lg);padding:.75rem;display:flex;flex-direction:column;gap:.5rem;overflow:hidden;}
-.notes-panel textarea{flex:1;background:#1e1810;border:1px solid rgba(90,70,40,.3);border-radius:var(--r);color:#efe4d0;font-family:var(--font-body);font-size:.75rem;padding:.5rem;resize:none;line-height:1.5;}
+.notes-panel .map-sidebar-section{color:#c8a45a;}
+.notes-panel textarea{flex:1;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:var(--r);color:#efe4d0;font-family:var(--font-body);font-size:.75rem;padding:.5rem;resize:none;line-height:1.5;}
 .notes-panel textarea:focus{outline:none;border-color:var(--glow-d);box-shadow:0 0 8px rgba(200,164,90,.1);}
 @media(max-width:900px){.map-editor-wrap{grid-template-columns:200px 1fr;height:auto;}.notes-panel{display:none;}.map-stage-wrap{min-height:300px;}}
 @media(max-width:680px){.map-editor-wrap{grid-template-columns:1fr;height:auto;}.map-sidebar{max-height:200px;}.map-stage-wrap{min-height:300px;}.fog-toolbar{font-size:.65rem;}.fog-sub-controls input[type=range]{width:50px;}}
@@ -915,10 +923,13 @@
       <button class="btn btn-sm btn-ghost" onclick="clearAllBrushStrokes()" style="font-size:.65rem;color:var(--red);" title="Clear all brush strokes">Clear</button>
     </div>
 
-    <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
-      <label style="font-size:.62rem;color:var(--text4);font-family:var(--font-display);">Hex</label>
-      <input type="range" min="10" max="80" value="30" style="width:55px;accent-color:var(--glow);" oninput="setHexSize(+this.value);document.getElementById('fog-hex-size-val').textContent=this.value">
-      <span id="fog-hex-size-val" style="font-size:.62rem;color:var(--text3);font-family:var(--font-mono);min-width:18px;">30</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <label style="font-size:.6rem;color:#8a7868;font-family:var(--font-display);">Grid</label>
+      <input type="range" id="fog-grid-opacity" min="0" max="100" value="10" style="width:50px;accent-color:#c8a45a;" oninput="setGridOpacity(+this.value/100)">
+      <div style="width:1px;height:14px;background:#3a3020;"></div>
+      <label style="font-size:.6rem;color:#8a7868;font-family:var(--font-display);">Hex</label>
+      <input type="range" min="10" max="80" value="30" style="width:50px;accent-color:#c8a45a;" oninput="setHexSize(+this.value);document.getElementById('fog-hex-size-val').textContent=this.value">
+      <span id="fog-hex-size-val" style="font-size:.6rem;color:#8a7868;font-family:var(--font-mono);min-width:18px;">30</span>
     </div>
   </div>
 
@@ -934,7 +945,7 @@
 
         <div class="map-sidebar-section" style="margin-top:.6rem;">Monsters</div>
         <input type="text" id="monster-search" placeholder="Search monsters..." oninput="onMonsterSearch(event)"
-          style="width:100%;font-size:.7rem;padding:4px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);margin-bottom:.4rem;box-sizing:border-box;">
+          style="width:100%;font-size:.7rem;padding:4px 8px;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:var(--r);color:#efe4d0;margin-bottom:.4rem;box-sizing:border-box;">
         <div id="monster-search-results" style="max-height:120px;overflow-y:auto;"></div>
 
         <div class="map-sidebar-section" style="margin-top:.5rem;font-size:.55rem;">Encounter</div>
@@ -966,18 +977,18 @@
       <textarea id="map-notes" placeholder="Session notes, loot, NPC names, reminders..." oninput="saveMapNotes()" style="min-height:100px;"></textarea>
 
       <div class="map-sidebar-section" style="margin-top:.4rem;">Spell Lookup</div>
-      <input type="text" placeholder="Search spells..." oninput="onSpellSearch(event)" style="width:100%;font-size:.68rem;padding:4px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);box-sizing:border-box;">
+      <input type="text" placeholder="Search spells..." oninput="onSpellSearch(event)" style="width:100%;font-size:.68rem;padding:4px 8px;background:#1e1810;border:1px solid rgba(200,164,90,.15);border-radius:var(--r);color:#efe4d0;box-sizing:border-box;">
       <div id="spell-search-results" style="max-height:150px;overflow-y:auto;"></div>
 
       <div class="map-sidebar-section" style="margin-top:.4rem;">Conditions</div>
       <div id="condition-ref-list" style="max-height:120px;overflow-y:auto;"></div>
 
       <div class="map-sidebar-section" style="margin-top:.4rem;">Quick Reference</div>
-      <div style="font-size:.58rem;color:var(--text4);line-height:1.5;">
-        <div><strong style="color:var(--text3);">Cover:</strong> Half +2 AC, 3/4 +5 AC, Full untargetable</div>
-        <div><strong style="color:var(--text3);">Actions:</strong> Attack, Cast, Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use Object</div>
-        <div><strong style="color:var(--text3);">Bonus:</strong> Offhand attack, some spells, class features</div>
-        <div><strong style="color:var(--text3);">Reaction:</strong> Opportunity attack, some spells, readied action</div>
+      <div style="font-size:.58rem;color:#8a7868;line-height:1.5;">
+        <div><strong style="color:#c4b498;">Cover:</strong> Half +2 AC, 3/4 +5 AC, Full untargetable</div>
+        <div><strong style="color:#c4b498;">Actions:</strong> Attack, Cast, Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use Object</div>
+        <div><strong style="color:#c4b498;">Bonus:</strong> Offhand attack, some spells, class features</div>
+        <div><strong style="color:#c4b498;">Reaction:</strong> Opportunity attack, some spells, readied action</div>
       </div>
     </div>
   </div>

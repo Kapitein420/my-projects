@@ -7,16 +7,16 @@
 
 /* ── TOKENS ─────────────────────────────────────────────── */
 :root {
-  /* Backgrounds — clean light dashboard */
-  --bg:         #FAFAFA;
-  --bg-card:    #2a2218;
-  --bg-raised:  #342a20;
-  --bg-input:   #1e1810;
-  --bg-hover:   #3a3020;
+  /* Backgrounds — warm neutral */
+  --bg:         #efeeeb;
+  --bg-card:    #2c2419;
+  --bg-raised:  #362c22;
+  --bg-input:   #201a12;
+  --bg-hover:   #3e3428;
 
-  /* Light-mode surfaces (for panels on light bg) */
-  --bg-light:   #fff9f2;
-  --bg-light2:  #f0e8dc;
+  /* Light-mode surfaces */
+  --bg-light:   #ffffff;
+  --bg-light2:  #f5f3f0;
 
   /* Borders */
   --border:     #d4c4a8;
