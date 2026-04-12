@@ -7,27 +7,27 @@
 
 /* ── TOKENS ─────────────────────────────────────────────── */
 :root {
-  /* Backgrounds — warm neutral */
+  /* Backgrounds — warm neutral dashboard */
   --bg:         #efeeeb;
-  --bg-card:    #2c2419;
-  --bg-raised:  #362c22;
-  --bg-input:   #201a12;
-  --bg-hover:   #3e3428;
+  --bg-card:    #1e1b16;
+  --bg-raised:  #2a2620;
+  --bg-input:   #16140f;
+  --bg-hover:   #302b24;
 
   /* Light-mode surfaces */
   --bg-light:   #ffffff;
   --bg-light2:  #f5f3f0;
 
-  /* Borders */
+  /* Borders — subtle warm lines */
   --border:     #d4c4a8;
-  --border2:    #5e4a34;
-  --border3:    #7a6040;
+  --border2:    #3a3428;
+  --border3:    #4a4234;
   --border-light:#e0d4c0;
 
-  /* Primary accent — warm gold */
-  --glow:       #b8922e;
-  --glow-d:     #8a6a20;
-  --glow-dd:    #5a4420;
+  /* Primary accent — BG3 warm gold */
+  --glow:       #c8b070;
+  --glow-d:     #9a8450;
+  --glow-dd:    #5a4a28;
   --glow-bg:    #f8f0e0;
 
   /* Text on light background */
@@ -36,11 +36,11 @@
   --text3:      #8a7a68;
   --text4:      #b8a890;
 
-  /* Text on dark cards */
-  --text-on-dark:  #efe4d0;
-  --text-on-dark2: #c4b498;
-  --text-on-dark3: #8a7868;
-  --text-on-dark4: #5a4e40;
+  /* Text on dark cards — BG3 tooltip palette */
+  --text-on-dark:  #e2dbd0;
+  --text-on-dark2: #b0a898;
+  --text-on-dark3: #7a7268;
+  --text-on-dark4: #504840;
 
   /* Semantic */
   --red:        #b83030;
@@ -95,8 +95,8 @@ h1, h2, h3, h4 {
 
 /* ── NAV ─────────────────────────────────────────────────── */
 .app-nav {
-  background: #2a2218;
-  border-bottom: 1px solid #3a3020;
+  background: #1a1814;
+  border-bottom: 1px solid #2a2620;
   padding: 0 1.75rem;
   display: flex;
   align-items: center;
@@ -122,7 +122,7 @@ h1, h2, h3, h4 {
 }
 .nav-brand-icon {
   font-size: 1rem;
-  filter: drop-shadow(0 0 6px rgba(200,164,90,.5));
+  filter: drop-shadow(0 0 6px rgba(200,176,112,.4));
 }
 
 .nav-links { display: flex; gap: 2px; }
@@ -130,7 +130,7 @@ h1, h2, h3, h4 {
 .nav-btn {
   padding: 6px 14px;
   border-radius: var(--r);
-  color: #8a7868;
+  color: #7a7268;
   cursor: pointer;
   font-size: .78rem;
   font-family: var(--font-display);
@@ -140,9 +140,9 @@ h1, h2, h3, h4 {
   border: none;
   background: none;
 }
-.nav-btn:hover { color: #c4b498; background: rgba(255,255,255,.06); }
-.nav-btn.active { color: #c8a45a; background: rgba(200,164,90,.1); border-bottom: 2px solid #8a6a30; }
-.nav-btn.disabled { color: #5a4e40; cursor: default; pointer-events: none; }
+.nav-btn:hover { color: #b0a898; background: rgba(255,255,255,.04); }
+.nav-btn.active { color: #c8b070; background: rgba(200,176,112,.08); border-bottom: 2px solid #9a8450; }
+.nav-btn.disabled { color: #504840; cursor: default; pointer-events: none; }
 
 .nav-right {
   margin-left: auto;
@@ -191,9 +191,9 @@ h1, h2, h3, h4 {
 .btn-primary {
   background: var(--bg-card);
   border-color: var(--glow-d);
-  color: #c8a45a;
+  color: var(--glow);
 }
-.btn-primary:hover { background: #342a1c; border-color: #c8a45a; color: #efe4d0; box-shadow: 0 2px 12px rgba(200,164,90,.15); }
+.btn-primary:hover { background: #2a2620; border-color: var(--glow); color: #e2dbd0; box-shadow: 0 2px 12px rgba(200,176,112,.12); }
 
 .btn-danger {
   background: transparent;
@@ -269,8 +269,8 @@ h1, h2, h3, h4 {
 .field select:focus,
 .field textarea:focus {
   outline: none;
-  border-color: var(--glow);
-  box-shadow: 0 0 0 3px rgba(184,146,46,.12);
+  border-color: var(--glow-d);
+  box-shadow: 0 0 0 3px rgba(200,176,112,.08);
 }
 .field select option { background: #fff; }
 .field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
