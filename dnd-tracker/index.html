@@ -1817,6 +1817,20 @@ function stopPlayerPoll() {
 }
 
 // ── INIT ───────────────────────────────────────────────────
+function toggleAmbient(){
+  const bg=document.getElementById('ambient-bg');
+  const vid=bg.querySelector('video');
+  if(bg.classList.contains('active')){
+    bg.classList.remove('active');
+    vid.pause();
+    document.body.style.background='var(--bg)';
+  } else {
+    bg.classList.add('active');
+    vid.play();
+    document.body.style.background='#0a0908';
+  }
+}
+
 async function init(){
   // Check for player fullscreen mode via URL param
   const params = new URLSearchParams(window.location.search);
@@ -1841,6 +1855,8 @@ async function init(){
 }
 init();
 </script>
+<div id="ambient-bg"><video muted loop playsinline preload="none"><source src="assets/bg-ambience.webm" type="video/webm"></video></div>
+<button class="ambient-toggle" onclick="toggleAmbient()" title="Toggle ambient background">🌊</button>
 <div id="player-fullscreen" class="player-fullscreen" style="display:none;" onclick="if(event.target===this)closePlayerFullscreen()"></div>
 </body>
 </html>
