@@ -1105,7 +1105,7 @@ function renderCharList(){
     return`<div class="char-card${isSelected?' selected':''}" id="card-${c.id}" onclick="cardClick(event,'${c.id}')">
       <div class="card-select-wrap"><input type="checkbox" class="card-checkbox" ${isSelected?'checked':''} onclick="event.stopPropagation();toggleSelect('${c.id}')"></div>
       <div class="char-card-top">
-        <div class="avatar avatar-lg" style="background:${col}20;border-color:${col};color:${col};font-size:${c.icon?'1.2rem':'1rem'}">${c.icon||initials(c.name)}</div>
+        <div class="avatar avatar-lg" style="${c.imageUrl?`border-color:${col};overflow:hidden;`:`background:${col}20;border-color:${col};color:${col};font-size:${c.icon?'1.2rem':'1rem'}`}">${c.imageUrl?`<img src="${c.imageUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:c.icon||initials(c.name)}</div>
         <div class="char-card-info">
           <div class="char-card-name">${c.name||'Unnamed'}</div>
           <div class="char-card-sub">${[c.race,c.class].filter(Boolean).join(' · ')||'—'} &nbsp;·&nbsp; Lv ${c.level||1}</div>
@@ -1307,7 +1307,14 @@ async function submitCharForm(){
 function showCharDetail(id){
   currentCharId=id;const c=characters.find(x=>x.id===id);if(!c){showCharList();return;}
   const col=classColor(c.class),pb=profBonus(c.level||1);
-  const av=document.getElementById('d-avatar');av.textContent=initials(c.name);av.style.cssText=`background:${col}20;border-color:${col};color:${col};width:64px;height:64px;font-size:1.3rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:600;flex-shrink:0;border:2px solid;`;
+  const av=document.getElementById('d-avatar');
+  if(c.imageUrl){
+    av.innerHTML=`<img src="${c.imageUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.parentElement.textContent='${initials(c.name)}'">`;
+    av.style.cssText=`border-color:${col};width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid;overflow:hidden;`;
+  } else {
+    av.textContent=c.icon||initials(c.name);
+    av.style.cssText=`background:${col}20;border-color:${col};color:${col};width:64px;height:64px;font-size:${c.icon?'1.8rem':'1.3rem'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:600;flex-shrink:0;border:2px solid;`;
+  }
   document.getElementById('d-name').textContent=c.name;
   document.getElementById('d-sub').textContent=[`Level ${c.level||1}`,c.class,c.subclass,c.race,c.background,c.alignment].filter(Boolean).join(' · ');
   document.getElementById('d-conditions').innerHTML=(c.conditions||[]).map(cn=>`<span class="condition ${COND_CSS[cn]||''}">${cn}</span>`).join('');
