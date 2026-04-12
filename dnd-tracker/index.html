@@ -866,16 +866,24 @@
   <div class="map-editor-wrap">
     <!-- Sidebar: characters to place -->
     <div class="map-sidebar">
-      <div>
+      <div style="overflow-y:auto;flex:1;min-height:0;">
         <div class="map-sidebar-section">Characters</div>
         <div id="token-sidebar-chars"></div>
+
+        <div class="map-sidebar-section" style="margin-top:.6rem;">Monsters</div>
+        <input type="text" id="monster-search" placeholder="Search monsters..." oninput="onMonsterSearch(event)"
+          style="width:100%;font-size:.7rem;padding:4px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);margin-bottom:.4rem;box-sizing:border-box;">
+        <div id="monster-search-results" style="max-height:120px;overflow-y:auto;"></div>
+
+        <div class="map-sidebar-section" style="margin-top:.5rem;font-size:.55rem;">Encounter</div>
+        <div id="monster-encounter-list"></div>
       </div>
-      <div style="margin-top:auto;">
+      <div style="margin-top:auto;flex-shrink:0;">
         <div id="place-hint" class="place-hint">
           <span>᛭</span> Click map to place
         </div>
         <div style="font-size:.65rem;color:var(--text4);line-height:1.5;margin-top:.5rem;">
-          Click a character to select, then click on the map to place their token. Drag tokens to reposition.
+          Click a character or monster, then click map to place. Drag to reposition.
         </div>
       </div>
     </div>
@@ -886,6 +894,7 @@
         <img class="map-img" id="map-img" draggable="false" alt="Map">
         <canvas id="fog-canvas"></canvas>
         <div class="token-overlay" id="token-overlay"></div>
+        <div id="monster-popup" style="display:none;position:absolute;z-index:60;background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r-lg);padding:.6rem;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,.6);"></div>
       </div>
     </div>
   </div>
@@ -929,6 +938,7 @@
 
 <script src="../shared/db.js"></script>
 <script src="fog.js"></script>
+<script src="monsters.js"></script>
 <script src="map.js"></script>
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────
