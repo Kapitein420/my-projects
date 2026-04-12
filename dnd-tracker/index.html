@@ -431,7 +431,7 @@
 .map-card:hover .map-card-del{opacity:1;}
 
 /* Map editor layout */
-.map-editor-wrap{display:grid;grid-template-columns:200px 1fr;gap:1rem;height:calc(100vh - 180px);min-height:400px;}
+.map-editor-wrap{display:grid;grid-template-columns:200px 1fr 220px;gap:1rem;height:calc(100vh - 180px);min-height:400px;}
 .map-sidebar{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:.85rem;display:flex;flex-direction:column;gap:.75rem;overflow-y:auto;}
 .map-sidebar-section{font-family:var(--font-display);font-size:.58rem;color:var(--glow-d);text-transform:uppercase;letter-spacing:.15em;margin-bottom:.3rem;}
 .sidebar-char-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r);cursor:pointer;transition:background .12s;border:1px solid transparent;}
@@ -482,6 +482,10 @@
 .fog-sub-controls input[type=range]{width:70px;accent-color:var(--glow);}
 .fog-zone-panel{position:absolute;right:0;top:calc(100% + 4px);z-index:100;background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r-lg);padding:.75rem;min-width:220px;max-height:280px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.6);}
 
+.notes-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:.75rem;display:flex;flex-direction:column;gap:.5rem;overflow:hidden;}
+.notes-panel textarea{flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font-body);font-size:.75rem;padding:.5rem;resize:none;line-height:1.5;}
+.notes-panel textarea:focus{outline:none;border-color:var(--glow-dd);}
+@media(max-width:900px){.map-editor-wrap{grid-template-columns:200px 1fr;height:auto;}.notes-panel{display:none;}.map-stage-wrap{min-height:300px;}}
 @media(max-width:680px){.map-editor-wrap{grid-template-columns:1fr;height:auto;}.map-sidebar{max-height:200px;}.map-stage-wrap{min-height:300px;}.fog-toolbar{font-size:.65rem;}.fog-sub-controls input[type=range]{width:50px;}}
 
 
@@ -614,7 +618,20 @@
           <span onclick="pickIcon('💀')">💀</span><span onclick="pickIcon('🐉')">🐉</span><span onclick="pickIcon('🎶')">🎶</span>
         </div>
       </div>
-      <div class="field" style="grid-column:span 3;"><label>Token Image URL <span style="font-size:.6rem;color:var(--text4);">(optional — overrides icon)</span></label><input id="f-imageUrl" type="text" placeholder="https://..."></div>
+      <div class="field" style="grid-column:span 3;">
+        <label>Token Image <span style="font-size:.6rem;color:var(--text4);">(optional — overrides icon on map)</span></label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input id="f-imageUrl" type="text" placeholder="Paste image URL..." style="flex:1;" oninput="previewCharImage()">
+          <label class="btn btn-sm btn-ghost" style="cursor:pointer;flex-shrink:0;font-size:.68rem;">
+            Upload
+            <input type="file" accept="image/*" style="display:none;" onchange="handleCharImageUpload(event)">
+          </label>
+        </div>
+        <div id="char-img-preview" style="display:none;margin-top:6px;">
+          <img id="char-img-preview-img" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--border);" alt="Preview">
+          <button class="btn btn-sm btn-ghost" onclick="clearCharImage()" style="font-size:.6rem;color:var(--red);margin-left:6px;">Remove</button>
+        </div>
+      </div>
     </div>
     <div class="fg fg3">
       <div class="field"><label>Class *</label><select id="f-class"><option value="">— Select —</option><option>Artificer</option><option>Barbarian</option><option>Bard</option><option>Cleric</option><option>Druid</option><option>Fighter</option><option>Monk</option><option>Paladin</option><option>Ranger</option><option>Rogue</option><option>Sorcerer</option><option>Warlock</option><option>Wizard</option><option>Other</option></select></div>
@@ -908,6 +925,27 @@
         <div id="monster-popup" style="display:none;position:absolute;z-index:60;background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r-lg);padding:.6rem;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,.6);"></div>
       </div>
     </div>
+
+    <!-- Notes panel (right side) -->
+    <div class="notes-panel">
+      <div class="map-sidebar-section">Session Notes</div>
+      <textarea id="map-notes" placeholder="Session notes, loot, NPC names, reminders..." oninput="saveMapNotes()" style="min-height:100px;"></textarea>
+
+      <div class="map-sidebar-section" style="margin-top:.4rem;">Spell Lookup</div>
+      <input type="text" placeholder="Search spells..." oninput="onSpellSearch(event)" style="width:100%;font-size:.68rem;padding:4px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);box-sizing:border-box;">
+      <div id="spell-search-results" style="max-height:150px;overflow-y:auto;"></div>
+
+      <div class="map-sidebar-section" style="margin-top:.4rem;">Conditions</div>
+      <div id="condition-ref-list" style="max-height:120px;overflow-y:auto;"></div>
+
+      <div class="map-sidebar-section" style="margin-top:.4rem;">Quick Reference</div>
+      <div style="font-size:.58rem;color:var(--text4);line-height:1.5;">
+        <div><strong style="color:var(--text3);">Cover:</strong> Half +2 AC, 3/4 +5 AC, Full untargetable</div>
+        <div><strong style="color:var(--text3);">Actions:</strong> Attack, Cast, Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use Object</div>
+        <div><strong style="color:var(--text3);">Bonus:</strong> Offhand attack, some spells, class features</div>
+        <div><strong style="color:var(--text3);">Reaction:</strong> Opportunity attack, some spells, readied action</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -965,6 +1003,7 @@
 <script src="fog.js"></script>
 <script src="monsters.js"></script>
 <script src="combat.js"></script>
+<script src="spells.js"></script>
 <script src="map.js"></script>
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────
@@ -1202,6 +1241,7 @@ function resetCharForm(){
 }
 function fillCharForm(c){
   ['name','player','icon','class','subclass','level','race','background','alignment','xp','languages','imageUrl'].forEach(f=>sv('f-'+f,c[f]));
+  previewCharImage();
   ABS.forEach(a=>sv('f-'+a,c[a]||10));
   sv('f-passive',c.passive||10);sv('f-inspiration',c.inspiration||0);
   sv('f-maxhp',c.maxHp||8);sv('f-curhp',c.currentHp||8);sv('f-temphp',c.tempHp||0);
@@ -1216,6 +1256,28 @@ function updateAbMod(ab){const s=parseInt(document.getElementById('f-'+ab)?.valu
 function updateProfBonus(){const lvl=parseInt(document.getElementById('f-level')?.value)||1;const el=document.getElementById('prof-display');if(el)el.textContent=fmtMod(profBonus(lvl));updateAllSkills();}
 function updateSkillBonus(key,ab){const s=parseInt(document.getElementById('f-'+ab)?.value)||10;const lvl=parseInt(document.getElementById('f-level')?.value)||1;const ch=document.getElementById('skill-'+key)?.checked;const el=document.getElementById('sbonus-'+key);if(el)el.textContent=fmtMod(abMod(s)+(ch?profBonus(lvl):0));}
 function updateAllSkills(){SKILLS.forEach(s=>updateSkillBonus(s.key,s.ab));}
+function previewCharImage(){
+  const url=document.getElementById('f-imageUrl').value.trim();
+  const wrap=document.getElementById('char-img-preview');
+  const img=document.getElementById('char-img-preview-img');
+  if(url){img.src=url;img.onerror=()=>{wrap.style.display='none';};img.onload=()=>{wrap.style.display='flex';};wrap.style.display='flex';}
+  else{wrap.style.display='none';}
+}
+function handleCharImageUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  if(file.size>2*1024*1024){alert('Image too large (max 2 MB).');return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    document.getElementById('f-imageUrl').value=ev.target.result;
+    previewCharImage();
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+function clearCharImage(){
+  document.getElementById('f-imageUrl').value='';
+  document.getElementById('char-img-preview').style.display='none';
+}
 async function submitCharForm(){
   const name=document.getElementById('f-name').value.trim();if(!name){alert('Please enter a character name.');return;}
   const lvl=parseInt(gv('f-level'))||1;
