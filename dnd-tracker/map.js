@@ -149,44 +149,54 @@ function openMapEditor(id) {
   // Header
   document.getElementById('me-name').value = m.name;
 
-  // Load image or video background
+  // Load image (or video background)
   const img = document.getElementById('map-img');
   const mapStage = document.getElementById('map-stage');
+  const _initAll = () => { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); };
 
-  // Remove any previous video background
-  const oldVid = mapStage.querySelector('.map-video-bg');
-  if (oldVid) oldVid.remove();
-  const oldIframe = mapStage.querySelector('.map-iframe-bg');
-  if (oldIframe) oldIframe.remove();
-  img.style.display = '';
+  // Clean up any previous video elements
+  mapStage.querySelectorAll('.map-video-bg,.map-iframe-bg').forEach(el => el.remove());
+  img.style.cssText = '';
 
-  if (m.videoUrl && m.videoUrl.includes('youtube.com/embed')) {
-    // YouTube iframe background
-    img.style.display = 'none';
-    const iframe = document.createElement('iframe');
-    iframe.className = 'map-iframe-bg';
-    iframe.src = m.videoUrl;
-    iframe.allow = 'autoplay; encrypted-media';
-    iframe.frameBorder = '0';
-    iframe.style.cssText = 'width:100%;height:600px;display:block;pointer-events:none;border:none;';
-    mapStage.insertBefore(iframe, mapStage.firstChild);
-    // Use thumbnail as fallback for fog/tokens sizing
-    if (m.imageUrl) { img.src = m.imageUrl; img.style.cssText = 'position:absolute;opacity:0;pointer-events:none;width:100%;'; }
-    setTimeout(() => { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); }, 500);
-  } else if (m.videoUrl) {
-    // Direct video file background
-    img.style.display = 'none';
-    const vid = document.createElement('video');
-    vid.className = 'map-video-bg';
-    vid.src = m.videoUrl;
-    vid.autoplay = true; vid.muted = true; vid.loop = true; vid.playsInline = true;
-    vid.style.cssText = 'display:block;width:100%;height:auto;pointer-events:none;';
-    mapStage.insertBefore(vid, mapStage.firstChild);
-    vid.onloadeddata = () => { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); };
+  if (m.videoUrl) {
+    // Video map: use the image as the sizing layer (invisible or semi-transparent)
+    // and overlay the video behind it
+    if (m.videoUrl.includes('youtube.com/embed')) {
+      // YouTube: use thumbnail as the map image for sizing, iframe behind
+      img.src = m.imageUrl || '';
+      const iframe = document.createElement('iframe');
+      iframe.className = 'map-iframe-bg';
+      iframe.src = m.videoUrl;
+      iframe.allow = 'autoplay; encrypted-media';
+      iframe.frameBorder = '0';
+      iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border:none;z-index:0;';
+      mapStage.insertBefore(iframe, img);
+      img.style.cssText = 'position:relative;z-index:1;width:100%;display:block;opacity:0;';
+      img.onload = _initAll;
+    } else {
+      // Direct video: create video element, use a poster frame or first frame for sizing
+      const vid = document.createElement('video');
+      vid.className = 'map-video-bg';
+      vid.src = m.videoUrl;
+      vid.autoplay = true; vid.muted = true; vid.loop = true; vid.playsInline = true;
+      vid.style.cssText = 'display:block;width:100%;height:auto;pointer-events:none;position:relative;z-index:1;';
+      mapStage.insertBefore(vid, img);
+      img.style.display = 'none';
+      // Fog and tokens overlay on the video
+      vid.onloadeddata = () => {
+        // Size fog canvas to video
+        const fogCanvas = document.getElementById('fog-canvas');
+        if (fogCanvas) { fogCanvas.style.cssText = 'position:absolute;top:0;left:0;width:' + vid.offsetWidth + 'px;height:' + vid.offsetHeight + 'px;z-index:2;pointer-events:none;'; }
+        const overlay = document.getElementById('token-overlay');
+        if (overlay) { overlay.style.cssText = 'position:absolute;top:0;left:0;width:' + vid.offsetWidth + 'px;height:' + vid.offsetHeight + 'px;z-index:3;pointer-events:none;'; }
+        _initAll();
+      };
+    }
   } else {
+    // Normal image map
     img.src = m.imageData || m.imageUrl || '';
-    img.onload = () => { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); };
-    if (img.complete && img.naturalWidth) { renderTokensOnMap(); initFogSystem(m); if (typeof renderInitiativeBar === 'function') renderInitiativeBar(); }
+    img.onload = _initAll;
+    if (img.complete && img.naturalWidth) _initAll();
   }
 
   // Sidebar + scenarios
@@ -279,8 +289,8 @@ function mapStageClick(e) {
   // Hide monster popup on map click
   if (typeof hideMonsterPopup === 'function') hideMonsterPopup();
 
-  const img = document.getElementById('map-img');
-  if (!img || !img.naturalWidth) return;
+  const mapEl = getMapElement();
+  if (!mapEl || !mapEl.offsetWidth) return;
 
   const m = maps.find(x => x.id === currentMapId);
   if (!m) return;
@@ -310,9 +320,18 @@ function mapStageClick(e) {
   setPlacingMode(null);
 }
 
-function getPosOnImg(e) {
+function getMapElement() {
+  // Return the visible map element (image or video)
   const img = document.getElementById('map-img');
-  const r = img.getBoundingClientRect();
+  if (img && img.style.display !== 'none' && img.offsetWidth > 0) return img;
+  const vid = document.querySelector('.map-video-bg');
+  if (vid) return vid;
+  return img; // fallback
+}
+
+function getPosOnImg(e) {
+  const el = getMapElement();
+  const r = el.getBoundingClientRect();
   return {
     x: Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100)),
     y: Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100))
