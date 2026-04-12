@@ -1065,8 +1065,8 @@
     <div class="map-sidebar-section" style="margin-bottom:.5rem;">Image</div>
 
     <div class="field" style="margin-bottom:.3rem;">
-      <label>Paste an image URL</label>
-      <input id="nm-url" type="text" placeholder="https://example.com/map.jpg" oninput="handleNmUrl()">
+      <label>Paste an image, video, or YouTube URL</label>
+      <input id="nm-url" type="text" placeholder="Image URL, .mp4/.webm, or YouTube link" oninput="handleNmUrl()">
     </div>
 
     <div class="nm-or">or upload a file</div>
@@ -1819,14 +1819,11 @@ function stopPlayerPoll() {
 // ── INIT ───────────────────────────────────────────────────
 function toggleAmbient(){
   const bg=document.getElementById('ambient-bg');
-  const vid=bg.querySelector('video');
   if(bg.classList.contains('active')){
     bg.classList.remove('active');
-    vid.pause();
-    document.body.style.background='var(--bg)';
+    document.body.style.background='';
   } else {
     bg.classList.add('active');
-    vid.play();
     document.body.style.background='#0a0908';
   }
 }
@@ -1855,8 +1852,8 @@ async function init(){
 }
 init();
 </script>
-<div id="ambient-bg"><video muted loop playsinline preload="none"><source src="assets/bg-ambience.webm" type="video/webm"></video></div>
-<button class="ambient-toggle" onclick="toggleAmbient()" title="Toggle ambient background">🌊</button>
+<div id="ambient-bg"><img src="assets/bg-forest.jpg" alt="" loading="lazy"></div>
+<button class="ambient-toggle" onclick="toggleAmbient()" title="Toggle ambient background">🌲</button>
 <div id="player-fullscreen" class="player-fullscreen" style="display:none;" onclick="if(event.target===this)closePlayerFullscreen()"></div>
 </body>
 </html>
