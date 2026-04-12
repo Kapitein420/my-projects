@@ -105,6 +105,20 @@ const DB = {
     return true;
   },
 
+  async checkTables(tables) {
+    if (!this.isCloud) return {};
+    const results = {};
+    for (const t of tables) {
+      try {
+        await this._req('/' + t + '?limit=1');
+        results[t] = true;
+      } catch(e) {
+        results[t] = false;
+      }
+    }
+    return results;
+  },
+
   async migrate(tables) {
     const results = {};
     for (const { name, key } of tables) {
