@@ -81,12 +81,12 @@ function showCombatSetup() {
   if (!overlay) return;
 
   const listHtml = entries.map((e, i) => {
-    const typeTag = e.type === 'monster' ? '<span style="color:#8a2020;font-size:.6rem;">MON</span>' : '<span style="color:var(--glow);font-size:.6rem;">PC</span>';
+    const typeTag = e.type === 'monster' ? '<span style="color:#8a2020;font-size:.6rem;">MON</span>' : '<span style="color:#c8a45a;font-size:.6rem;">PC</span>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);" data-entry-idx="' + i + '">' +
       '<div style="width:28px;text-align:center;">' + typeTag + '</div>' +
-      '<div style="flex:1;font-size:.8rem;color:var(--text);">' + e.name + '</div>' +
-      '<div style="font-size:.6rem;color:var(--text4);">d20(' + e.roll + ') + ' + (e.mod >= 0 ? '+' : '') + e.mod + ' =</div>' +
-      '<input type="number" value="' + e.initiative + '" style="width:45px;text-align:center;font-size:.85rem;font-weight:600;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:var(--text);padding:3px;" onchange="combatSetupUpdateInit(' + i + ',this.value)">' +
+      '<div style="flex:1;font-size:.8rem;color:#e0d4c0;">' + e.name + '</div>' +
+      '<div style="font-size:.6rem;color:#4a3e30;">d20(' + e.roll + ') + ' + (e.mod >= 0 ? '+' : '') + e.mod + ' =</div>' +
+      '<input type="number" value="' + e.initiative + '" style="width:45px;text-align:center;font-size:.85rem;font-weight:600;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);color:#e0d4c0;padding:3px;" onchange="combatSetupUpdateInit(' + i + ',this.value)">' +
     '</div>';
   }).join('');
 
@@ -246,22 +246,22 @@ function renderInitiativeBar() {
       if (c && c.currentHp <= 0) isDead = true;
     }
 
-    const borderColor = isActive ? 'var(--glow)' : isDead ? '#333' : isMon ? '#8a2020' : 'var(--border2)';
-    const bgColor = isActive ? 'var(--glow-bg)' : isDead ? 'rgba(0,0,0,.3)' : 'var(--bg-card)';
-    const textColor = isDead ? 'var(--text4)' : 'var(--text)';
+    const borderColor = isActive ? '#c8a45a' : isDead ? '#333' : isMon ? '#8a2020' : '#3a2e22';
+    const bgColor = isActive ? '#1a1408' : isDead ? 'rgba(0,0,0,.3)' : '#15120f';
+    const textColor = isDead ? '#4a3e30' : '#e0d4c0';
     const decoration = isDead ? 'line-through' : 'none';
 
     entriesHtml += '<div style="display:flex;flex-direction:column;align-items:center;padding:4px 10px;border:1.5px solid ' + borderColor + ';border-radius:var(--r);background:' + bgColor + ';min-width:55px;flex-shrink:0;">' +
-      '<div style="font-size:.65rem;font-weight:600;color:' + (isActive ? 'var(--glow)' : 'var(--text3)') + ';">' + e.initiative + '</div>' +
+      '<div style="font-size:.65rem;font-weight:600;color:' + (isActive ? '#c8a45a' : '#685848') + ';">' + e.initiative + '</div>' +
       '<div style="font-size:.7rem;color:' + textColor + ';text-decoration:' + decoration + ';white-space:nowrap;max-width:70px;overflow:hidden;text-overflow:ellipsis;" title="' + e.name + '">' + e.name + '</div>' +
-      '<div style="font-size:.5rem;color:' + (isMon ? '#8a2020' : 'var(--glow-d)') + ';">' + (isMon ? 'MON' : 'PC') + '</div>' +
+      '<div style="font-size:.5rem;color:' + (isMon ? '#8a2020' : '#8a6a30') + ';">' + (isMon ? 'MON' : 'PC') + '</div>' +
     '</div>';
   }
 
   bar.innerHTML =
     '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
-      '<div style="font-family:var(--font-display);font-size:.65rem;color:var(--glow-d);text-transform:uppercase;letter-spacing:.08em;">Round ' + combat.round + '</div>' +
-      '<div style="font-size:.75rem;color:var(--text);font-weight:500;">' + (current ? current.name : '') + '</div>' +
+      '<div style="font-family:var(--font-display);font-size:.65rem;color:#8a6a30;text-transform:uppercase;letter-spacing:.08em;">Round ' + combat.round + '</div>' +
+      '<div style="font-size:.75rem;color:#e0d4c0;font-weight:500;">' + (current ? current.name : '') + '</div>' +
     '</div>' +
     '<div style="display:flex;gap:5px;overflow-x:auto;flex:1;padding:4px 0;">' + entriesHtml + '</div>' +
     '<div style="display:flex;gap:4px;flex-shrink:0;">' +
