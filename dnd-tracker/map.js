@@ -150,6 +150,11 @@ function openMapEditor(id) {
   if (typeof renderMonsterSidebar === 'function') renderMonsterSidebar();
   if (typeof renderMonsterSearchResults === 'function') renderMonsterSearchResults('');
   renderScenarioSelect();
+  // Load notes
+  const notesEl = document.getElementById('map-notes');
+  if (notesEl) notesEl.value = m.notes || '';
+  // Render condition reference
+  if (typeof renderConditionRef === 'function') renderConditionRef();
   setPlacingMode(null);
   if (typeof clearMonsterPlacing === 'function') clearMonsterPlacing();
 }
@@ -485,6 +490,18 @@ async function deleteScenario() {
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
+let _notesTimeout = null;
+function saveMapNotes() {
+  clearTimeout(_notesTimeout);
+  _notesTimeout = setTimeout(() => {
+    const m = maps.find(x => x.id === currentMapId);
+    if (!m) return;
+    m.notes = document.getElementById('map-notes')?.value || '';
+    m.updatedAt = Date.now();
+    saveCurrentMap();
+  }, 800);
+}
+
 async function saveCurrentMap() {
   const m = maps.find(x => x.id === currentMapId);
   if (!m) return;
