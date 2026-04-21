@@ -258,6 +258,252 @@ table.rank-table .col-score { text-align: right; font-family: var(--font-mono); 
   .add-form .row { grid-template-columns: 1fr; }
   .dim { grid-template-columns: 7rem 2.5rem 1fr; }
 }
+
+/* ── Explainer ───────────────────────────────────────────── */
+.explainer {
+  background: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-lg);
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.explainer > summary {
+  padding: 1rem 1.5rem;
+  font-family: var(--font-display);
+  font-size: .95rem;
+  letter-spacing: .04em;
+  color: var(--text);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.explainer > summary::-webkit-details-marker { display: none; }
+.explainer > summary::after {
+  content: '▸';
+  color: var(--text3);
+  font-size: .8rem;
+  transition: transform .2s;
+}
+.explainer[open] > summary::after { transform: rotate(90deg); }
+.explainer > summary .summary-hint {
+  font-family: var(--font-body);
+  font-size: .8rem;
+  color: var(--text3);
+  font-style: italic;
+  font-weight: normal;
+  margin-left: .5rem;
+}
+.explainer-body { padding: 0 1.5rem 1.5rem; border-top: 1px solid var(--border-light); }
+.explainer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+.explainer-grid > div {
+  background: var(--bg-light2);
+  padding: 1rem;
+  border-radius: var(--r);
+  border: 1px solid var(--border-light);
+}
+.explainer h4 {
+  font-family: var(--font-display);
+  font-size: .85rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text2);
+  margin: 1.25rem 0 .5rem;
+}
+.explainer p {
+  font-family: var(--font-body);
+  font-size: .9rem;
+  color: var(--text2);
+  line-height: 1.5;
+}
+.explainer strong { color: var(--text); }
+.dim-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: .6rem .9rem;
+  margin-bottom: .5rem;
+}
+.dim-legend .dle {
+  font-family: var(--font-body);
+  font-size: .85rem;
+  color: var(--text2);
+  line-height: 1.45;
+}
+.dim-legend .dle strong { color: var(--text); display: block; font-family: var(--font-display); font-size: .82rem; letter-spacing: .02em; }
+.color-legend { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; font-family: var(--font-body); font-size: .85rem; color: var(--text2); }
+.color-legend .score-pill { margin-right: .25rem; }
+
+/* ── Compare selection ───────────────────────────────────── */
+.col-select { width: 2.5rem; }
+.row-checkbox {
+  width: 16px; height: 16px;
+  border-radius: 3px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-light2);
+  cursor: pointer;
+  appearance: none;
+  position: relative;
+}
+.row-checkbox:checked {
+  background: var(--glow);
+  border-color: var(--glow);
+}
+.row-checkbox:checked::after {
+  content: '✓';
+  position: absolute; top: -2px; left: 2px;
+  color: #1e1810; font-size: 12px; font-weight: bold;
+}
+.row-checkbox:disabled { opacity: .35; cursor: not-allowed; }
+
+.compare-bar {
+  display: none;
+  align-items: center; gap: .75rem;
+  padding: .6rem 1rem;
+  background: var(--glow-bg);
+  border: 1px solid var(--glow);
+  border-radius: var(--r);
+  margin-bottom: 1rem;
+  font-family: var(--font-body);
+  font-size: .9rem;
+  color: var(--text);
+}
+.compare-bar.visible { display: flex; }
+.compare-bar .count { font-family: var(--font-display); font-weight: 600; color: var(--glow-d); }
+.compare-bar .pills { display: flex; flex-wrap: wrap; gap: .35rem; }
+.compare-bar .spacer { flex: 1; }
+.compare-bar .pill-chip {
+  background: var(--bg-light); border: 1px solid var(--border-light);
+  padding: .2rem .55rem; border-radius: 999px;
+  font-size: .8rem; color: var(--text2);
+}
+
+/* ── Cohort delta badges ─────────────────────────────────── */
+.delta {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  padding: .1rem .4rem;
+  border-radius: 3px;
+  margin-left: .35rem;
+  vertical-align: middle;
+  letter-spacing: -.02em;
+}
+.delta.up { background: #dceed6; color: #3a6b2a; }
+.delta.down { background: #f5dcd0; color: #8b3a18; }
+.delta.neutral { background: var(--bg-light2); color: var(--text3); }
+
+/* ── Compare view ────────────────────────────────────────── */
+.compare-view {
+  background: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.compare-view header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.compare-view header h2 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--text);
+  letter-spacing: .03em;
+}
+.cv-heads {
+  display: grid;
+  grid-template-columns: 14rem 1fr 1fr;
+  gap: 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.cv-heads > div {
+  padding: 1rem 1.25rem;
+  font-family: var(--font-display);
+  font-size: .78rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.cv-heads .b-name {
+  font-family: var(--font-display);
+  font-size: .95rem;
+  letter-spacing: .02em;
+  text-transform: none;
+  color: var(--text);
+  font-weight: 600;
+  border-left: 1px solid var(--border-light);
+}
+.cv-heads .b-name .u {
+  display: block; font-size: .72rem; color: var(--text3); font-family: var(--font-mono); margin-top: .1rem;
+}
+.cv-row {
+  display: grid;
+  grid-template-columns: 14rem 1fr 1fr;
+  gap: 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.cv-row:last-child { border-bottom: none; }
+.cv-row .cv-dim {
+  padding: .9rem 1.25rem;
+  font-family: var(--font-body);
+  color: var(--text2);
+  font-size: .9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  cursor: help;
+}
+.cv-row .cv-score-cell {
+  padding: .7rem 1.25rem;
+  border-left: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.cv-row .cv-score-cell.win {
+  background: linear-gradient(90deg, var(--glow-bg), transparent);
+}
+.cv-row .cv-score-num {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+  width: 2.6rem;
+}
+.cv-row .cv-bar {
+  flex: 1;
+  background: var(--bg-light2);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  position: relative;
+}
+.cv-row .cv-bar-fill { height: 100%; transition: width .3s; }
+.cv-row .cv-score-cell.win .cv-score-num::after {
+  content: '★';
+  color: var(--glow-d);
+  font-size: .8rem;
+  margin-left: .25rem;
+}
+.cv-row.tier-top { background: rgba(200,176,112,.04); }
+.cv-row.tier-top .cv-dim { color: var(--text); font-family: var(--font-display); letter-spacing: .02em; font-size: .85rem; text-transform: uppercase; }
+.cv-row.tier-top .cv-score-num { font-size: 1.6rem; }
+
+@media (max-width: 720px) {
+  .cv-heads, .cv-row { grid-template-columns: 10rem 1fr 1fr; }
+  .compare-bar { flex-wrap: wrap; }
+}
 </style>
 </head>
 <body>
@@ -273,6 +519,42 @@ table.rank-table .col-score { text-align: right; font-family: var(--font-mono); 
       <button class="action" id="btn-refresh">Refresh</button>
     </div>
   </header>
+
+  <details class="explainer" id="explainer">
+    <summary>How we score <span class="summary-hint">click to expand — good for a first read</span></summary>
+    <div class="explainer-body">
+      <div class="explainer-grid">
+        <div>
+          <h4 style="margin-top:0">Composite score</h4>
+          <p><strong>Composite = 0.4 × rule + 0.6 × AI</strong>. The single number you sort and compare on. Range 0–100.</p>
+        </div>
+        <div>
+          <h4 style="margin-top:0">Rule score (0–100)</h4>
+          <p>Automatic technical checks on the landing page's HTML: HTTPS, Open Graph tags, schema.org markup, language tags, CTA copy like "Plan een bezichtiging", image alt text, contact links, word count.</p>
+        </div>
+        <div>
+          <h4 style="margin-top:0">AI score (0–100)</h4>
+          <p>A senior-reviewer judgement on 8 dimensions, averaged to 100. <strong>5/10 = Amsterdam market average.</strong> 8+ is rare. 2 or below = visibly broken or empty.</p>
+        </div>
+      </div>
+
+      <h4>What each AI dimension measures</h4>
+      <div class="dim-legend" id="dim-legend"></div>
+
+      <h4>Score colours (composite)</h4>
+      <div class="color-legend">
+        <span class="score-pill s-90">90+</span> Excellent
+        <span class="score-pill s-75">75</span> Strong
+        <span class="score-pill s-60">60</span> OK
+        <span class="score-pill s-40">40</span> Weak
+        <span class="score-pill s-0">0</span> Poor
+        <span class="score-pill s-na">—</span> Not yet scored
+      </div>
+
+      <h4>Cohort comparison</h4>
+      <p>Every score shows its delta vs the Zuidoost average for that dimension (<span class="delta up">+1.5</span> means this building beats peers by 1.5 points; <span class="delta down">−2.0</span> means it trails). Needs ≥ 2 scored buildings before the averages are meaningful.</p>
+    </div>
+  </details>
 
   <div class="kpis">
     <div class="kpi">
@@ -295,7 +577,15 @@ table.rank-table .col-score { text-align: right; font-family: var(--font-mono); 
     </div>
   </div>
 
-  <section class="rankings">
+  <div class="compare-bar" id="compare-bar">
+    <span class="count" id="compare-count">0 selected</span>
+    <div class="pills" id="compare-pills"></div>
+    <span class="spacer"></span>
+    <button class="action" id="btn-clear-compare">Clear</button>
+    <button class="action primary" id="btn-compare" disabled>Compare →</button>
+  </div>
+
+  <section class="rankings" id="rankings-section">
     <header>
       <h2>Marketing leaderboard</h2>
       <div class="filter-row">
@@ -309,6 +599,14 @@ table.rank-table .col-score { text-align: right; font-family: var(--font-mono); 
       </div>
     </header>
     <div id="rank-body"><div class="empty"><p>Loading…</p></div></div>
+  </section>
+
+  <section class="compare-view" id="compare-view" hidden>
+    <header>
+      <h2 id="compare-title">Compare</h2>
+      <button class="action" id="btn-back-to-list">← Back to leaderboard</button>
+    </header>
+    <div id="compare-body"></div>
   </section>
 
   <section class="add-form">

@@ -25,7 +25,18 @@
    ============================================================ */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { ZUIDOOST_SEEDS } from './seeds.js';
+
+// Inlined here because seeds.js is browser-style (sets window.*) and not ESM.
+const ZUIDOOST_SEEDS = [
+  { name: 'Atlas ArenA',                address: 'Hoogoorddreef 7',            postcode: '1101 BA', url: 'https://atlasarena.nl' },
+  { name: 'EQ Amsterdam',               address: 'Hoogoorddreef 60',           postcode: '1101 BE', url: 'https://eq-amsterdam.com' },
+  { name: 'ArenAPoort',                 address: 'Burgemeester Stramanweg 101', postcode: '1101 AA', url: '' },
+  { name: 'ING House (Amsterdamse Poort)', address: 'Bijlmerplein 888',        postcode: '1102 MG', url: '' },
+  { name: 'The Edge Olympic',           address: 'Fred. Roeskestraat 100',      postcode: '1076 ED', url: 'https://www.edge.tech' },
+  { name: 'Vivaldi Tower',              address: 'Gustav Mahlerlaan 1212',      postcode: '1082 MK', url: '' },
+  { name: 'Frankemaheerd Cluster',      address: 'Frankemaheerd 1',            postcode: '1102 AN', url: '' },
+  { name: 'Sandberg Plein',             address: 'Sandberg Plein 5',           postcode: '1102 AS', url: '' },
+];
 
 // --- Supabase config (matches shared/db.js) ---
 const SUPABASE_URL = process.env.SUPABASE_URL ||
