@@ -1,0 +1,14 @@
+{
+  "name": "marketing-analyzer-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local CLI that scores Amsterdam Zuidoost office-building landing pages and writes results to Supabase. The dashboard (index.html) reads them.",
+  "type": "module",
+  "scripts": {
+    "analyze": "node analyze.mjs",
+    "seed": "node analyze.mjs --seed"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0"
+  }
+}

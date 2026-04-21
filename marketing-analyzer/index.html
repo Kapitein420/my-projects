@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DILS Marketing Analyzer — Zuidoost</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/styles.css">
+<style>
+/* ── Marketing Analyzer specific ─────────────────────────────── */
+.shell { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+header.app-header {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.25rem;
+  margin-bottom: 2rem;
+}
+header.app-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  letter-spacing: .04em;
+  color: var(--text);
+}
+header.app-header .sub {
+  font-family: var(--font-body);
+  color: var(--text2);
+  font-size: 1rem;
+  font-style: italic;
+}
+header.app-header .right { margin-left: auto; display: flex; gap: 0.5rem; }
+
+button.action {
+  font-family: var(--font-display);
+  letter-spacing: .04em;
+  font-size: .85rem;
+  background: var(--bg-light);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: .55rem 1rem;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: all .15s;
+}
+button.action:hover { background: var(--glow-bg); border-color: var(--glow); color: var(--glow-d); }
+button.action.primary { background: var(--glow-d); color: #fff; border-color: var(--glow-d); }
+button.action.primary:hover { background: var(--glow); border-color: var(--glow); color: #1e1810; }
+
+/* KPI row */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.kpi {
+  background: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-lg);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+.kpi-label {
+  font-family: var(--font-display);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .15em;
+  color: var(--text3);
+  margin-bottom: .35rem;
+}
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--text);
+  font-weight: 600;
+}
+.kpi-value.gold { color: var(--glow-d); }
+.kpi-sub { font-size: .8rem; color: var(--text3); margin-top: .25rem; }
+
+/* Rankings table */
+.rankings {
+  background: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.rankings header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-light);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.rankings header h2 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--text);
+  letter-spacing: .03em;
+}
+.rankings header .filter-row { display: flex; gap: .5rem; }
+.rankings header select {
+  font-family: var(--font-body);
+  border: 1px solid var(--border);
+  background: var(--bg-light2);
+  color: var(--text);
+  padding: .35rem .6rem;
+  border-radius: var(--r);
+  font-size: .85rem;
+  cursor: pointer;
+}
+
+table.rank-table { width: 100%; border-collapse: collapse; font-family: var(--font-body); }
+table.rank-table thead th {
+  text-align: left; padding: .8rem 1.5rem;
+  font-family: var(--font-display);
+  font-size: .72rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--text3);
+  background: var(--bg-light2);
+  border-bottom: 1px solid var(--border-light);
+}
+table.rank-table tbody tr { border-bottom: 1px solid var(--border-light); cursor: pointer; transition: background .15s; }
+table.rank-table tbody tr:hover { background: var(--glow-bg); }
+table.rank-table tbody tr:last-child { border-bottom: none; }
+table.rank-table td { padding: .85rem 1.5rem; font-size: .95rem; color: var(--text); vertical-align: middle; }
+table.rank-table .col-rank { font-family: var(--font-mono); color: var(--text3); width: 3rem; }
+table.rank-table .col-name { font-weight: 600; }
+table.rank-table .col-name .url { display: block; font-size: .75rem; color: var(--text3); font-family: var(--font-mono); margin-top: .15rem; }
+table.rank-table .col-score { text-align: right; font-family: var(--font-mono); width: 7rem; }
+
+.score-pill {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  padding: .25rem .65rem;
+  border-radius: 999px;
+  font-size: .9rem;
+  min-width: 2.6rem;
+  text-align: center;
+}
+.score-pill.s-90 { background: #d8e8d4; color: #2f5d22; }
+.score-pill.s-75 { background: #e0e8c8; color: #4a5d22; }
+.score-pill.s-60 { background: #f5e8c4; color: #6b5018; }
+.score-pill.s-40 { background: #f5d8b4; color: #8b4d18; }
+.score-pill.s-0  { background: #f0c8c0; color: #8b2818; }
+.score-pill.s-na { background: var(--bg-light2); color: var(--text3); }
+
+/* Empty state */
+.empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--text3);
+  font-family: var(--font-body);
+}
+.empty p { margin-bottom: 1rem; }
+
+/* Drawer (building detail) */
+.drawer-bg { position: fixed; inset: 0; background: rgba(20,15,8,.45); z-index: 100; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.drawer-bg.open { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed; right: 0; top: 0; bottom: 0; width: min(620px, 95vw);
+  background: var(--bg-light); z-index: 101;
+  transform: translateX(100%);
+  transition: transform .25s;
+  overflow-y: auto;
+  box-shadow: -8px 0 30px rgba(40,30,15,.2);
+  border-left: 1px solid var(--border);
+}
+.drawer.open { transform: translateX(0); }
+.drawer-head {
+  position: sticky; top: 0; background: var(--bg-light);
+  border-bottom: 1px solid var(--border-light);
+  padding: 1.25rem 1.5rem;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.drawer-head h2 { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); }
+.drawer-head .meta { font-size: .85rem; color: var(--text3); margin-top: .2rem; }
+.drawer-head .meta a { color: var(--glow-d); text-decoration: none; }
+.drawer-head .meta a:hover { text-decoration: underline; }
+.drawer-head .close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text3); padding: 0 .25rem; }
+.drawer-body { padding: 1.5rem; }
+
+.score-hero {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;
+  background: var(--bg-light2);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-lg);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.score-hero .b {
+  text-align: center;
+}
+.score-hero .b-label { font-family: var(--font-display); font-size: .7rem; letter-spacing: .15em; text-transform: uppercase; color: var(--text3); }
+.score-hero .b-value { font-family: var(--font-display); font-size: 2.4rem; font-weight: 600; margin-top: .15rem; }
+.score-hero .b.composite .b-value { color: var(--glow-d); }
+
+.dim-list { display: flex; flex-direction: column; gap: .55rem; margin-top: .75rem; }
+.dim {
+  display: grid; grid-template-columns: 9rem 3rem 1fr;
+  align-items: center; gap: .6rem;
+  font-family: var(--font-body);
+  font-size: .9rem;
+}
+.dim .dim-name { color: var(--text2); text-transform: capitalize; }
+.dim .dim-score { font-family: var(--font-mono); color: var(--text); font-weight: 600; text-align: right; }
+.dim .dim-bar { background: var(--bg-light2); border-radius: 999px; height: 10px; overflow: hidden; border: 1px solid var(--border-light); }
+.dim .dim-bar-fill { height: 100%; transition: width .3s; }
+.dim .dim-justification { grid-column: 2 / span 2; font-size: .82rem; color: var(--text3); margin-top: .1rem; padding-left: .25rem; font-style: italic; }
+
+.section-title { font-family: var(--font-display); font-size: .9rem; letter-spacing: .12em; text-transform: uppercase; color: var(--text2); margin: 1.5rem 0 .75rem; }
+
+.recs ol { padding-left: 1.25rem; color: var(--text); }
+.recs li { margin-bottom: .5rem; line-height: 1.5; }
+
+/* Add-building inline form */
+.add-form {
+  margin-top: 2rem;
+  background: var(--bg-light);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-lg);
+  padding: 1.25rem 1.5rem;
+}
+.add-form h3 { font-family: var(--font-display); font-size: 1rem; color: var(--text); margin-bottom: .25rem; letter-spacing: .04em; }
+.add-form .hint { font-size: .8rem; color: var(--text3); margin-bottom: .9rem; }
+.add-form .row { display: grid; grid-template-columns: 1.2fr 2fr 1fr auto; gap: .5rem; }
+.add-form input {
+  font-family: var(--font-body);
+  border: 1px solid var(--border);
+  background: var(--bg-light2);
+  padding: .55rem .75rem;
+  border-radius: var(--r);
+  font-size: .9rem;
+  color: var(--text);
+}
+.add-form input:focus { outline: none; border-color: var(--glow); background: #fff; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--text); color: var(--bg-light);
+  padding: .7rem 1.25rem; border-radius: var(--r);
+  font-family: var(--font-body); font-size: .9rem;
+  opacity: 0; pointer-events: none;
+  transition: all .25s;
+  z-index: 200;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: var(--red); }
+
+/* Last-analyzed timestamp pill */
+.scored-at { font-family: var(--font-mono); font-size: .72rem; color: var(--text3); }
+
+@media (max-width: 720px) {
+  .shell { padding: 1rem; }
+  table.rank-table td { padding: .65rem .9rem; font-size: .85rem; }
+  .add-form .row { grid-template-columns: 1fr; }
+  .dim { grid-template-columns: 7rem 2.5rem 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="app-header">
+    <div>
+      <h1>DILS Marketing Analyzer</h1>
+      <div class="sub">Office buildings · Amsterdam Zuidoost · marketing & branding scoring</div>
+    </div>
+    <div class="right">
+      <button class="action" id="btn-load-samples">Load sample buildings</button>
+      <button class="action" id="btn-refresh">Refresh</button>
+    </div>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-label">Buildings tracked</div>
+      <div class="kpi-value" id="kpi-tracked">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Analyzed</div>
+      <div class="kpi-value" id="kpi-analyzed">—</div>
+      <div class="kpi-sub" id="kpi-analyzed-sub"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Avg composite</div>
+      <div class="kpi-value gold" id="kpi-avg">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Top score</div>
+      <div class="kpi-value gold" id="kpi-top">—</div>
+      <div class="kpi-sub" id="kpi-top-sub"></div>
+    </div>
+  </div>
+
+  <section class="rankings">
+    <header>
+      <h2>Marketing leaderboard</h2>
+      <div class="filter-row">
+        <select id="sort-by">
+          <option value="composite">Sort: composite</option>
+          <option value="ai">Sort: AI score</option>
+          <option value="rule">Sort: rule score</option>
+          <option value="name">Sort: name</option>
+          <option value="recent">Sort: most recently scored</option>
+        </select>
+      </div>
+    </header>
+    <div id="rank-body"><div class="empty"><p>Loading…</p></div></div>
+  </section>
+
+  <section class="add-form">
+    <h3>Add a building</h3>
+    <div class="hint">Saves to Supabase. Score with <code>node analyze.mjs</code> from this folder.</div>
+    <form id="add-form">
+      <div class="row">
+        <input type="text" name="name" placeholder="Name (e.g. Atlas ArenA)" required>
+        <input type="url" name="url" placeholder="https://building-website.nl" required>
+        <input type="text" name="address" placeholder="Address (optional)">
+        <button type="submit" class="action primary">Add</button>
+      </div>
+    </form>
+  </section>
+
+</div>
+
+<!-- Drawer -->
+<div class="drawer-bg" id="drawer-bg"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div>
+      <h2 id="d-name">—</h2>
+      <div class="meta" id="d-meta"></div>
+    </div>
+    <button class="close" id="d-close" aria-label="Close">×</button>
+  </div>
+  <div class="drawer-body" id="d-body">
+    <div class="empty"><p>Pick a building.</p></div>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script src="../shared/db.js"></script>
+<script src="seeds.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
