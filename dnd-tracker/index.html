@@ -535,6 +535,19 @@
 @media(max-width:900px){.map-editor-wrap{grid-template-columns:200px 1fr;height:auto;}.notes-panel{display:none;}.map-stage-wrap{min-height:300px;}}
 @media(max-width:680px){.map-editor-wrap{grid-template-columns:1fr;height:auto;}.map-sidebar{max-height:200px;}.map-stage-wrap{min-height:300px;}.fog-toolbar{font-size:.65rem;}.fog-sub-controls input[type=range]{width:50px;}}
 
+/* ── MAXIMIZED MAP MODE ──────────────────────────────────── */
+body.map-maximized .app-nav{display:none;}
+body.map-maximized .app-main{max-width:none;padding:0;margin:0;}
+body.map-maximized .app-main > *:not(#view-map-editor){display:none !important;}
+body.map-maximized #view-map-editor{position:fixed;inset:0;z-index:9000;background:#0a0908;padding:8px;margin:0;overflow:hidden;display:flex;flex-direction:column;}
+body.map-maximized #view-map-editor .map-toolbar{margin-bottom:.4rem;flex-shrink:0;}
+body.map-maximized #view-map-editor .fog-toolbar{flex-shrink:0;}
+body.map-maximized #view-map-editor .initiative-bar{flex-shrink:0;}
+body.map-maximized .map-editor-wrap{grid-template-columns:1fr;height:auto;flex:1;min-height:0;gap:0;}
+body.map-maximized .map-sidebar,
+body.map-maximized .notes-panel{display:none;}
+body.map-maximized .map-stage-wrap{border-radius:0;}
+
 
 /* ── ICON PICKER ─────────────────────────────────────────── */
 .icon-quickpick{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;}
@@ -891,6 +904,7 @@
     <button class="btn btn-sm btn-ghost" id="fog-toggle-btn" onclick="toggleFogEnabled()">🌫 Fog: OFF</button>
     <button class="btn btn-sm btn-ghost" id="combat-start-btn" onclick="showCombatSetup()">⚔ Combat</button>
     <button class="btn btn-sm btn-ghost" onclick="showSessionReport()" title="Generate session report from all combat data">📊 Report</button>
+    <button class="btn btn-sm btn-ghost" id="map-maximize-btn" onclick="toggleMapMaximize()" title="Expand map to fill browser (ESC to exit)">⛶ Fullscreen</button>
     <button class="btn btn-sm btn-ghost" onclick="openPlayerFullscreen()" title="Open fullscreen player view (ESC to close)">📺 Player Screen</button>
     <button class="btn btn-sm btn-ghost" onclick="copyPlayerLink()" title="Copy link for a separate player screen" id="copy-player-link-btn">🔗 Link</button>
     <div style="position:relative;">
@@ -1089,6 +1103,7 @@
 
 </main>
 
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="../shared/db.js"></script>
 <script src="fog.js"></script>
 <script src="campaign-setup.js"></script>
@@ -1732,21 +1747,12 @@ async function openPlayerFullscreen(mapId) {
   const container = document.getElementById('player-fullscreen');
   container.style.display = 'flex';
   container.innerHTML = '';
+  container._pfMapId = id;
 
-  // Round/turn display
-  if (m.combat?.active) {
-    const current = m.combat.entries?.[m.combat.turnIndex];
-    const roundEl = document.createElement('div');
-    roundEl.className = 'pf-round';
-    roundEl.textContent = 'Round ' + m.combat.round;
-    container.appendChild(roundEl);
-    if (current) {
-      const turnEl = document.createElement('div');
-      turnEl.className = 'pf-turn-name';
-      turnEl.textContent = current.name + "'s Turn";
-      container.appendChild(turnEl);
-    }
-  }
+  // Header wrapper (round/turn text, rebuilt on each refresh)
+  const header = document.createElement('div');
+  header.id = 'pf-header';
+  container.appendChild(header);
 
   // Stage — use inline-block so it sizes to the image
   const stage = document.createElement('div');
@@ -1781,13 +1787,58 @@ async function openPlayerFullscreen(mapId) {
     fogCanvas.style.cssText = 'position:absolute;top:0;left:0;width:' + iw + 'px;height:' + ih + 'px;pointer-events:none;';
     overlay.style.cssText = 'position:absolute;top:0;left:0;width:' + iw + 'px;height:' + ih + 'px;pointer-events:none;';
 
-    if (m.fog?.enabled) renderPlayerFog(fogCanvas, m);
-    renderPlayerTokens(overlay, m, {clientWidth: iw, clientHeight: ih});
+    refreshPlayerFullscreen(id);
   };
 
   // ESC to close
   container._escHandler = (e) => { if (e.key === 'Escape') closePlayerFullscreen(); };
   document.addEventListener('keydown', container._escHandler);
+
+  // Start live sync (realtime with polling fallback)
+  startPlayerRealtime(id);
+}
+
+// Refresh dynamic parts of the player view without rebuilding the image
+function refreshPlayerFullscreen(mapId) {
+  const container = document.getElementById('player-fullscreen');
+  if (!container || container.style.display !== 'flex') return;
+  const id = mapId || container._pfMapId;
+  if (!id) return;
+  const m = maps.find(x => x.id === id);
+  if (!m) return;
+
+  // Rebuild round/turn header
+  const header = document.getElementById('pf-header');
+  if (header) {
+    header.innerHTML = '';
+    if (m.combat?.active) {
+      const roundEl = document.createElement('div');
+      roundEl.className = 'pf-round';
+      roundEl.textContent = 'Round ' + m.combat.round;
+      header.appendChild(roundEl);
+      const current = m.combat.entries?.[m.combat.turnIndex];
+      if (current) {
+        const turnEl = document.createElement('div');
+        turnEl.className = 'pf-turn-name';
+        turnEl.textContent = current.name + "'s Turn";
+        header.appendChild(turnEl);
+      }
+    }
+  }
+
+  // Update fog + tokens (skip if image not yet sized)
+  const img = container.querySelector('.pf-img');
+  const fogCanvas = document.getElementById('pf-fog');
+  const overlay = container.querySelector('.pf-overlay');
+  if (!img || !fogCanvas || !overlay) return;
+  const iw = img.offsetWidth || img.clientWidth;
+  const ih = img.offsetHeight || img.clientHeight;
+  if (!iw || !ih) return;
+
+  const ctx = fogCanvas.getContext('2d');
+  ctx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
+  if (m.fog?.enabled) renderPlayerFog(fogCanvas, m);
+  renderPlayerTokens(overlay, m, {clientWidth: iw, clientHeight: ih});
 }
 
 function renderPlayerFog(canvas, m) {
@@ -1928,26 +1979,248 @@ function copyPlayerLink() {
 function closePlayerFullscreen() {
   const container = document.getElementById('player-fullscreen');
   if (container._escHandler) document.removeEventListener('keydown', container._escHandler);
+  stopPlayerRealtime();
   container.style.display = 'none';
   container.innerHTML = '';
+  container._pfMapId = null;
 }
 
-// Auto-refresh player view when DM makes changes (poll every 3s)
+// ── LIVE PLAYER-VIEW SYNC ──────────────────────────────────
+// Prefers Supabase Realtime (instant). Falls back to 3s polling
+// if the CDN client is unavailable or the channel fails.
+let _playerRealtimeClient = null;
+let _playerRealtimeChannel = null;
 let _playerPollInterval = null;
+
+function startPlayerRealtime(mapId) {
+  stopPlayerRealtime();
+  if (!DB.isCloud) { startPlayerPoll(mapId); return; }
+  const SB = window.supabase;
+  if (!SB || !SB.createClient) {
+    console.warn('[player-sync] Supabase JS CDN not loaded — using polling fallback');
+    startPlayerPoll(mapId);
+    return;
+  }
+  try {
+    _playerRealtimeClient = SB.createClient(DB.sb.url, DB.sb.key);
+    _playerRealtimeChannel = _playerRealtimeClient
+      .channel('player-view-' + mapId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maps' }, p => {
+        const row = p.new || p.old;
+        const data = row?.data;
+        if (!data || data.id !== mapId) return;
+        const idx = maps.findIndex(x => x.id === mapId);
+        if (p.eventType === 'DELETE') {
+          if (idx >= 0) maps.splice(idx, 1);
+          closePlayerFullscreen();
+          return;
+        }
+        if (idx >= 0) maps[idx] = data; else maps.push(data);
+        refreshPlayerFullscreen(mapId);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'characters' }, p => {
+        const row = p.new || p.old;
+        const data = row?.data;
+        if (!data) return;
+        const idx = characters.findIndex(x => x.id === data.id);
+        if (p.eventType === 'DELETE') {
+          if (idx >= 0) characters.splice(idx, 1);
+        } else if (idx >= 0) {
+          characters[idx] = data;
+        } else {
+          characters.push(data);
+        }
+        refreshPlayerFullscreen(mapId);
+      })
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[player-sync] live via Supabase Realtime');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          console.warn('[player-sync] channel status:', status, '— falling back to polling');
+          stopPlayerRealtime();
+          startPlayerPoll(mapId);
+        }
+      });
+  } catch (e) {
+    console.warn('[player-sync] realtime setup failed:', e, '— falling back to polling');
+    startPlayerPoll(mapId);
+  }
+}
+
+function stopPlayerRealtime() {
+  if (_playerRealtimeChannel) {
+    try { _playerRealtimeChannel.unsubscribe(); } catch(e){}
+    _playerRealtimeChannel = null;
+  }
+  _playerRealtimeClient = null;
+  stopPlayerPoll();
+}
+
 function startPlayerPoll(mapId) {
   stopPlayerPoll();
   _playerPollInterval = setInterval(async () => {
     const container = document.getElementById('player-fullscreen');
-    if (container.style.display !== 'flex') { stopPlayerPoll(); return; }
+    if (!container || container.style.display !== 'flex') { stopPlayerPoll(); return; }
     // Reload map data from DB
     maps = await DB.load('maps');
     characters = await DB.load('characters');
-    const m = maps.find(x => x.id === mapId);
-    if (m) openPlayerFullscreen(mapId);
+    refreshPlayerFullscreen(mapId);
   }, 3000);
 }
 function stopPlayerPoll() {
   if (_playerPollInterval) { clearInterval(_playerPollInterval); _playerPollInterval = null; }
+}
+
+// ── LIVE DM-VIEW SYNC (co-DM) ──────────────────────────────
+// Pushes remote changes made by other DMs into this DM's view.
+// Player view has its own subscription; this one handles the
+// main app screens (map editor, char list, char detail, map list).
+let _dmRealtimeClient = null;
+let _dmRealtimeChannel = null;
+
+function startDmRealtime() {
+  stopDmRealtime();
+  if (!DB.isCloud) return;
+  const SB = window.supabase;
+  if (!SB || !SB.createClient) {
+    console.warn('[dm-sync] Supabase JS CDN not loaded — co-DM live updates disabled');
+    return;
+  }
+  try {
+    _dmRealtimeClient = SB.createClient(DB.sb.url, DB.sb.key);
+    _dmRealtimeChannel = _dmRealtimeClient
+      .channel('dm-view')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maps' }, p => {
+        const row = p.new || p.old;
+        const data = row?.data;
+        if (!data) return;
+        const idx = maps.findIndex(x => x.id === data.id);
+        if (p.eventType === 'DELETE') {
+          if (idx >= 0) maps.splice(idx, 1);
+          if (currentMapId === data.id) { currentMapId = null; showMapList(); }
+          return;
+        }
+        // If dragging a token in this map, skip — don't yank the DM's active drag.
+        // Their next save will re-push; the remote change is applied on the next event.
+        if (typeof _dragTokenId !== 'undefined' && _dragTokenId && currentMapId === data.id) return;
+        if (idx >= 0) maps[idx] = data; else maps.push(data);
+        onRemoteMapUpdate(data);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'characters' }, p => {
+        const row = p.new || p.old;
+        const data = row?.data;
+        if (!data) return;
+        const idx = characters.findIndex(x => x.id === data.id);
+        if (p.eventType === 'DELETE') {
+          if (idx >= 0) characters.splice(idx, 1);
+        } else if (idx >= 0) {
+          characters[idx] = data;
+        } else {
+          characters.push(data);
+        }
+        onRemoteCharactersUpdate(data);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, p => {
+        const row = p.new || p.old;
+        const data = row?.data;
+        if (!data) return;
+        const idx = sessions.findIndex(x => x.id === data.id);
+        if (p.eventType === 'DELETE') {
+          if (idx >= 0) sessions.splice(idx, 1);
+        } else if (idx >= 0) {
+          sessions[idx] = data;
+        } else {
+          sessions.push(data);
+        }
+        if (typeof updateStatus === 'function') updateStatus();
+      })
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[dm-sync] live via Supabase Realtime');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          console.warn('[dm-sync] channel status:', status);
+        }
+      });
+  } catch (e) {
+    console.warn('[dm-sync] setup failed:', e);
+  }
+}
+
+function stopDmRealtime() {
+  if (_dmRealtimeChannel) {
+    try { _dmRealtimeChannel.unsubscribe(); } catch(e) {}
+    _dmRealtimeChannel = null;
+  }
+  _dmRealtimeClient = null;
+}
+
+function onRemoteMapUpdate(data) {
+  // Map editor open on this map → refresh tokens/fog/initiative/name/notes
+  if (typeof currentMapId !== 'undefined' && currentMapId === data.id) {
+    const nameEl = document.getElementById('me-name');
+    if (nameEl && document.activeElement !== nameEl) nameEl.value = data.name || '';
+    const notesEl = document.getElementById('map-notes');
+    if (notesEl && document.activeElement !== notesEl) notesEl.value = data.notes || '';
+    if (typeof renderTokensOnMap === 'function') renderTokensOnMap();
+    if (typeof initFogSystem === 'function') initFogSystem(data);
+    if (typeof renderInitiativeBar === 'function') renderInitiativeBar();
+  }
+  // Map list view visible → refresh thumbnails
+  const mapListView = document.getElementById('view-map-list');
+  if (mapListView && mapListView.classList.contains('active') && typeof renderMapList === 'function') {
+    renderMapList();
+  }
+  // Player view also keeps its own subscription, but refresh here if open in this tab
+  if (typeof refreshPlayerFullscreen === 'function') refreshPlayerFullscreen(data.id);
+}
+
+function onRemoteCharactersUpdate(data) {
+  // Char list view visible → rebuild
+  const charListView = document.getElementById('view-char-list');
+  if (charListView && charListView.classList.contains('active') && typeof renderCharList === 'function') {
+    renderCharList();
+  }
+  // Char detail open on this character → rebuild UNLESS DM is typing in it
+  if (typeof currentCharId !== 'undefined' && currentCharId === data.id) {
+    const charDetailView = document.getElementById('view-char-detail');
+    if (charDetailView && charDetailView.classList.contains('active')) {
+      const focused = document.activeElement;
+      const editing = focused && charDetailView.contains(focused) &&
+                      (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA' || focused.tagName === 'SELECT');
+      if (!editing && typeof showCharDetail === 'function') showCharDetail(currentCharId);
+    }
+  }
+  // Map editor open → sidebar + tokens (skip token re-render if dragging)
+  if (typeof currentMapId !== 'undefined' && currentMapId) {
+    if (typeof renderTokenSidebar === 'function') renderTokenSidebar();
+    if ((typeof _dragTokenId === 'undefined' || !_dragTokenId) && typeof renderTokensOnMap === 'function') {
+      renderTokensOnMap();
+    }
+  }
+}
+
+// ── MAXIMIZED MAP TOGGLE ───────────────────────────────────
+function toggleMapMaximize() {
+  const on = document.body.classList.toggle('map-maximized');
+  const btn = document.getElementById('map-maximize-btn');
+  if (btn) {
+    btn.textContent = on ? '⤢ Exit Fullscreen' : '⛶ Fullscreen';
+    btn.title = on ? 'Exit fullscreen map (ESC)' : 'Expand map to fill browser (ESC to exit)';
+  }
+  if (on) {
+    document._mapMaxEscHandler = (e) => {
+      if (e.key === 'Escape' && document.body.classList.contains('map-maximized')) {
+        // Don't close if the player-fullscreen overlay is active — ESC belongs to it
+        const pf = document.getElementById('player-fullscreen');
+        if (pf && pf.style.display === 'flex') return;
+        toggleMapMaximize();
+      }
+    };
+    document.addEventListener('keydown', document._mapMaxEscHandler);
+  } else if (document._mapMaxEscHandler) {
+    document.removeEventListener('keydown', document._mapMaxEscHandler);
+    document._mapMaxEscHandler = null;
+  }
 }
 
 // ── INIT ───────────────────────────────────────────────────
@@ -1970,10 +2243,11 @@ async function init(){
     [characters, sessions] = await Promise.all([DB.load('characters'), DB.load('sessions')]);
     await loadMaps();
     // Hide normal UI
-    document.querySelector('.navbar').style.display = 'none';
-    document.querySelector('main').style.display = 'none';
+    const navEl = document.querySelector('.app-nav');
+    if (navEl) navEl.style.display = 'none';
+    const mainEl = document.querySelector('main');
+    if (mainEl) mainEl.style.display = 'none';
     openPlayerFullscreen(playerMapId);
-    startPlayerPoll(playerMapId);
     return;
   }
 
@@ -1983,6 +2257,8 @@ async function init(){
   buildConditionPicker();
   renderCharList();
   updateStatus();
+  // Live sync so co-DMs on other devices see each other's edits
+  startDmRealtime();
 }
 init();
 </script>
