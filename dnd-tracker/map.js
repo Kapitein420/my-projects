@@ -423,8 +423,9 @@ function renderTokensOnMap() {
     return `<div class="map-token${turnClass}" id="tok-${tok.id}"
         style="left:${tok.x.toFixed(2)}%;top:${tok.y.toFixed(2)}%;width:${sz}px;height:${sz}px;border-color:${col};background:${col}28;color:${col};${tokVis}"
         onpointerdown="startTokenDrag(event,'${tok.id}')"
+        onwheel="handleTokenWheel(event,'${tok.id}')"
         ${clickHandler}
-        title="${esc(name)}">
+        title="${esc(name)} — scroll to resize">
       ${innerDisplay}
       ${hpSvg}
       <div class="token-label">${esc(name)}</div>
@@ -603,6 +604,28 @@ async function saveCurrentMap() {
   const m = maps.find(x => x.id === currentMapId);
   if (!m) return;
   await DB.save('maps', m, maps);
+}
+
+// Mouse-wheel over a token to resize it. Works for both characters and monsters.
+// Size is clamped to 0.5x–3x. Save is debounced so rapid wheeling doesn't spam.
+let _tokenResizeTimer = null;
+function handleTokenWheel(e, tokenId) {
+  e.preventDefault();
+  e.stopPropagation();
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  const tok = (m.tokens || []).find(t => t.id === tokenId);
+  if (!tok) return;
+  // Wheel up = bigger, wheel down = smaller. Finer step when shift held.
+  const step = e.shiftKey ? 0.05 : 0.1;
+  const delta = e.deltaY < 0 ? step : -step;
+  const next = Math.max(0.5, Math.min(3, (tok.size || 1) + delta));
+  if (next === tok.size) return;
+  tok.size = next;
+  m.updatedAt = Date.now();
+  renderTokensOnMap();
+  clearTimeout(_tokenResizeTimer);
+  _tokenResizeTimer = setTimeout(() => saveCurrentMap(), 400);
 }
 
 function flashBtn(id, text, resetTo) {

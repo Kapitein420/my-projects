@@ -181,10 +181,12 @@ function renderFog() {
   _fogCanvas.style.display = 'block';
 
   const r = fog.hexSize || 30;
+  const dmA = fog.dmOpacity ?? 0.45;
+  const fogFill = isDm ? 'rgba(15, 18, 25, ' + dmA.toFixed(2) + ')' : 'rgba(15, 18, 25, 1.0)';
 
   // 1. Fill with fog
   ctx.globalCompositeOperation = 'source-over';
-  ctx.fillStyle = isDm ? 'rgba(15, 18, 25, 0.45)' : 'rgba(15, 18, 25, 1.0)';
+  ctx.fillStyle = fogFill;
   ctx.fillRect(0, 0, w, h);
 
   // 2. Build revealed set
@@ -232,7 +234,7 @@ function renderFog() {
   for (const stroke of (fog.brushStrokes || [])) {
     if (stroke.mode === 'fog' && stroke.points.length > 0) {
       ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = isDm ? 'rgba(15, 18, 25, 0.45)' : 'rgba(15, 18, 25, 1.0)';
+      ctx.fillStyle = fogFill;
       drawBrushStroke(ctx, stroke, w, h);
     }
   }
@@ -243,7 +245,7 @@ function renderFog() {
       ctx.globalCompositeOperation = 'destination-out';
     } else {
       ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = isDm ? 'rgba(15, 18, 25, 0.45)' : 'rgba(15, 18, 25, 1.0)';
+      ctx.fillStyle = fogFill;
     }
     drawBrushStroke(ctx, _brushStrokeInProgress, w, h);
   }
@@ -304,6 +306,14 @@ function drawBrushStroke(ctx, stroke, canvasW, canvasH) {
 function setGridOpacity(val) {
   if (!_fogMap?.fog) return;
   _fogMap.fog.gridOpacity = Math.max(0, Math.min(1, val));
+  renderFog();
+  _fogMap.updatedAt = Date.now();
+  saveCurrentMap();
+}
+
+function setFogDmOpacity(val) {
+  if (!_fogMap?.fog) return;
+  _fogMap.fog.dmOpacity = Math.max(0, Math.min(1, val));
   renderFog();
   _fogMap.updatedAt = Date.now();
   saveCurrentMap();
@@ -659,6 +669,17 @@ function updateFogUI() {
   // Hex size display
   const hexSizeVal = document.getElementById('fog-hex-size-val');
   if (hexSizeVal) hexSizeVal.textContent = fog.hexSize || 30;
+
+  // DM fog opacity slider — sync from map
+  const dmOpSlider = document.getElementById('fog-dm-opacity');
+  const dmOpVal = document.getElementById('fog-dm-opacity-val');
+  const dmOpPct = Math.round((fog.dmOpacity ?? 0.45) * 100);
+  if (dmOpSlider) dmOpSlider.value = dmOpPct;
+  if (dmOpVal) dmOpVal.textContent = dmOpPct + '%';
+
+  // Grid opacity slider — sync from map
+  const gridSlider = document.getElementById('fog-grid-opacity');
+  if (gridSlider) gridSlider.value = Math.round((fog.gridOpacity ?? 0.10) * 100);
 
   updateFogToolbarState();
   renderFogZonePanel();
