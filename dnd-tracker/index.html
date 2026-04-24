@@ -952,6 +952,10 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
     </div>
 
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <label style="font-size:.6rem;color:#7a7268;font-family:var(--font-display);" title="Fog opacity in the DM view (player view stays fully opaque)">DM Fog</label>
+      <input type="range" id="fog-dm-opacity" min="0" max="100" value="45" style="width:50px;accent-color:#c8b070;" oninput="setFogDmOpacity(+this.value/100);document.getElementById('fog-dm-opacity-val').textContent=this.value+'%'">
+      <span id="fog-dm-opacity-val" style="font-size:.6rem;color:#7a7268;font-family:var(--font-mono);min-width:28px;">45%</span>
+      <div style="width:1px;height:14px;background:#3a3020;"></div>
       <label style="font-size:.6rem;color:#7a7268;font-family:var(--font-display);">Grid</label>
       <input type="range" id="fog-grid-opacity" min="0" max="100" value="10" style="width:50px;accent-color:#c8b070;" oninput="setGridOpacity(+this.value/100)">
       <div style="width:1px;height:14px;background:#3a3020;"></div>
