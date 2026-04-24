@@ -900,7 +900,7 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
     <div class="toolbar-sep"></div>
     <button class="btn btn-primary btn-sm" id="quick-save-btn" onclick="quickSave()" title="Save current token positions">⚡ Save</button>
     <div class="toolbar-sep"></div>
-    <button class="btn btn-sm btn-ghost" id="fog-view-btn" onclick="setFogViewMode(_fogMap?.fog?.viewMode==='dm'?'player':'dm')">⚔ DM View</button>
+    <button class="btn btn-sm btn-ghost" id="fog-view-btn" onclick="setFogViewMode(getFogViewMode(currentMapId)==='dm'?'player':'dm')" title="Toggle between DM cut (see everything) and Player cut (preview what players see). Local to this browser only.">⚔ DM View</button>
     <button class="btn btn-sm btn-ghost" id="fog-toggle-btn" onclick="toggleFogEnabled()">🌫 Fog: OFF</button>
     <button class="btn btn-sm btn-ghost" id="combat-start-btn" onclick="showCombatSetup()">⚔ Combat</button>
     <button class="btn btn-sm btn-ghost" onclick="showSessionReport()" title="Generate session report from all combat data">📊 Report</button>

@@ -192,7 +192,7 @@ let _monsterPopupId = null;
 function showMonsterPopup(monsterId, tokenEl) {
   const m = maps.find(x => x.id === currentMapId);
   if (!m) return;
-  if (m.fog?.viewMode === 'player') return;
+  if (getFogViewMode(m.id) === 'player') return;
   const mon = (m.monsters || []).find(x => x.id === monsterId);
   if (!mon) return;
 
