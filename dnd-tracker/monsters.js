@@ -58,9 +58,11 @@ function updateMonsterHp(monsterId, delta) {
   if (!m) return;
   const mon = (m.monsters || []).find(x => x.id === monsterId);
   if (!mon) return;
+  window.recordHpChange?.('monster', mon.id, { currentHp: mon.currentHp });
   const oldHp = mon.currentHp;
   mon.currentHp = Math.max(0, Math.min(mon.maxHp, mon.currentHp + delta));
   if (typeof logHpChange === 'function') logHpChange(mon.id, mon.displayName || mon.templateName, 'monster', oldHp, mon.currentHp);
+  window.onHpChanged?.('monster', mon.id, mon.currentHp - oldHp);
   m.updatedAt = Date.now();
   saveCurrentMap();
   renderTokensOnMap();
@@ -75,9 +77,11 @@ function setMonsterHp(monsterId, val) {
   if (!m) return;
   const mon = (m.monsters || []).find(x => x.id === monsterId);
   if (!mon) return;
+  window.recordHpChange?.('monster', mon.id, { currentHp: mon.currentHp });
   const oldHp = mon.currentHp;
   mon.currentHp = Math.max(0, Math.min(mon.maxHp, parseInt(val) || 0));
   if (typeof logHpChange === 'function') logHpChange(mon.id, mon.displayName || mon.templateName, 'monster', oldHp, mon.currentHp);
+  window.onHpChanged?.('monster', mon.id, mon.currentHp - oldHp);
   m.updatedAt = Date.now();
   saveCurrentMap();
   renderTokensOnMap();
