@@ -168,7 +168,10 @@ function renderFog() {
   if (!w || !h) return;
 
   const ctx = _fogCtx;
-  const isDm = getFogViewMode(_fogMap?.id) === 'dm';
+  // When a fog tool is active (brush/zone), always render as DM-view so the
+  // painter can see through the fog and the cursor is visible. Only the
+  // passive preview toggle flips to player-style rendering.
+  const isDm = getFogViewMode(_fogMap?.id) === 'dm' || _fogTool !== 'none';
   const isEnabled = fog.enabled;
 
   // Clear
@@ -258,18 +261,28 @@ function renderFog() {
     drawZoneSelection(ctx, w, h, r);
   }
 
-  // 8. Brush cursor indicator
-  if (_fogTool === 'brush' && _brushCursorPos && isDm) {
+  // 8. Brush cursor indicator — always visible when brush tool is active,
+  // regardless of view mode. Dark outer ring + bright colored inner ring so
+  // the cursor stands out on any fog intensity.
+  if (_fogTool === 'brush' && _brushCursorPos) {
     ctx.globalCompositeOperation = 'source-over';
+    // Dark contrast ring
+    ctx.beginPath();
+    ctx.arc(_brushCursorPos.x, _brushCursorPos.y, _brushSize + 1, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([]);
+    ctx.stroke();
+    // Colored dashed ring
     ctx.beginPath();
     ctx.arc(_brushCursorPos.x, _brushCursorPos.y, _brushSize, 0, Math.PI * 2);
-    ctx.strokeStyle = _brushMode === 'reveal' ? 'rgba(200, 164, 90, 0.8)' : 'rgba(200, 80, 80, 0.8)';
+    ctx.strokeStyle = _brushMode === 'reveal' ? 'rgba(230, 190, 110, 1.0)' : 'rgba(230, 100, 100, 1.0)';
     ctx.lineWidth = 2;
     ctx.setLineDash([6, 4]);
     ctx.stroke();
     ctx.setLineDash([]);
-    // Inner fill preview
-    ctx.fillStyle = _brushMode === 'reveal' ? 'rgba(200, 164, 90, 0.1)' : 'rgba(200, 80, 80, 0.1)';
+    // Inner fill hint
+    ctx.fillStyle = _brushMode === 'reveal' ? 'rgba(230, 190, 110, 0.18)' : 'rgba(230, 100, 100, 0.18)';
     ctx.fill();
   }
 }
@@ -386,7 +399,8 @@ function drawZoneSelection(ctx, w, h, r) {
 function fogPointerDown(e) {
   if (!_fogMap?.fog?.enabled) return;
   const fog = _fogMap.fog;
-  if (getFogViewMode(_fogMap?.id) !== 'dm') return;
+  // No viewMode gate — painting works in any preview mode because the tool
+  // itself is the gate (only 'brush' or 'zone' branches below do anything).
 
   const r = fog.hexSize || 30;
   const rect = _fogCanvas.getBoundingClientRect();
