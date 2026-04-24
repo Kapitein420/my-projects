@@ -353,7 +353,7 @@ function renderTokensOnMap() {
   });
   if (m.tokens.length < before) saveCurrentMap();
 
-  const fogView = m.fog?.viewMode || 'dm';
+  const fogView = getFogViewMode(m.id);
   const fogOn = m.fog?.enabled;
 
   overlay.innerHTML = m.tokens.map(tok => {

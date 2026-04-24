@@ -168,7 +168,7 @@ function renderFog() {
   if (!w || !h) return;
 
   const ctx = _fogCtx;
-  const isDm = fog.viewMode === 'dm';
+  const isDm = getFogViewMode(_fogMap?.id) === 'dm';
   const isEnabled = fog.enabled;
 
   // Clear
@@ -386,7 +386,7 @@ function drawZoneSelection(ctx, w, h, r) {
 function fogPointerDown(e) {
   if (!_fogMap?.fog?.enabled) return;
   const fog = _fogMap.fog;
-  if (fog.viewMode !== 'dm') return;
+  if (getFogViewMode(_fogMap?.id) !== 'dm') return;
 
   const r = fog.hexSize || 30;
   const rect = _fogCanvas.getBoundingClientRect();
@@ -472,15 +472,28 @@ function setFogTool(tool) {
   renderFog();
 }
 
+// Per-tab, per-map DM view preference. Not synced — each DM independently
+// chooses whether to see their "DM cut" (transparent fog, all tokens) or
+// preview the "player cut". Persisted in localStorage so it survives reloads.
+function getFogViewMode(mapId) {
+  const id = mapId || (typeof currentMapId !== 'undefined' ? currentMapId : null);
+  if (!id) return 'dm';
+  try {
+    const stored = localStorage.getItem('toh-viewMode-' + id);
+    if (stored === 'dm' || stored === 'player') return stored;
+  } catch (e) {}
+  return 'dm';
+}
+
 function setFogViewMode(mode) {
   if (!_fogMap?.fog) return;
-  _fogMap.fog.viewMode = mode;
-  _fogMap.updatedAt = Date.now();
+  if (mode !== 'dm' && mode !== 'player') return;
+  try { localStorage.setItem('toh-viewMode-' + _fogMap.id, mode); } catch (e) {}
   updateFogUI();
   renderFog();
   // Re-render tokens for visibility
   if (typeof renderTokensOnMap === 'function') renderTokensOnMap();
-  saveCurrentMap();
+  // NOTE: no saveCurrentMap — view mode is a local DM preference, not shared.
 }
 
 function toggleFogEnabled() {
@@ -645,7 +658,7 @@ function updateFogUI() {
   const fog = _fogMap?.fog;
   if (!fog) return;
 
-  const isDm = fog.viewMode === 'dm';
+  const isDm = getFogViewMode(_fogMap?.id) === 'dm';
   const isEnabled = fog.enabled;
 
   // View mode button
