@@ -233,7 +233,319 @@ function endCombat() {
   renderTokensOnMap();
 }
 
-// ── INITIATIVE BAR RENDERING ─────────────────────────────────
+// ── INITIATIVE / COMBAT-OPS PANEL STATE ──────────────────────
+// Undo stack: max 15 entries of {targetType, id, before:{currentHp, tempHp, deathSaves}, ts}
+var _hpUndoStack = [];
+// Currently selected combatant (for damage/heal hotkeys)
+var _selectedCombatantId = null;
+// Map of combatantId -> [{amount, sign}, ...] last <=3 damage/heal chips (most recent first)
+var _lastDamages = {};
+// Whether global combat hotkeys are installed
+var _combatHotkeysInstalled = false;
+// Whether an inline damage/heal prompt is currently open
+var _combatPromptOpen = false;
+
+// Look up a combatant by id within the current map (character or monster).
+function _findCombatTarget(id) {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return null;
+  const char = characters.find(x => x.id === id);
+  if (char) return { type: 'character', obj: char, map: m };
+  const mon = (m.monsters || []).find(x => x.id === id);
+  if (mon) return { type: 'monster', obj: mon, map: m };
+  return null;
+}
+
+function _getDeathSaves(c) {
+  if (!c) return { successes: 0, failures: 0 };
+  if (!c.deathSaves) c.deathSaves = { successes: 0, failures: 0 };
+  if (typeof c.deathSaves.successes !== 'number') c.deathSaves.successes = 0;
+  if (typeof c.deathSaves.failures !== 'number') c.deathSaves.failures = 0;
+  return c.deathSaves;
+}
+
+// ── TOAST HELPER ─────────────────────────────────────────────
+// Stacked fixed-position toasts (top-right), 2s fade-out.
+var _toastStack = [];
+
+function toast(msg) {
+  if (!msg) return;
+  const el = document.createElement('div');
+  const offset = 12 + _toastStack.length * 38;
+  el.style.cssText =
+    'position:fixed;top:' + offset + 'px;right:16px;z-index:99999;' +
+    'background:#1e1b16;border:1px solid #c8b070;color:#e2dbd0;' +
+    'padding:8px 14px;border-radius:6px;font-size:.72rem;' +
+    'font-family:var(--font-display,sans-serif);letter-spacing:.06em;' +
+    'box-shadow:0 4px 12px rgba(0,0,0,.5);opacity:0;' +
+    'transition:opacity .2s ease-out;';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  _toastStack.push(el);
+  // fade in
+  requestAnimationFrame(() => { el.style.opacity = '1'; });
+  // fade out + remove after 2s
+  setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.remove();
+      const i = _toastStack.indexOf(el);
+      if (i >= 0) _toastStack.splice(i, 1);
+      // reflow remaining
+      _toastStack.forEach((t, idx) => { t.style.top = (12 + idx * 38) + 'px'; });
+    }, 220);
+  }, 2000);
+}
+
+// ── UNDO STACK / HP CHANGE RECORDING ─────────────────────────
+window.recordHpChange = function (targetType, id, beforeObj) {
+  if (!id) return;
+  // Snapshot a safe clone so later mutations don't bleed into the record.
+  const before = {
+    currentHp: beforeObj?.currentHp ?? 0,
+    tempHp: beforeObj?.tempHp ?? 0,
+    deathSaves: {
+      successes: beforeObj?.deathSaves?.successes ?? 0,
+      failures: beforeObj?.deathSaves?.failures ?? 0
+    }
+  };
+  _hpUndoStack.push({ targetType: targetType, id: id, before: before, ts: Date.now() });
+  if (_hpUndoStack.length > 15) _hpUndoStack.shift();
+};
+
+window.undoHp = function () {
+  const rec = _hpUndoStack.pop();
+  if (!rec) { toast('Nothing to undo'); return; }
+  const t = _findCombatTarget(rec.id);
+  if (!t) { toast('Undo target missing'); return; }
+  t.obj.currentHp = rec.before.currentHp;
+  t.obj.tempHp = rec.before.tempHp;
+  if (t.type === 'character') {
+    t.obj.deathSaves = {
+      successes: rec.before.deathSaves.successes,
+      failures: rec.before.deathSaves.failures
+    };
+    if (typeof DB !== 'undefined' && DB.save) {
+      DB.save('characters', t.obj, characters);
+    }
+  } else {
+    saveCurrentMap();
+  }
+  renderInitiativeBar();
+  if (typeof renderCharList === 'function') renderCharList();
+  if (currentMapId && typeof renderTokensOnMap === 'function') renderTokensOnMap();
+  if (typeof renderTokenSidebar === 'function') renderTokenSidebar();
+  toast('Undone');
+};
+
+// Called by other modules AFTER an HP mutation so we can update chips + redraw.
+window.onHpChanged = function (targetType, id, delta) {
+  if (!id || !delta) return;
+  const amt = Math.abs(delta);
+  const sign = delta < 0 ? -1 : 1; // -1 = damage, +1 = heal
+  const arr = _lastDamages[id] || (_lastDamages[id] = []);
+  // Dedupe adjacent duplicates (same amount AND sign as most recent).
+  if (!arr.length || arr[0].amount !== amt || arr[0].sign !== sign) {
+    arr.unshift({ amount: amt, sign: sign });
+    if (arr.length > 3) arr.length = 3;
+  }
+  renderInitiativeBar();
+};
+
+// ── SELECTION ────────────────────────────────────────────────
+function selectCombatant(id) {
+  _selectedCombatantId = id || null;
+  renderInitiativeBar();
+}
+
+// ── DAMAGE / HEAL HELPERS ────────────────────────────────────
+function _applyDelta(id, signedDelta) {
+  if (!id || !signedDelta) return;
+  const t = _findCombatTarget(id);
+  if (!t) return;
+  const o = t.obj;
+  const oldHp = o.currentHp || 0;
+  const oldTemp = o.tempHp || 0;
+  const maxHp = o.maxHp || 0;
+  const ds = t.type === 'character' ? _getDeathSaves(o) : null;
+
+  // Record BEFORE state.
+  window.recordHpChange(t.type, id, {
+    currentHp: oldHp,
+    tempHp: oldTemp,
+    deathSaves: ds ? { successes: ds.successes, failures: ds.failures } : { successes: 0, failures: 0 }
+  });
+
+  if (signedDelta < 0) {
+    // Damage: temp HP absorbs first.
+    let dmg = -signedDelta;
+    let newTemp = oldTemp;
+    if (newTemp > 0) {
+      const absorbed = Math.min(newTemp, dmg);
+      newTemp -= absorbed;
+      dmg -= absorbed;
+    }
+    o.tempHp = newTemp;
+    o.currentHp = Math.max(0, oldHp - dmg);
+  } else {
+    // Heal: clamp to max. If char was at 0 and now > 0, clear death saves.
+    const raw = oldHp + signedDelta;
+    const capped = maxHp > 0 ? Math.min(maxHp, raw) : raw;
+    o.currentHp = Math.max(0, capped);
+    if (t.type === 'character' && oldHp === 0 && o.currentHp > 0 && ds) {
+      ds.successes = 0;
+      ds.failures = 0;
+    }
+  }
+
+  const targetName = t.type === 'monster' ? (o.displayName || o.templateName || 'Monster') : (o.name || 'Character');
+  const realDelta = o.currentHp - oldHp; // for logging, ignore temp-HP absorption nuance
+  if (typeof logHpChange === 'function') {
+    logHpChange(id, targetName, t.type, oldHp, o.currentHp);
+  }
+  window.onHpChanged(t.type, id, signedDelta);
+
+  if (t.type === 'character') {
+    if (typeof DB !== 'undefined' && DB.save) DB.save('characters', o, characters);
+  } else {
+    saveCurrentMap();
+  }
+  if (typeof renderCharList === 'function') renderCharList();
+  if (currentMapId && typeof renderTokensOnMap === 'function') renderTokensOnMap();
+  if (typeof renderTokenSidebar === 'function') renderTokenSidebar();
+  renderInitiativeBar();
+}
+
+function applyDamageToSelected(amount) {
+  const n = Math.abs(parseInt(amount) || 0);
+  if (!n || !_selectedCombatantId) return;
+  _applyDelta(_selectedCombatantId, -n);
+}
+
+function applyHealToSelected(amount) {
+  const n = Math.abs(parseInt(amount) || 0);
+  if (!n || !_selectedCombatantId) return;
+  _applyDelta(_selectedCombatantId, n);
+}
+
+// Re-apply a chip amount (keeps its original sign).
+function applyChip(id, amount, sign) {
+  const n = Math.abs(parseInt(amount) || 0);
+  if (!n || !id) return;
+  const signed = sign < 0 ? -n : n;
+  _applyDelta(id, signed);
+}
+
+// ── INLINE DAMAGE / HEAL PROMPT ──────────────────────────────
+function _removePrompt() {
+  const existing = document.getElementById('combat-inline-prompt');
+  if (existing) existing.remove();
+  _combatPromptOpen = false;
+}
+
+function promptDamageOrHeal(kind) {
+  if (!_selectedCombatantId) { toast('Select a combatant first (J/K)'); return; }
+  _removePrompt();
+  const isDmg = kind === 'damage';
+  const label = isDmg ? 'Damage' : 'Heal';
+  const color = isDmg ? '#c04040' : '#4a9a40';
+
+  const wrap = document.createElement('div');
+  wrap.id = 'combat-inline-prompt';
+  wrap.style.cssText =
+    'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99998;' +
+    'background:#1e1b16;border:1px solid ' + color + ';border-radius:8px;' +
+    'padding:14px 18px;box-shadow:0 8px 24px rgba(0,0,0,.6);' +
+    'display:flex;flex-direction:column;gap:8px;min-width:220px;';
+  const title = document.createElement('div');
+  title.style.cssText = 'font-family:var(--font-display,sans-serif);font-size:.7rem;color:' + color + ';letter-spacing:.1em;text-transform:uppercase;';
+  title.textContent = label + ' — enter amount';
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;align-items:center;';
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '0';
+  input.placeholder = '0';
+  input.style.cssText =
+    'flex:1;font-size:.9rem;padding:6px 8px;background:#14110c;' +
+    'border:1px solid ' + color + ';border-radius:4px;color:#e2dbd0;';
+  const okBtn = document.createElement('button');
+  okBtn.className = 'btn btn-sm btn-primary';
+  okBtn.textContent = isDmg ? 'Apply' : 'Heal';
+  okBtn.style.cssText = 'font-size:.7rem;';
+  const hint = document.createElement('div');
+  hint.style.cssText = 'font-size:.55rem;color:#7a7268;';
+  hint.textContent = 'Enter to apply  •  Esc to cancel';
+  row.appendChild(input);
+  row.appendChild(okBtn);
+  wrap.appendChild(title);
+  wrap.appendChild(row);
+  wrap.appendChild(hint);
+  document.body.appendChild(wrap);
+  _combatPromptOpen = true;
+
+  const commit = () => {
+    const v = parseInt(input.value) || 0;
+    if (v > 0) {
+      if (isDmg) applyDamageToSelected(v);
+      else applyHealToSelected(v);
+    }
+    _removePrompt();
+  };
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+    else if (ev.key === 'Escape') { ev.preventDefault(); _removePrompt(); }
+    ev.stopPropagation();
+  });
+  okBtn.addEventListener('click', commit);
+
+  setTimeout(() => input.focus(), 0);
+}
+
+// ── DEATH SAVES ──────────────────────────────────────────────
+// "Click to fill, click again to unfill" UX: each click toggles the Nth pip.
+// If successes reach 3: log stable event. If failures reach 3: log death event.
+window.toggleDeathSave = function (charId, type) {
+  const c = characters.find(x => x.id === charId);
+  if (!c) return;
+  if ((c.currentHp || 0) > 0) return; // Only at 0 HP
+  const ds = _getDeathSaves(c);
+
+  // Record before state for undo.
+  window.recordHpChange('character', charId, {
+    currentHp: c.currentHp || 0,
+    tempHp: c.tempHp || 0,
+    deathSaves: { successes: ds.successes, failures: ds.failures }
+  });
+
+  if (type === 'success') {
+    // Toggle: if we're already at 3, click reduces back by one; otherwise increment.
+    if (ds.successes >= 3) ds.successes = 2;
+    else ds.successes += 1;
+    if (ds.successes >= 3) {
+      combatLog({ type: 'note', note: c.name + ' stabilized (3 death-save successes)' });
+    }
+  } else if (type === 'failure') {
+    if (ds.failures >= 3) ds.failures = 2;
+    else ds.failures += 1;
+    if (ds.failures >= 3) {
+      combatLog({
+        type: 'kill',
+        source: null,
+        target: { id: c.id, name: c.name, type: 'character' },
+        value: 0,
+        note: c.name + ' died (3 death-save failures)'
+      });
+    }
+  }
+
+  if (typeof DB !== 'undefined' && DB.save) DB.save('characters', c, characters);
+  renderInitiativeBar();
+  if (typeof renderCharList === 'function') renderCharList();
+  renderCombatLog();
+};
+
+// ── INITIATIVE / COMBAT-OPS PANEL RENDERING ──────────────────
 
 function renderInitiativeBar() {
   const m = maps.find(x => x.id === currentMapId);
@@ -243,70 +555,240 @@ function renderInitiativeBar() {
 
   if (!m?.combat?.active) {
     bar.style.display = 'none';
+    bar.innerHTML = '';
     if (startBtn) startBtn.style.display = '';
+    _uninstallCombatHotkeys();
     return;
   }
 
   if (startBtn) startBtn.style.display = 'none';
   bar.style.display = 'flex';
+  bar.style.flexDirection = 'column';
+  bar.style.alignItems = 'stretch';
+  _installCombatHotkeys();
 
   const combat = m.combat;
   const current = combat.entries[combat.turnIndex];
 
-  let entriesHtml = '';
+  // ── Header row ─────────────────────────────────────────────
+  let headerHtml =
+    '<div style="display:flex;align-items:center;gap:10px;padding:2px 2px 6px;border-bottom:1px solid rgba(200,176,112,.15);margin-bottom:6px;">' +
+      '<div style="font-family:var(--font-display);font-size:.65rem;color:#9a8450;text-transform:uppercase;letter-spacing:.08em;">Round ' + combat.round + '</div>' +
+      '<div style="font-size:.78rem;color:var(--text);font-weight:500;">' + (current ? current.name : '') + "'s turn" + '</div>' +
+      '<div style="flex:1;"></div>' +
+      '<div style="font-size:.52rem;color:#7a7268;letter-spacing:.06em;">N/Space next · J/K select · D dmg · H heal · Ctrl+Z undo</div>' +
+      '<div style="display:flex;gap:4px;">' +
+        '<button class="btn btn-sm btn-ghost" onclick="prevTurn()" title="Previous turn (Shift+N)" style="font-size:.75rem;">\u25C0</button>' +
+        '<button class="btn btn-sm btn-primary" onclick="nextTurn()" title="Next turn (N or Space)" style="font-size:.75rem;">Next \u25B6</button>' +
+        '<button class="btn btn-sm btn-ghost" onclick="window.undoHp()" title="Undo last HP change (Ctrl+Z)" style="font-size:.7rem;">\u21B6 Undo</button>' +
+        '<button class="btn btn-sm btn-ghost" onclick="endCombat()" style="font-size:.7rem;color:var(--red);">End</button>' +
+      '</div>' +
+    '</div>';
+
+  // ── Combatant rows ─────────────────────────────────────────
+  let rowsHtml = '';
   for (let i = 0; i < combat.entries.length; i++) {
     const e = combat.entries[i];
     const isActive = i === combat.turnIndex;
+    const isSelected = _selectedCombatantId === e.id;
     const isMon = e.type === 'monster';
 
-    // Check if dead
-    let isDead = false;
-    if (isMon) {
-      const mon = (m.monsters || []).find(x => x.id === e.id);
-      if (mon && mon.currentHp <= 0) isDead = true;
-    } else {
-      const c = characters.find(x => x.id === e.id);
-      if (c && c.currentHp <= 0) isDead = true;
-    }
+    let refObj = null;
+    if (isMon) refObj = (m.monsters || []).find(x => x.id === e.id);
+    else refObj = characters.find(x => x.id === e.id);
 
-    const borderColor = isActive ? '#c8b070' : isDead ? '#333' : isMon ? '#8a2020' : 'var(--border)';
-    const bgColor = isActive ? 'var(--glow-bg)' : isDead ? 'rgba(0,0,0,.3)' : 'var(--bg-card)';
-    const textColor = isDead ? 'var(--text4)' : 'var(--text)';
-    const decoration = isDead ? 'line-through' : 'none';
+    const curHp = refObj?.currentHp ?? 0;
+    const maxHp = refObj?.maxHp ?? 0;
+    const tempHp = refObj?.tempHp ?? 0;
+    const isDead = curHp <= 0;
+    const hpPctVal = maxHp > 0 ? Math.max(0, Math.min(100, Math.round((curHp / maxHp) * 100))) : 0;
 
-    // Get portrait
+    const hpBarColor = isMon ? '#8a2020' : (refObj && !isMon ? classColor(refObj.class) : '#506050');
+    const borderColor = isActive ? '#c8b070' : isSelected ? '#d4b878' : isDead ? '#333' : isMon ? '#8a2020' : 'rgba(90,70,40,.3)';
+    const glow = isSelected ? 'box-shadow:0 0 0 2px rgba(212,184,120,.35), 0 0 10px rgba(200,176,112,.25);' : '';
+    const activeGlow = isActive ? 'box-shadow:0 0 0 2px rgba(200,176,112,.65), 0 0 14px rgba(200,176,112,.45);' : '';
+    const rowShadow = isActive ? activeGlow : glow;
+    const bgColor = isActive ? 'rgba(200,176,112,.08)' : isSelected ? 'rgba(200,176,112,.04)' : isDead ? 'rgba(0,0,0,.3)' : '#1a1814';
+
+    // Portrait
     let portrait = '';
     if (isMon) {
-      const mon = (m.monsters || []).find(x => x.id === e.id);
-      if (mon && mon.imgUrl) portrait = '<img src="' + mon.imgUrl + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid ' + borderColor + ';">';
-      else portrait = '<div style="width:28px;height:28px;border-radius:50%;background:#3a1818;border:1.5px solid ' + borderColor + ';display:flex;align-items:center;justify-content:center;font-size:.5rem;color:#c04040;font-family:var(--font-display);">' + (e.name || '?').charAt(0) + '</div>';
+      if (refObj && refObj.imgUrl) portrait = '<img src="' + refObj.imgUrl + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid ' + borderColor + ';">';
+      else portrait = '<div style="width:36px;height:36px;border-radius:50%;background:#3a1818;border:1.5px solid ' + borderColor + ';display:flex;align-items:center;justify-content:center;font-size:.62rem;color:#c04040;font-family:var(--font-display);">' + (e.name || '?').charAt(0) + '</div>';
     } else {
-      const c = characters.find(x => x.id === e.id);
-      if (c && c.imageUrl) portrait = '<img src="' + c.imageUrl + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid ' + borderColor + ';">';
+      if (refObj && refObj.imageUrl) portrait = '<img src="' + refObj.imageUrl + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid ' + borderColor + ';">';
       else {
-        const col = c ? classColor(c.class) : '#5a4830';
-        portrait = '<div style="width:28px;height:28px;border-radius:50%;background:' + col + '20;border:1.5px solid ' + borderColor + ';display:flex;align-items:center;justify-content:center;font-size:.5rem;color:' + col + ';font-family:var(--font-display);">' + (c?.icon || (e.name || '?').charAt(0)) + '</div>';
+        const col = refObj ? classColor(refObj.class) : '#5a4830';
+        portrait = '<div style="width:36px;height:36px;border-radius:50%;background:' + col + '20;border:1.5px solid ' + borderColor + ';display:flex;align-items:center;justify-content:center;font-size:.62rem;color:' + col + ';font-family:var(--font-display);">' + (refObj?.icon || (e.name || '?').charAt(0)) + '</div>';
       }
     }
 
-    entriesHtml += '<div style="display:flex;flex-direction:column;align-items:center;padding:4px 8px;border:1.5px solid ' + borderColor + ';border-radius:8px;background:' + bgColor + ';min-width:55px;flex-shrink:0;gap:2px;">' +
-      portrait +
-      '<div style="font-size:.62rem;color:#e2dbd0;text-decoration:' + decoration + ';white-space:nowrap;max-width:65px;overflow:hidden;text-overflow:ellipsis;' + (isDead ? 'opacity:.4;' : '') + '" title="' + e.name + '">' + e.name + '</div>' +
-      '<div style="font-size:.55rem;font-weight:600;color:' + (isActive ? '#c8b070' : '#7a7268') + ';">' + e.initiative + '</div>' +
-    '</div>';
+    // Conditions (chars only — monsters have no conditions model today)
+    let condsHtml = '';
+    if (!isMon && refObj && Array.isArray(refObj.conditions)) {
+      condsHtml = refObj.conditions.map(cn =>
+        '<span style="display:inline-block;padding:1px 5px;font-size:.52rem;border-radius:4px;background:rgba(200,176,112,.12);color:#c8b070;border:1px solid rgba(200,176,112,.25);letter-spacing:.04em;">' + cn + '</span>'
+      ).join('');
+    }
+
+    // HP block: death saves pips if char @ 0 HP, else bar w/ numeric overlay.
+    let hpBlock = '';
+    if (!isMon && isDead && refObj) {
+      const ds = _getDeathSaves(refObj);
+      const circle = (filled, color) =>
+        '<div style="width:12px;height:12px;border-radius:50%;border:1.5px solid ' + color + ';background:' + (filled ? color : 'transparent') + ';"></div>';
+      let succ = '';
+      for (let j = 0; j < 3; j++) succ += circle(j < ds.successes, '#4a9a40');
+      let fail = '';
+      for (let j = 0; j < 3; j++) fail += circle(j < ds.failures, '#c04040');
+      hpBlock =
+        '<div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">' +
+          '<div title="Death save successes — click to toggle" onclick="event.stopPropagation();" style="display:flex;gap:4px;align-items:center;">' +
+            '<span style="font-size:.48rem;color:#4a9a40;letter-spacing:.1em;text-transform:uppercase;width:40px;">Succ</span>' +
+            '<div style="display:flex;gap:3px;cursor:pointer;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'success\')">' + succ + '</div>' +
+          '</div>' +
+          '<div title="Death save failures — click to toggle" onclick="event.stopPropagation();" style="display:flex;gap:4px;align-items:center;">' +
+            '<span style="font-size:.48rem;color:#c04040;letter-spacing:.1em;text-transform:uppercase;width:40px;">Fail</span>' +
+            '<div style="display:flex;gap:3px;cursor:pointer;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'failure\')">' + fail + '</div>' +
+          '</div>' +
+        '</div>';
+    } else {
+      const tempStr = tempHp > 0 ? ' <span style="color:#6ab0e0;">(+' + tempHp + ')</span>' : '';
+      hpBlock =
+        '<div style="position:relative;min-width:120px;height:16px;background:#12100c;border:1px solid rgba(0,0,0,.4);border-radius:3px;overflow:hidden;">' +
+          '<div style="position:absolute;inset:0 auto 0 0;width:' + hpPctVal + '%;background:' + hpBarColor + ';"></div>' +
+          '<div style="position:relative;z-index:1;font-size:.62rem;color:#f0e8d8;text-align:center;line-height:16px;text-shadow:0 1px 1px rgba(0,0,0,.7);font-family:var(--font-mono);">' + curHp + '/' + maxHp + tempStr + '</div>' +
+        '</div>';
+    }
+
+    // Last-damage chips
+    let chipsHtml = '';
+    const chips = _lastDamages[e.id] || [];
+    if (chips.length) {
+      chipsHtml = chips.map(chip => {
+        const c = chip.sign < 0 ? '#c04040' : '#4a9a40';
+        const prefix = chip.sign < 0 ? '-' : '+';
+        return '<button class="combat-chip" onclick="event.stopPropagation();applyChip(\'' + e.id + '\',' + chip.amount + ',' + chip.sign + ')" title="Re-apply ' + prefix + chip.amount + '" ' +
+          'style="font-size:.58rem;padding:2px 7px;background:rgba(0,0,0,.35);border:1px solid ' + c + ';color:' + c + ';border-radius:10px;cursor:pointer;font-family:var(--font-mono);">' +
+          prefix + chip.amount + '</button>';
+      }).join('');
+    }
+
+    // Row: grid — portrait | name+init | HP | conds | chips
+    rowsHtml +=
+      '<div onclick="selectCombatant(\'' + e.id + '\')" ' +
+      'style="display:grid;grid-template-columns:40px minmax(120px,1.2fr) minmax(130px,1fr) minmax(80px,1fr) auto;' +
+      'gap:10px;align-items:center;padding:6px 8px;margin-bottom:4px;border:1.5px solid ' + borderColor + ';' +
+      'border-radius:8px;background:' + bgColor + ';cursor:pointer;' + rowShadow +
+      (isDead ? 'opacity:.7;' : '') + '">' +
+        portrait +
+        '<div style="min-width:0;">' +
+          '<div style="font-size:.78rem;color:#e2dbd0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (isDead ? 'text-decoration:line-through;' : '') + '" title="' + e.name + '">' + e.name + '</div>' +
+          '<div style="font-size:.55rem;color:' + (isActive ? '#c8b070' : '#7a7268') + ';font-family:var(--font-mono);letter-spacing:.04em;">init ' + e.initiative + (isMon ? ' · mon' : '') + '</div>' +
+        '</div>' +
+        hpBlock +
+        '<div style="display:flex;gap:3px;flex-wrap:wrap;min-width:0;">' + condsHtml + '</div>' +
+        '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' + chipsHtml + '</div>' +
+      '</div>';
   }
 
-  bar.innerHTML =
-    '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
-      '<div style="font-family:var(--font-display);font-size:.65rem;color:#9a8450;text-transform:uppercase;letter-spacing:.08em;">Round ' + combat.round + '</div>' +
-      '<div style="font-size:.75rem;color:var(--text);font-weight:500;">' + (current ? current.name : '') + '</div>' +
-    '</div>' +
-    '<div style="display:flex;gap:5px;overflow-x:auto;flex:1;padding:4px 0;">' + entriesHtml + '</div>' +
-    '<div style="display:flex;gap:4px;flex-shrink:0;">' +
-      '<button class="btn btn-sm btn-ghost" onclick="prevTurn()" title="Previous turn" style="font-size:.75rem;">\u25C0</button>' +
-      '<button class="btn btn-sm btn-primary" onclick="nextTurn()" style="font-size:.75rem;">Next \u25B6</button>' +
-      '<button class="btn btn-sm btn-ghost" onclick="endCombat()" style="font-size:.7rem;color:var(--red);">End</button>' +
-    '</div>';
+  bar.innerHTML = headerHtml + '<div style="display:flex;flex-direction:column;max-height:45vh;overflow-y:auto;">' + rowsHtml + '</div>';
+}
+
+// ── HOTKEYS ──────────────────────────────────────────────────
+function _hotkeyHandler(ev) {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m?.combat?.active) return;
+
+  // If a prompt is open, only handle its own keys — let input consume the rest.
+  // (The prompt installs its own listener that stopPropagation, but guard anyway.)
+  if (_combatPromptOpen) {
+    if (ev.key === 'Escape') { _removePrompt(); ev.preventDefault(); }
+    return;
+  }
+
+  // Skip when user is typing in an input/textarea/select/contenteditable.
+  const ae = document.activeElement;
+  if (ae) {
+    const tag = ae.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || ae.isContentEditable) return;
+  }
+
+  const key = ev.key;
+  const entries = m.combat.entries || [];
+
+  // Ctrl+Z / Cmd+Z — undo
+  if ((ev.ctrlKey || ev.metaKey) && (key === 'z' || key === 'Z')) {
+    ev.preventDefault();
+    window.undoHp();
+    return;
+  }
+
+  // N or Space — next turn; Shift+ — prev turn
+  if (key === 'n' || key === 'N' || key === ' ' || key === 'Spacebar') {
+    ev.preventDefault();
+    if (ev.shiftKey) prevTurn();
+    else nextTurn();
+    return;
+  }
+
+  // J — select next combatant
+  if (key === 'j' || key === 'J') {
+    ev.preventDefault();
+    if (!entries.length) return;
+    let idx = entries.findIndex(x => x.id === _selectedCombatantId);
+    idx = idx < 0 ? 0 : (idx + 1) % entries.length;
+    selectCombatant(entries[idx].id);
+    return;
+  }
+
+  // K — select prev combatant
+  if (key === 'k' || key === 'K') {
+    ev.preventDefault();
+    if (!entries.length) return;
+    let idx = entries.findIndex(x => x.id === _selectedCombatantId);
+    idx = idx < 0 ? entries.length - 1 : (idx - 1 + entries.length) % entries.length;
+    selectCombatant(entries[idx].id);
+    return;
+  }
+
+  // D — damage prompt for selected
+  if (key === 'd' || key === 'D') {
+    ev.preventDefault();
+    promptDamageOrHeal('damage');
+    return;
+  }
+
+  // H — heal prompt for selected
+  if (key === 'h' || key === 'H') {
+    ev.preventDefault();
+    promptDamageOrHeal('heal');
+    return;
+  }
+
+  // Escape — clear selection (if no prompt open)
+  if (key === 'Escape') {
+    if (_selectedCombatantId) {
+      _selectedCombatantId = null;
+      renderInitiativeBar();
+      ev.preventDefault();
+    }
+    return;
+  }
+}
+
+function _installCombatHotkeys() {
+  if (_combatHotkeysInstalled) return;
+  document.addEventListener('keydown', _hotkeyHandler);
+  _combatHotkeysInstalled = true;
+}
+
+function _uninstallCombatHotkeys() {
+  if (!_combatHotkeysInstalled) return;
+  document.removeEventListener('keydown', _hotkeyHandler);
+  _combatHotkeysInstalled = false;
+  _selectedCombatantId = null;
+  _removePrompt();
 }
 
 // ══════════════════════════════════════════════════════════════
