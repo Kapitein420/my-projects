@@ -554,6 +554,27 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
 .icon-quickpick span{font-size:1.1rem;cursor:pointer;padding:3px 5px;border-radius:4px;border:1px solid var(--border);background:var(--bg-raised);transition:background .1s;line-height:1;}
 .icon-quickpick span:hover{background:var(--glow-bg);border-color:var(--glow-dd);}
 
+/* ── COMBAT PANEL (rewritten initiative bar) ─────────────── */
+.combat-panel{display:flex;overflow-x:auto;gap:8px;background:#1a1610;border:1px solid rgba(200,176,112,.15);padding:8px;border-radius:var(--r-lg);}
+.combat-row{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;min-width:340px;background:var(--bg-card);border:1.5px solid var(--border);cursor:pointer;transition:filter .15s,box-shadow .15s;color:#e2dbd0;flex-shrink:0;position:relative;}
+.combat-row:hover{filter:brightness(1.15);}
+.combat-row.active{box-shadow:0 0 0 2px rgba(200,176,112,.5);border-color:#c8b070;}
+.combat-row.selected{box-shadow:0 0 0 3px var(--glow);}
+.combat-row.dead{opacity:.4;}
+.combat-row.dead .cr-name{text-decoration:line-through;}
+.cr-hp-bar{position:relative;width:120px;height:10px;background:#1e1810;border-radius:5px;overflow:hidden;flex-shrink:0;}
+.cr-hp-fill{height:100%;transition:width .2s,background .2s;border-radius:5px;}
+.cr-hp-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.65rem;color:#fff;text-shadow:0 0 3px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.9);pointer-events:none;}
+.hp-chip{padding:2px 8px;font-size:.65rem;background:#362c22;border:1px solid #3a3428;color:#c8b070;border-radius:6px;cursor:pointer;font-family:var(--font-mono);transition:filter .1s,background .1s;}
+.hp-chip:hover{filter:brightness(1.25);background:#453628;}
+.death-saves{display:flex;gap:3px;}
+.ds-circle{width:14px;height:14px;border-radius:50%;border:2px solid #555;cursor:pointer;box-sizing:border-box;transition:background .15s,border-color .15s;}
+.ds-circle.success{background:#4a9a40;border-color:#4a9a40;}
+.ds-circle.failure{background:#a03030;border-color:#a03030;}
+.combat-inline-input{width:60px;background:var(--bg-input);border:1px solid var(--glow-d);border-radius:4px;color:var(--text-on-dark);font-family:var(--font-mono);font-size:.78rem;padding:2px 5px;}
+.combat-inline-input:focus{outline:none;border-color:var(--glow);}
+.toast{position:fixed;top:20px;right:20px;padding:10px 14px;background:rgba(26,22,19,.95);border:1px solid var(--glow-d);border-radius:var(--r);color:var(--text);font-size:.75rem;z-index:10001;transition:opacity .3s;font-family:var(--font-body);box-shadow:0 4px 16px rgba(0,0,0,.5);}
+
 </style>
 </head>
 <body>
@@ -790,12 +811,12 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
         <div class="section-label">Hit Points</div>
         <div class="hp-tracker-row">
           <span class="hp-lbl">HP</span>
-          <input class="hp-inp" id="d-curhp" type="number">
+          <input class="hp-inp" id="d-curhp" type="number" onblur="saveCurHp()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">
           <span class="hp-sep">/</span>
-          <input class="hp-inp" id="d-maxhp" type="number" readonly style="opacity:.5;cursor:default;">
+          <input class="hp-inp" id="d-maxhp" type="number" onblur="saveMaxHp()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">
           <div class="hp-bar2"><div class="hp-bar2-fill" id="d-hp-fill"></div></div>
-          <button class="save-hp-btn" onclick="saveHp()">Save</button>
         </div>
+        <div id="d-death-saves-wrap" style="display:none;margin-top:.4rem;"></div>
         <div style="margin-top:.5rem;"><div class="section-label">Attacks</div><div id="d-attacks" style="font-size:.8rem;color:var(--text3);white-space:pre-wrap;line-height:1.6;"></div></div>
         <div style="margin-top:.6rem;"><div class="section-label">Equipment</div><div id="d-equipment" style="font-size:.8rem;color:var(--text3);white-space:pre-wrap;line-height:1.5;"></div></div>
         <div style="margin-top:.6rem;display:flex;gap:1.5rem;font-family:var(--font-mono);font-size:.75rem;color:var(--text3);">
@@ -1220,17 +1241,21 @@ function renderCharList(){
 function quickHp(id,delta){
   const c=characters.find(x=>x.id===id);if(!c)return;
   const oldHp=c.currentHp||0;
+  window.recordHpChange?.('character',c.id,{currentHp:c.currentHp,tempHp:c.tempHp,deathSaves:c.deathSaves||{successes:0,failures:0}});
   c.currentHp=Math.max(0,Math.min(c.maxHp,c.currentHp+delta));
+  if(c.currentHp>0&&oldHp===0)c.deathSaves={successes:0,failures:0};
   if(typeof logHpChange==='function')logHpChange(c.id,c.name,'character',oldHp,c.currentHp);
   const inp=document.getElementById('qhp-'+id);if(inp)inp.value=c.currentHp;
-  DB.save('characters',c,characters).then(()=>{renderCharList();if(currentMapId){renderTokensOnMap();if(typeof renderTokenSidebar==='function')renderTokenSidebar();}});
+  DB.save('characters',c,characters).then(()=>{window.onHpChanged?.('character',c.id,c.currentHp-oldHp);renderCharList();if(currentMapId){renderTokensOnMap();if(typeof renderTokenSidebar==='function')renderTokenSidebar();}});
 }
 function quickHpSet(id,val){
   const c=characters.find(x=>x.id===id);if(!c)return;
   const oldHp=c.currentHp||0;
+  window.recordHpChange?.('character',c.id,{currentHp:c.currentHp,tempHp:c.tempHp,deathSaves:c.deathSaves||{successes:0,failures:0}});
   c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(val)||0));
+  if(c.currentHp>0&&oldHp===0)c.deathSaves={successes:0,failures:0};
   if(typeof logHpChange==='function')logHpChange(c.id,c.name,'character',oldHp,c.currentHp);
-  DB.save('characters',c,characters);
+  DB.save('characters',c,characters).then(()=>{window.onHpChanged?.('character',c.id,c.currentHp-oldHp);});
   // Re-render the card's HP bar only
   const card=document.getElementById('card-'+id);
   if(card){
@@ -1271,8 +1296,12 @@ async function bulkHP(type){
   if(!val||!selectedIds.size)return;
   for(const id of selectedIds){
     const c=characters.find(x=>x.id===id);if(!c)continue;
+    const oldHp=c.currentHp||0;
+    window.recordHpChange?.('character',c.id,{currentHp:c.currentHp,tempHp:c.tempHp,deathSaves:c.deathSaves||{successes:0,failures:0}});
     c.currentHp=type==='heal'?Math.min(c.maxHp,c.currentHp+val):Math.max(0,c.currentHp-val);
+    if(c.currentHp>0&&oldHp===0)c.deathSaves={successes:0,failures:0};
     await DB.save('characters',c,characters);
+    window.onHpChanged?.('character',c.id,c.currentHp-oldHp);
   }
   renderCharList();
 }
@@ -1416,6 +1445,17 @@ function showCharDetail(id){
   document.getElementById('d-combat').innerHTML=`<div class="cd-box"><div class="cd-val">${c.ac||10}</div><div class="cd-lbl">AC</div></div><div class="cd-box"><div class="cd-val">${fmtMod(c.initiative||0)}</div><div class="cd-lbl">Init</div></div><div class="cd-box"><div class="cd-val">${c.speed||30}</div><div class="cd-lbl">Speed</div></div><div class="cd-box"><div class="cd-val">${c.level||1}${c.hitDice||'d8'}</div><div class="cd-lbl">HD</div></div><div class="cd-box"><div class="cd-val">${fmtMod(pb)}</div><div class="cd-lbl">Prof</div></div>`;
   document.getElementById('d-curhp').value=c.currentHp||0;document.getElementById('d-maxhp').value=c.maxHp||0;
   const pct=hpPct(c.currentHp||0,c.maxHp||1);const fill=document.getElementById('d-hp-fill');fill.style.width=pct+'%';fill.style.background=hpColor(pct);
+  const dsWrap=document.getElementById('d-death-saves-wrap');const ds=c.deathSaves||{successes:0,failures:0};
+  if((c.currentHp||0)<=0){
+    dsWrap.style.display='block';
+    dsWrap.innerHTML=`<span class="section-label" style="font-size:.6rem;">Death Saves</span>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <div><span style="font-size:.55rem;color:#7a9a70;">Success</span>
+          <div class="death-saves">${[1,2,3].map(i=>`<div class="ds-circle ${i<=(ds.successes||0)?'success':''}" onclick="window.toggleDeathSave?.('${c.id}','success')"></div>`).join('')}</div></div>
+        <div><span style="font-size:.55rem;color:#9a7070;">Failure</span>
+          <div class="death-saves">${[1,2,3].map(i=>`<div class="ds-circle ${i<=(ds.failures||0)?'failure':''}" onclick="window.toggleDeathSave?.('${c.id}','failure')"></div>`).join('')}</div></div>
+      </div>`;
+  } else {dsWrap.style.display='none';dsWrap.innerHTML='';}
   document.getElementById('d-attacks').textContent=c.attacks||'—';document.getElementById('d-equipment').textContent=c.equipment||'—';
   document.getElementById('d-gp').textContent=c.gp||0;document.getElementById('d-sp').textContent=c.sp||0;document.getElementById('d-cp').textContent=c.cp||0;
   document.getElementById('d-skills').innerHTML=SKILLS.map(s=>{const prof=c.skills&&c.skills[s.key];return`<div class="skill-row-d"><div class="sd-dot ${prof?'prof':''}"></div><span>${s.name}</span><span class="sd-bonus">${fmtMod(abMod(c[s.ab]||10)+(prof?pb:0))}</span></div>`;}).join('');
@@ -1426,7 +1466,9 @@ function showCharDetail(id){
   const ap=document.getElementById('d-appear-panel');ap.style.display=ah?'block':'none';document.getElementById('d-appearance').innerHTML=ah;
   showView('view-char-detail');
 }
-async function saveHp(){const c=characters.find(x=>x.id===currentCharId);if(!c)return;const oldHp=c.currentHp||0;c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(document.getElementById('d-curhp').value)||0));if(typeof logHpChange==='function')logHpChange(c.id,c.name,'character',oldHp,c.currentHp);await DB.save('characters',c,characters);showCharDetail(currentCharId);if(currentMapId)renderTokensOnMap();}
+async function saveHp(){const c=characters.find(x=>x.id===currentCharId);if(!c)return;const oldHp=c.currentHp||0;window.recordHpChange?.('character',c.id,{currentHp:c.currentHp,tempHp:c.tempHp,deathSaves:c.deathSaves||{successes:0,failures:0}});c.currentHp=Math.max(0,Math.min(c.maxHp,parseInt(document.getElementById('d-curhp').value)||0));if(c.currentHp>0&&oldHp===0)c.deathSaves={successes:0,failures:0};if(typeof logHpChange==='function')logHpChange(c.id,c.name,'character',oldHp,c.currentHp);await DB.save('characters',c,characters);window.onHpChanged?.('character',c.id,c.currentHp-oldHp);showCharDetail(currentCharId);if(currentMapId)renderTokensOnMap();}
+async function saveCurHp(){return saveHp();}
+async function saveMaxHp(){const c=characters.find(x=>x.id===currentCharId);if(!c)return;const newMax=Math.max(1,parseInt(document.getElementById('d-maxhp').value)||1);if(newMax===c.maxHp)return;const oldHp=c.currentHp||0;window.recordHpChange?.('character',c.id,{currentHp:c.currentHp,tempHp:c.tempHp,deathSaves:c.deathSaves||{successes:0,failures:0}});c.maxHp=newMax;if(c.currentHp>c.maxHp)c.currentHp=c.maxHp;await DB.save('characters',c,characters);window.onHpChanged?.('character',c.id,c.currentHp-oldHp);showCharDetail(currentCharId);if(currentMapId)renderTokensOnMap();}
 function editCurrentChar(){showEditCharForm(currentCharId);}
 async function deleteCurrentChar(){const c=characters.find(x=>x.id===currentCharId);if(!c||!confirm(`Delete ${c.name}?`))return;characters=characters.filter(x=>x.id!==currentCharId);await DB.remove('characters',currentCharId,characters);updateStatus();showCharList();}
 
@@ -2263,6 +2305,14 @@ async function init(){
   updateStatus();
   // Live sync so co-DMs on other devices see each other's edits
   startDmRealtime();
+  document.addEventListener('keydown',(e)=>{
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!e.shiftKey){
+      const active=document.activeElement;
+      if(active&&(active.tagName==='INPUT'||active.tagName==='TEXTAREA'))return;
+      e.preventDefault();
+      window.undoHp?.();
+    }
+  });
 }
 init();
 </script>
