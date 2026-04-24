@@ -565,28 +565,15 @@ function renderInitiativeBar() {
   bar.style.display = 'flex';
   bar.style.flexDirection = 'column';
   bar.style.alignItems = 'stretch';
+  bar.style.flexShrink = '0';
   _installCombatHotkeys();
 
   const combat = m.combat;
   const current = combat.entries[combat.turnIndex];
 
-  // ── Header row ─────────────────────────────────────────────
-  let headerHtml =
-    '<div style="display:flex;align-items:center;gap:10px;padding:2px 2px 6px;border-bottom:1px solid rgba(200,176,112,.15);margin-bottom:6px;">' +
-      '<div style="font-family:var(--font-display);font-size:.65rem;color:#9a8450;text-transform:uppercase;letter-spacing:.08em;">Round ' + combat.round + '</div>' +
-      '<div style="font-size:.78rem;color:var(--text);font-weight:500;">' + (current ? current.name : '') + "'s turn" + '</div>' +
-      '<div style="flex:1;"></div>' +
-      '<div style="font-size:.52rem;color:#7a7268;letter-spacing:.06em;">N/Space next · J/K select · D dmg · H heal · Ctrl+Z undo</div>' +
-      '<div style="display:flex;gap:4px;">' +
-        '<button class="btn btn-sm btn-ghost" onclick="prevTurn()" title="Previous turn (Shift+N)" style="font-size:.75rem;">\u25C0</button>' +
-        '<button class="btn btn-sm btn-primary" onclick="nextTurn()" title="Next turn (N or Space)" style="font-size:.75rem;">Next \u25B6</button>' +
-        '<button class="btn btn-sm btn-ghost" onclick="window.undoHp()" title="Undo last HP change (Ctrl+Z)" style="font-size:.7rem;">\u21B6 Undo</button>' +
-        '<button class="btn btn-sm btn-ghost" onclick="endCombat()" style="font-size:.7rem;color:var(--red);">End</button>' +
-      '</div>' +
-    '</div>';
-
-  // ── Combatant rows ─────────────────────────────────────────
-  let rowsHtml = '';
+  // ── Compact horizontal strip: round + current turn on left, tiles scroll, controls on right
+  // Each tile is ~90px wide, ~68px tall. Map keeps ~80% of screen.
+  let tilesHtml = '';
   for (let i = 0; i < combat.entries.length; i++) {
     const e = combat.entries[i];
     const isActive = i === combat.turnIndex;
@@ -599,100 +586,141 @@ function renderInitiativeBar() {
 
     const curHp = refObj?.currentHp ?? 0;
     const maxHp = refObj?.maxHp ?? 0;
-    const tempHp = refObj?.tempHp ?? 0;
     const isDead = curHp <= 0;
     const hpPctVal = maxHp > 0 ? Math.max(0, Math.min(100, Math.round((curHp / maxHp) * 100))) : 0;
-
     const hpBarColor = isMon ? '#8a2020' : (refObj && !isMon ? classColor(refObj.class) : '#506050');
-    const borderColor = isActive ? '#c8b070' : isSelected ? '#d4b878' : isDead ? '#333' : isMon ? '#8a2020' : 'rgba(90,70,40,.3)';
-    const glow = isSelected ? 'box-shadow:0 0 0 2px rgba(212,184,120,.35), 0 0 10px rgba(200,176,112,.25);' : '';
-    const activeGlow = isActive ? 'box-shadow:0 0 0 2px rgba(200,176,112,.65), 0 0 14px rgba(200,176,112,.45);' : '';
-    const rowShadow = isActive ? activeGlow : glow;
-    const bgColor = isActive ? 'rgba(200,176,112,.08)' : isSelected ? 'rgba(200,176,112,.04)' : isDead ? 'rgba(0,0,0,.3)' : '#1a1814';
 
-    // Portrait
+    const borderColor = isActive ? '#c8b070' : isSelected ? '#d4b878' : isDead ? '#333' : isMon ? '#8a2020' : 'rgba(90,70,40,.35)';
+    const glowCss = isActive
+      ? 'box-shadow:0 0 0 2px rgba(200,176,112,.6),0 0 12px rgba(200,176,112,.4);'
+      : isSelected
+        ? 'box-shadow:0 0 0 2px rgba(212,184,120,.45);'
+        : '';
+    const bgColor = isActive ? 'rgba(200,176,112,.08)' : isDead ? 'rgba(0,0,0,.3)' : 'var(--bg-card)';
+
     let portrait = '';
+    const avatarStyle = 'width:32px;height:32px;border-radius:50%;border:1.5px solid ' + borderColor + ';';
     if (isMon) {
-      if (refObj && refObj.imgUrl) portrait = '<img src="' + refObj.imgUrl + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid ' + borderColor + ';">';
-      else portrait = '<div style="width:36px;height:36px;border-radius:50%;background:#3a1818;border:1.5px solid ' + borderColor + ';display:flex;align-items:center;justify-content:center;font-size:.62rem;color:#c04040;font-family:var(--font-display);">' + (e.name || '?').charAt(0) + '</div>';
+      if (refObj && refObj.imgUrl) portrait = '<img src="' + refObj.imgUrl + '" style="' + avatarStyle + 'object-fit:cover;">';
+      else portrait = '<div style="' + avatarStyle + 'background:#3a1818;display:flex;align-items:center;justify-content:center;font-size:.58rem;color:#c04040;font-family:var(--font-display);">' + (e.name || '?').charAt(0) + '</div>';
     } else {
-      if (refObj && refObj.imageUrl) portrait = '<img src="' + refObj.imageUrl + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid ' + borderColor + ';">';
+      if (refObj && refObj.imageUrl) portrait = '<img src="' + refObj.imageUrl + '" style="' + avatarStyle + 'object-fit:cover;">';
       else {
         const col = refObj ? classColor(refObj.class) : '#5a4830';
-        portrait = '<div style="width:36px;height:36px;border-radius:50%;background:' + col + '20;border:1.5px solid ' + borderColor + ';display:flex;align-items:center;justify-content:center;font-size:.62rem;color:' + col + ';font-family:var(--font-display);">' + (refObj?.icon || (e.name || '?').charAt(0)) + '</div>';
+        portrait = '<div style="' + avatarStyle + 'background:' + col + '20;color:' + col + ';display:flex;align-items:center;justify-content:center;font-size:.58rem;font-family:var(--font-display);">' + (refObj?.icon || (e.name || '?').charAt(0)) + '</div>';
       }
     }
 
-    // Conditions (chars only — monsters have no conditions model today)
-    let condsHtml = '';
-    if (!isMon && refObj && Array.isArray(refObj.conditions)) {
-      condsHtml = refObj.conditions.map(cn =>
-        '<span style="display:inline-block;padding:1px 5px;font-size:.52rem;border-radius:4px;background:rgba(200,176,112,.12);color:#c8b070;border:1px solid rgba(200,176,112,.25);letter-spacing:.04em;">' + cn + '</span>'
-      ).join('');
-    }
-
-    // HP block: death saves pips if char @ 0 HP, else bar w/ numeric overlay.
-    let hpBlock = '';
+    // Foot row: either compact death-save pips (6 small dots) or a mini HP bar with numeric
+    let footRow = '';
     if (!isMon && isDead && refObj) {
       const ds = _getDeathSaves(refObj);
-      const circle = (filled, color) =>
-        '<div style="width:12px;height:12px;border-radius:50%;border:1.5px solid ' + color + ';background:' + (filled ? color : 'transparent') + ';"></div>';
-      let succ = '';
-      for (let j = 0; j < 3; j++) succ += circle(j < ds.successes, '#4a9a40');
-      let fail = '';
-      for (let j = 0; j < 3; j++) fail += circle(j < ds.failures, '#c04040');
-      hpBlock =
-        '<div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">' +
-          '<div title="Death save successes — click to toggle" onclick="event.stopPropagation();" style="display:flex;gap:4px;align-items:center;">' +
-            '<span style="font-size:.48rem;color:#4a9a40;letter-spacing:.1em;text-transform:uppercase;width:40px;">Succ</span>' +
-            '<div style="display:flex;gap:3px;cursor:pointer;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'success\')">' + succ + '</div>' +
-          '</div>' +
-          '<div title="Death save failures — click to toggle" onclick="event.stopPropagation();" style="display:flex;gap:4px;align-items:center;">' +
-            '<span style="font-size:.48rem;color:#c04040;letter-spacing:.1em;text-transform:uppercase;width:40px;">Fail</span>' +
-            '<div style="display:flex;gap:3px;cursor:pointer;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'failure\')">' + fail + '</div>' +
-          '</div>' +
+      const dot = (filled, color) =>
+        '<div style="width:7px;height:7px;border-radius:50%;border:1px solid ' + color + ';background:' + (filled ? color : 'transparent') + ';"></div>';
+      let succ = ''; for (let j = 0; j < 3; j++) succ += dot(j < ds.successes, '#4a9a40');
+      let fail = ''; for (let j = 0; j < 3; j++) fail += dot(j < ds.failures, '#c04040');
+      footRow =
+        '<div style="display:flex;gap:4px;justify-content:center;align-items:center;">' +
+          '<div title="Death save successes — click to toggle" style="display:flex;gap:2px;cursor:pointer;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'success\')">' + succ + '</div>' +
+          '<span style="color:#555;font-size:.55rem;">·</span>' +
+          '<div title="Death save failures — click to toggle" style="display:flex;gap:2px;cursor:pointer;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'failure\')">' + fail + '</div>' +
         '</div>';
-    } else {
-      const tempStr = tempHp > 0 ? ' <span style="color:#6ab0e0;">(+' + tempHp + ')</span>' : '';
-      hpBlock =
-        '<div style="position:relative;min-width:120px;height:16px;background:#12100c;border:1px solid rgba(0,0,0,.4);border-radius:3px;overflow:hidden;">' +
+    } else if (maxHp > 0) {
+      footRow =
+        '<div style="position:relative;height:7px;background:#12100c;border-radius:2px;overflow:hidden;">' +
           '<div style="position:absolute;inset:0 auto 0 0;width:' + hpPctVal + '%;background:' + hpBarColor + ';"></div>' +
-          '<div style="position:relative;z-index:1;font-size:.62rem;color:#f0e8d8;text-align:center;line-height:16px;text-shadow:0 1px 1px rgba(0,0,0,.7);font-family:var(--font-mono);">' + curHp + '/' + maxHp + tempStr + '</div>' +
-        '</div>';
-    }
-
-    // Last-damage chips
-    let chipsHtml = '';
-    const chips = _lastDamages[e.id] || [];
-    if (chips.length) {
-      chipsHtml = chips.map(chip => {
-        const c = chip.sign < 0 ? '#c04040' : '#4a9a40';
-        const prefix = chip.sign < 0 ? '-' : '+';
-        return '<button class="combat-chip" onclick="event.stopPropagation();applyChip(\'' + e.id + '\',' + chip.amount + ',' + chip.sign + ')" title="Re-apply ' + prefix + chip.amount + '" ' +
-          'style="font-size:.58rem;padding:2px 7px;background:rgba(0,0,0,.35);border:1px solid ' + c + ';color:' + c + ';border-radius:10px;cursor:pointer;font-family:var(--font-mono);">' +
-          prefix + chip.amount + '</button>';
-      }).join('');
-    }
-
-    // Row: grid — portrait | name+init | HP | conds | chips
-    rowsHtml +=
-      '<div onclick="selectCombatant(\'' + e.id + '\')" ' +
-      'style="display:grid;grid-template-columns:40px minmax(120px,1.2fr) minmax(130px,1fr) minmax(80px,1fr) auto;' +
-      'gap:10px;align-items:center;padding:6px 8px;margin-bottom:4px;border:1.5px solid ' + borderColor + ';' +
-      'border-radius:8px;background:' + bgColor + ';cursor:pointer;' + rowShadow +
-      (isDead ? 'opacity:.7;' : '') + '">' +
-        portrait +
-        '<div style="min-width:0;">' +
-          '<div style="font-size:.78rem;color:#e2dbd0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (isDead ? 'text-decoration:line-through;' : '') + '" title="' + e.name + '">' + e.name + '</div>' +
-          '<div style="font-size:.55rem;color:' + (isActive ? '#c8b070' : '#7a7268') + ';font-family:var(--font-mono);letter-spacing:.04em;">init ' + e.initiative + (isMon ? ' · mon' : '') + '</div>' +
         '</div>' +
-        hpBlock +
-        '<div style="display:flex;gap:3px;flex-wrap:wrap;min-width:0;">' + condsHtml + '</div>' +
-        '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' + chipsHtml + '</div>' +
+        '<div style="font-size:.52rem;color:#9a8450;font-family:var(--font-mono);text-align:center;letter-spacing:.04em;margin-top:1px;">' + curHp + '/' + maxHp + '</div>';
+    }
+
+    const nameStyle = isDead ? 'text-decoration:line-through;color:#7a7268;' : 'color:#e2dbd0;';
+    const initColor = isActive ? '#c8b070' : '#7a7268';
+
+    tilesHtml +=
+      '<div onclick="selectCombatant(\'' + e.id + '\')" title="' + e.name + ' · init ' + e.initiative + '" ' +
+      'style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 6px;min-width:88px;max-width:92px;' +
+      'border:1.5px solid ' + borderColor + ';border-radius:8px;background:' + bgColor + ';cursor:pointer;transition:transform .1s;' +
+      glowCss + (isDead ? 'opacity:.65;' : '') + '">' +
+        portrait +
+        '<div style="font-size:.65rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:84px;' + nameStyle + '">' + e.name + '</div>' +
+        '<div style="font-size:.54rem;font-weight:600;color:' + initColor + ';font-family:var(--font-mono);">' + e.initiative + '</div>' +
+        '<div style="width:100%;">' + footRow + '</div>' +
       '</div>';
   }
 
-  bar.innerHTML = headerHtml + '<div style="display:flex;flex-direction:column;max-height:45vh;overflow-y:auto;">' + rowsHtml + '</div>';
+  const headerHtml =
+    '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">' +
+      '<div style="font-family:var(--font-display);font-size:.62rem;color:#9a8450;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">Round ' + combat.round + '</div>' +
+      '<div style="font-size:.72rem;color:var(--text);font-weight:500;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;" title="' + (current?.name || '') + "'s turn" + '">' + (current ? current.name : '') + '</div>' +
+    '</div>';
+
+  const controlsHtml =
+    '<div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">' +
+      '<span style="font-size:.48rem;color:#5a5248;letter-spacing:.06em;margin-right:6px;display:none;" class="kb-hint">N next · J/K sel · D dmg · H heal · \u2318Z undo</span>' +
+      '<button class="btn btn-sm btn-ghost" onclick="prevTurn()" title="Previous turn (Shift+N)" style="font-size:.75rem;padding:3px 7px;">\u25C0</button>' +
+      '<button class="btn btn-sm btn-primary" onclick="nextTurn()" title="Next turn (N or Space)" style="font-size:.72rem;padding:3px 9px;">Next \u25B6</button>' +
+      '<button class="btn btn-sm btn-ghost" onclick="window.undoHp()" title="Undo last HP change (Ctrl+Z)" style="font-size:.7rem;padding:3px 7px;">\u21B6</button>' +
+      '<button class="btn btn-sm btn-ghost" onclick="endCombat()" title="End combat" style="font-size:.7rem;color:var(--red);padding:3px 7px;">End</button>' +
+    '</div>';
+
+  bar.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;padding:4px 6px;">' +
+      headerHtml +
+      '<div style="display:flex;gap:6px;overflow-x:auto;flex:1;padding:3px 0;scrollbar-width:thin;">' + tilesHtml + '</div>' +
+      controlsHtml +
+    '</div>' +
+    _renderSelectedDetailStrip(m);
+}
+
+// Thin strip shown directly under the initiative bar when a combatant is selected.
+// Holds HP edit buttons, inline damage input, chips, and expanded death saves.
+function _renderSelectedDetailStrip(m) {
+  if (!_selectedCombatantId) return '';
+  const entry = (m.combat.entries || []).find(x => x.id === _selectedCombatantId);
+  if (!entry) return '';
+  const isMon = entry.type === 'monster';
+  const refObj = isMon
+    ? (m.monsters || []).find(x => x.id === entry.id)
+    : characters.find(x => x.id === entry.id);
+  if (!refObj) return '';
+
+  const curHp = refObj.currentHp ?? 0;
+  const maxHp = refObj.maxHp ?? 0;
+  const tempHp = refObj.tempHp ?? 0;
+  const tempStr = tempHp > 0 ? ' <span style="color:#6ab0e0;">(+' + tempHp + ' temp)</span>' : '';
+
+  // Chips
+  const chips = _lastDamages[entry.id] || [];
+  const chipsHtml = chips.map(chip => {
+    const c = chip.sign < 0 ? '#c04040' : '#4a9a40';
+    const prefix = chip.sign < 0 ? '-' : '+';
+    return '<button onclick="applyChip(\'' + entry.id + '\',' + chip.amount + ',' + chip.sign + ')" title="Re-apply ' + prefix + chip.amount + '" ' +
+      'style="font-size:.6rem;padding:2px 8px;background:rgba(0,0,0,.35);border:1px solid ' + c + ';color:' + c + ';border-radius:10px;cursor:pointer;font-family:var(--font-mono);">' +
+      prefix + chip.amount + '</button>';
+  }).join('');
+
+  // Conditions (chars only)
+  let condsHtml = '';
+  if (!isMon && Array.isArray(refObj.conditions)) {
+    condsHtml = refObj.conditions.map(cn =>
+      '<span style="display:inline-block;padding:1px 5px;font-size:.55rem;border-radius:4px;background:rgba(200,176,112,.12);color:#c8b070;border:1px solid rgba(200,176,112,.25);letter-spacing:.04em;">' + cn + '</span>'
+    ).join('');
+  }
+
+  return '<div style="display:flex;align-items:center;gap:10px;padding:4px 10px;border-top:1px solid rgba(200,176,112,.12);background:rgba(26,22,19,.4);flex-shrink:0;">' +
+    '<span style="font-size:.68rem;color:#c8b070;font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + entry.name + '</span>' +
+    '<span style="font-size:.66rem;color:#e2dbd0;font-family:var(--font-mono);">' + curHp + '/' + maxHp + tempStr + '</span>' +
+    '<button onclick="applyDamageToSelected(1)" title="Damage 1 (D for custom)" style="font-size:.62rem;padding:2px 8px;background:#362020;border:1px solid #5a2828;color:#e08080;border-radius:6px;cursor:pointer;">−1</button>' +
+    '<button onclick="applyDamageToSelected(5)" style="font-size:.62rem;padding:2px 8px;background:#362020;border:1px solid #5a2828;color:#e08080;border-radius:6px;cursor:pointer;">−5</button>' +
+    '<button onclick="promptDamageOrHeal(\'damage\')" title="Damage prompt (D)" style="font-size:.62rem;padding:2px 8px;background:#362020;border:1px solid #5a2828;color:#e08080;border-radius:6px;cursor:pointer;">Dmg…</button>' +
+    '<button onclick="applyHealToSelected(1)" style="font-size:.62rem;padding:2px 8px;background:#1f3020;border:1px solid #285028;color:#80c080;border-radius:6px;cursor:pointer;">+1</button>' +
+    '<button onclick="applyHealToSelected(5)" style="font-size:.62rem;padding:2px 8px;background:#1f3020;border:1px solid #285028;color:#80c080;border-radius:6px;cursor:pointer;">+5</button>' +
+    '<button onclick="promptDamageOrHeal(\'heal\')" title="Heal prompt (H)" style="font-size:.62rem;padding:2px 8px;background:#1f3020;border:1px solid #285028;color:#80c080;border-radius:6px;cursor:pointer;">Heal…</button>' +
+    (chipsHtml ? '<span style="font-size:.52rem;color:#7a7268;letter-spacing:.06em;margin-left:4px;">LAST:</span>' + '<div style="display:flex;gap:3px;">' + chipsHtml + '</div>' : '') +
+    (condsHtml ? '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-left:4px;">' + condsHtml + '</div>' : '') +
+    '<div style="flex:1;"></div>' +
+    '<span style="font-size:.5rem;color:#5a5248;letter-spacing:.06em;">Esc to deselect</span>' +
+  '</div>';
 }
 
 // ── HOTKEYS ──────────────────────────────────────────────────
