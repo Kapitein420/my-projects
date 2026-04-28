@@ -289,6 +289,15 @@ function mapStageClick(e) {
   // Hide monster popup on map click
   if (typeof hideMonsterPopup === 'function') hideMonsterPopup();
 
+  if (_mapPingMode) {
+    const stageRect = e.currentTarget.getBoundingClientRect();
+    const xPct = ((e.clientX - stageRect.left) / stageRect.width) * 100;
+    const yPct = ((e.clientY - stageRect.top) / stageRect.height) * 100;
+    fireMapPing(xPct, yPct);
+    toggleMapPingMode(); // exit ping mode after one ping
+    return;
+  }
+
   const mapEl = getMapElement();
   if (!mapEl || !mapEl.offsetWidth) return;
 
@@ -643,4 +652,32 @@ function toggleSnapshotPanel() {
 
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── DM PING ────────────────────────────────────────────────
+let _mapPingMode = false;
+function toggleMapPingMode() {
+  _mapPingMode = !_mapPingMode;
+  const btn = document.getElementById('map-ping-btn');
+  if (btn) {
+    btn.textContent = _mapPingMode ? '📍 Click map…' : '📍 Ping';
+    btn.style.borderColor = _mapPingMode ? '#c8b070' : '';
+  }
+  const stage = document.getElementById('map-stage');
+  if (stage) stage.style.cursor = _mapPingMode ? 'crosshair' : '';
+}
+
+function fireMapPing(xPct, yPct) {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  m.activePing = { x: xPct, y: yPct, ts: Date.now() };
+  m.updatedAt = Date.now();
+  saveCurrentMap();
+  // Auto-clear after 3.5s so other DMs/player views revert and a follow-up ping with same coords still triggers
+  setTimeout(() => {
+    if (m.activePing && m.activePing.ts && Date.now() - m.activePing.ts >= 3000) {
+      m.activePing = null;
+      saveCurrentMap();
+    }
+  }, 3500);
 }

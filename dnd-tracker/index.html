@@ -574,7 +574,11 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
 .combat-inline-input{width:60px;background:var(--bg-input);border:1px solid var(--glow-d);border-radius:4px;color:var(--text-on-dark);font-family:var(--font-mono);font-size:.78rem;padding:2px 5px;}
 .combat-inline-input:focus{outline:none;border-color:var(--glow);}
 .toast{position:fixed;top:20px;right:20px;padding:10px 14px;background:rgba(26,22,19,.95);border:1px solid var(--glow-d);border-radius:var(--r);color:#e2dbd0;font-size:.75rem;z-index:10001;transition:opacity .3s;font-family:var(--font-body);box-shadow:0 4px 16px rgba(0,0,0,.5);}
-
+@keyframes pf-ping-anim {
+  0%   { transform: scale(0.4); opacity: 1; }
+  50%  { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
 </style>
 </head>
 <body>
@@ -926,6 +930,7 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
     <button class="btn btn-sm btn-ghost" id="combat-start-btn" onclick="showCombatSetup()">⚔ Combat</button>
     <button class="btn btn-sm btn-ghost" onclick="showSessionReport()" title="Generate session report from all combat data">📊 Report</button>
     <button class="btn btn-sm btn-ghost" id="map-maximize-btn" onclick="toggleMapMaximize()" title="Expand map to fill browser (ESC to exit)">⛶ Fullscreen</button>
+    <button class="btn btn-sm btn-ghost" id="map-ping-btn" onclick="toggleMapPingMode()" title="Click to enter ping mode, then click on map to ping a location for players">📍 Ping</button>
     <button class="btn btn-sm btn-ghost" onclick="openPlayerFullscreen()" title="Open fullscreen player view (ESC to close)">📺 Player Screen</button>
     <button class="btn btn-sm btn-ghost" onclick="copyPlayerLink()" title="Copy link for a separate player screen" id="copy-player-link-btn">🔗 Link</button>
     <div style="position:relative;">
@@ -1885,6 +1890,22 @@ function refreshPlayerFullscreen(mapId) {
   ctx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
   if (m.fog?.enabled) renderPlayerFog(fogCanvas, m);
   renderPlayerTokens(overlay, m, {clientWidth: iw, clientHeight: ih});
+
+  // ── PING RIPPLE ─────────────────────────────────────────────
+  const ping = m.activePing;
+  const stage = container.querySelector('.pf-stage');
+  if (ping && ping.ts && Date.now() - ping.ts < 3000 && stage) {
+    // Avoid duplicate ripples for the same ping
+    const lastTs = stage._lastPingTs || 0;
+    if (ping.ts !== lastTs) {
+      stage._lastPingTs = ping.ts;
+      const ripple = document.createElement('div');
+      ripple.className = 'pf-ping-ripple';
+      ripple.style.cssText = 'position:absolute;left:' + ping.x + '%;top:' + ping.y + '%;width:80px;height:80px;margin-left:-40px;margin-top:-40px;border:3px solid #ffd56b;border-radius:50%;pointer-events:none;animation:pf-ping-anim 1.6s ease-out 2;z-index:9998;box-shadow:0 0 24px rgba(255,213,107,.7);';
+      stage.appendChild(ripple);
+      setTimeout(() => { try { ripple.remove(); } catch(e){} }, 3300);
+    }
+  }
 }
 
 function renderPlayerFog(canvas, m) {
