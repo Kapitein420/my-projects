@@ -828,6 +828,56 @@ function _showConcentrationSavePrompt(charId, charName, damage, spellName) {
 
 // ── INITIATIVE / COMBAT-OPS PANEL RENDERING ──────────────────
 
+// ── MOBILE UX ──────────────────────────────────────────────
+let _mobileSetupDone = false;
+function _setupMobileGestures() {
+  if (_mobileSetupDone) return;
+  _mobileSetupDone = true;
+  if (window.matchMedia && !window.matchMedia('(max-width:680px)').matches) return;
+  // Swipe-left on a tile = damage prompt; swipe-right = heal prompt.
+  // Wire on the initiative-bar via touch event delegation.
+  const bar = document.getElementById('initiative-bar');
+  if (!bar) { _mobileSetupDone = false; return; } // retry next render
+  let touchStartX = 0, touchStartY = 0, touchTileId = null;
+  bar.addEventListener('touchstart', (e) => {
+    const tile = e.target.closest('[data-combatant-id]');
+    if (!tile) return;
+    const t = e.touches[0];
+    touchStartX = t.clientX; touchStartY = t.clientY;
+    touchTileId = tile.getAttribute('data-combatant-id');
+  }, { passive: true });
+  bar.addEventListener('touchend', (e) => {
+    if (!touchTileId) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = Math.abs(t.clientY - touchStartY);
+    if (dy < 30 && Math.abs(dx) > 50) {
+      // Horizontal swipe — select then damage/heal
+      if (typeof selectCombatant === 'function') selectCombatant(touchTileId);
+      setTimeout(() => {
+        if (dx < 0) { promptDamageOrHeal('damage'); }
+        else { promptDamageOrHeal('heal'); }
+      }, 50);
+    }
+    touchTileId = null;
+  }, { passive: true });
+}
+
+function _showMobileSheet(html) {
+  const sheet = document.getElementById('mobile-sheet');
+  const content = document.getElementById('mobile-sheet-content');
+  if (!sheet || !content) return;
+  content.innerHTML = html;
+  sheet.classList.add('open');
+}
+function _hideMobileSheet() {
+  const sheet = document.getElementById('mobile-sheet');
+  if (sheet) sheet.classList.remove('open');
+}
+window._showMobileSheet = _showMobileSheet;
+window._hideMobileSheet = _hideMobileSheet;
+// ── /MOBILE UX ─────────────────────────────────────────────
+
 function renderInitiativeBar() {
   const m = maps.find(x => x.id === currentMapId);
   const bar = document.getElementById('initiative-bar');
@@ -981,6 +1031,12 @@ function renderInitiativeBar() {
       controlsHtml +
     '</div>' +
     _renderSelectedDetailStrip(m);
+
+  // ── MOBILE UX
+  const fab = document.getElementById('mobile-fab-next');
+  if (fab) fab.style.display = (m && m.combat && m.combat.active) ? '' : 'none';
+  _setupMobileGestures();
+  // ── /MOBILE UX
 }
 
 // Thin strip shown directly under the initiative bar when a combatant is selected.

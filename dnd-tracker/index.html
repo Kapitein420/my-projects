@@ -560,6 +560,48 @@
 @media(max-width:900px){.map-editor-wrap{grid-template-columns:200px 1fr;height:auto;}.notes-panel{display:none;}.map-stage-wrap{min-height:300px;}}
 @media(max-width:680px){.map-editor-wrap{grid-template-columns:1fr;height:auto;}.map-sidebar{max-height:200px;}.map-stage-wrap{min-height:300px;}.fog-toolbar{font-size:.65rem;}.fog-sub-controls input[type=range]{width:50px;}}
 
+/* ── MOBILE UX ───────────────────────────────────────────── */
+@media (max-width:680px) {
+  /* On mobile, the inline detail strip becomes a slide-up bottom sheet.
+     Hide the inline strip and use a fixed-position panel instead. */
+  #initiative-bar > div:nth-child(2) { /* the detail strip if rendered inline */
+    display: none;
+  }
+  .mobile-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    transform: translateY(100%);
+    transition: transform .3s ease-out;
+    background: rgba(20,16,12,.97);
+    border-top: 2px solid #c8b070;
+    padding: 12px 16px 18px;
+    z-index: 9999;
+    box-shadow: 0 -8px 32px rgba(0,0,0,.6);
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .mobile-sheet.open { transform: translateY(0); }
+  .mobile-sheet .sheet-grab { width:40px;height:4px;background:#666;border-radius:2px;margin:0 auto 10px; }
+  .mobile-sheet .sheet-row { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px; }
+  .mobile-sheet button.fab-btn {
+    flex: 1; min-height: 44px; font-size: .9rem;
+    border-radius: 8px; border: 1px solid; padding: 8px 12px;
+  }
+  /* FAB for next-turn */
+  .mobile-fab {
+    position: fixed; right: 16px; bottom: 80px;
+    width: 60px; height: 60px; border-radius: 50%;
+    background: #c8b070; color: #1a1610; border: none;
+    font-size: 1.4rem; font-weight: bold;
+    box-shadow: 0 4px 14px rgba(0,0,0,.5);
+    z-index: 9998; cursor: pointer;
+    display: none; /* shown when combat active */
+  }
+  .mobile-fab:active { transform: scale(.95); }
+}
+@media (min-width:681px) {
+  .mobile-sheet, .mobile-fab { display: none !important; }
+}
+
 /* ── MAXIMIZED MAP MODE ──────────────────────────────────── */
 body.map-maximized .app-nav{display:none;}
 body.map-maximized .app-main{max-width:none;padding:0;margin:0;}
@@ -2683,5 +2725,10 @@ init();
 <div id="ambient-bg"><img src="assets/bg-forest.jpg" alt="" loading="lazy"></div>
 <button class="ambient-toggle" onclick="toggleAmbient()" title="Toggle ambient background">🌲</button>
 <div id="player-fullscreen" class="player-fullscreen" style="display:none;" onclick="if(event.target===this)closePlayerFullscreen()"></div>
+<div class="mobile-sheet" id="mobile-sheet">
+  <div class="sheet-grab"></div>
+  <div id="mobile-sheet-content"></div>
+</div>
+<button class="mobile-fab" id="mobile-fab-next" onclick="nextTurn()" title="Next turn">▶</button>
 </body>
 </html>
