@@ -185,6 +185,10 @@ function nextTurn() {
 
   m.combat.turnIndex = idx;
   const newEntry = m.combat.entries[idx];
+  // ── REACTION TRACKER ─ refresh reaction on turn start
+  if (!m.combat.reactions) m.combat.reactions = {};
+  if (newEntry && m.combat.reactions) m.combat.reactions[newEntry.id] = false;
+  // ── REACTION TRACKER end
   combatLog({ type: 'turn_start', note: 'Round ' + m.combat.round + ' \u2014 ' + newEntry.name + "'s turn" });
   m.updatedAt = Date.now();
   saveCurrentMap();
@@ -204,20 +208,51 @@ function prevTurn() {
   if (idx === len - 1 && m.combat.round > 1) m.combat.round--;
 
   m.combat.turnIndex = idx;
+  // ── REACTION TRACKER ─ refresh reaction on turn start (mirror nextTurn)
+  const newEntry = m.combat.entries[idx];
+  if (!m.combat.reactions) m.combat.reactions = {};
+  if (newEntry && m.combat.reactions) m.combat.reactions[newEntry.id] = false;
+  // ── REACTION TRACKER end
   m.updatedAt = Date.now();
   saveCurrentMap();
   renderInitiativeBar();
   renderTokensOnMap();
 }
 
+// ── HP WRITE-BACK ────────────────────────────────────────────
+// endCombat() is now a thin wrapper that shows a confirm modal listing
+// each PC's HP/death-save state. The original end-combat logic lives in
+// _finishEndCombat() and runs after the user confirms. If the encounter
+// has no PCs, the dialog is skipped and we call _finishEndCombat() directly.
+// Existing callers (End button two-click confirm, Ctrl+Shift+E hotkey)
+// keep working unchanged.
 function endCombat() {
   const m = maps.find(x => x.id === currentMapId);
   if (!m?.combat?.active) return;
-  // Confirmation is handled by confirmEndCombat (two-click pattern). The
-  // raw endCombat() can also be invoked directly via Ctrl+Shift+E for power
-  // users, so no browser confirm() here. Clear any pending confirm timer.
+
+  // Clear the two-click confirm timer if it's armed.
   _endConfirmArmed = false;
   if (_endConfirmTimer) { clearTimeout(_endConfirmTimer); _endConfirmTimer = null; }
+
+  // Collect PCs that participated in this combat.
+  const pcEntries = (m.combat.entries || []).filter(e => e.type === 'character');
+  const pcs = [];
+  for (const e of pcEntries) {
+    const c = (typeof characters !== 'undefined') ? characters.find(x => x.id === e.id) : null;
+    if (c) pcs.push(c);
+  }
+
+  // Edge case: monster-only encounter — skip the write-back dialog.
+  if (!pcs.length) { _finishEndCombat(); return; }
+
+  _showEndCombatDialog(pcs);
+}
+
+// Original end-combat body (renamed). Called after the write-back dialog
+// confirms, or directly when there are no PCs in the encounter.
+function _finishEndCombat() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
 
   combatLog({ type: 'combat_end', note: 'Combat ended after ' + m.combat.round + ' rounds' });
 
@@ -236,6 +271,138 @@ function endCombat() {
   renderCombatLog();
   renderTokensOnMap();
 }
+
+// Build + show the End Combat confirm modal listing each PC's current HP.
+// Two checkboxes (HP, death saves) default to checked. Cancel = no-op,
+// combat stays active. Confirm = re-save each PC then call _finishEndCombat().
+function _showEndCombatDialog(pcs) {
+  // Remove any pre-existing instance.
+  const existing = document.getElementById('end-combat-dialog');
+  if (existing) existing.remove();
+
+  const wrap = document.createElement('div');
+  wrap.id = 'end-combat-dialog';
+  wrap.style.cssText =
+    'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99998;' +
+    'background:var(--bg-card,#1e1b16);border:1px solid #c8b070;border-radius:8px;' +
+    'padding:18px 22px;box-shadow:0 10px 32px rgba(0,0,0,.7);' +
+    'display:flex;flex-direction:column;gap:12px;min-width:340px;max-width:460px;' +
+    'font-family:var(--font-display,sans-serif);color:#e2dbd0;';
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:.85rem;color:#c8b070;letter-spacing:.12em;text-transform:uppercase;';
+  title.textContent = 'End combat?';
+  wrap.appendChild(title);
+
+  const sub = document.createElement('div');
+  sub.style.cssText = 'font-size:.62rem;color:#a89e8e;letter-spacing:.06em;text-transform:uppercase;';
+  sub.textContent = 'Party state at end of combat';
+  wrap.appendChild(sub);
+
+  // PC list.
+  const list = document.createElement('div');
+  list.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:#e2dbd0;padding:6px 4px;border-top:1px solid #3a3328;border-bottom:1px solid #3a3328;';
+  for (const c of pcs) {
+    const cur = parseInt(c.currentHp) || 0;
+    const max = parseInt(c.maxHp) || 0;
+    const ratio = max > 0 ? cur / max : 1;
+    const ds = (c.deathSaves && typeof c.deathSaves.failures === 'number') ? c.deathSaves : null;
+    let suffix = '';
+    let lineColor = '#e2dbd0';
+    if (cur <= 0) {
+      const failed = ds && ds.failures >= 3;
+      suffix = failed ? '  \uD83D\uDC80 dead (3 failed saves)' : '  \uD83D\uDC80 unconscious';
+      lineColor = '#c08080';
+    } else if (ratio <= 0.25) {
+      suffix = '  \u26A0 low';
+      lineColor = '#d8a060';
+    }
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;color:' + lineColor + ';';
+    const safeName = (c.name || 'Unnamed').replace(/[<>&]/g, s => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[s]));
+    row.innerHTML =
+      '<span style="color:#7a7268;">\u2022</span>' +
+      '<span style="flex:1;">' + safeName + '</span>' +
+      '<span style="font-variant-numeric:tabular-nums;">' + cur + '/' + max + ' HP</span>' +
+      '<span style="font-size:.7rem;">' + suffix + '</span>';
+    list.appendChild(row);
+  }
+  wrap.appendChild(list);
+
+  // Checkboxes.
+  const optWrap = document.createElement('div');
+  optWrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;font-size:.72rem;color:#cfc6b8;';
+
+  const mkCheckbox = (id, labelText) => {
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = id;
+    cb.checked = true;
+    cb.style.cssText = 'accent-color:#c8b070;width:14px;height:14px;cursor:pointer;';
+    const span = document.createElement('span');
+    span.textContent = labelText;
+    lbl.appendChild(cb);
+    lbl.appendChild(span);
+    return { lbl: lbl, cb: cb };
+  };
+  const saveHp = mkCheckbox('end-combat-save-hp', 'Save current HP to character cards');
+  const saveDs = mkCheckbox('end-combat-save-ds', 'Save death save state');
+  optWrap.appendChild(saveHp.lbl);
+  optWrap.appendChild(saveDs.lbl);
+  wrap.appendChild(optWrap);
+
+  // Buttons row.
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;margin-top:4px;';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn btn-sm btn-ghost';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.style.cssText = 'font-size:.7rem;padding:5px 12px;';
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'btn btn-sm btn-primary';
+  confirmBtn.textContent = 'End Combat';
+  confirmBtn.style.cssText = 'font-size:.7rem;padding:5px 12px;background:#5a2828;border:1px solid #c04040;color:#f0d0c0;';
+
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(confirmBtn);
+  wrap.appendChild(btnRow);
+
+  document.body.appendChild(wrap);
+
+  const close = () => { wrap.remove(); document.removeEventListener('keydown', onKey, true); };
+  const onKey = (ev) => {
+    if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); close(); }
+    else if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); doConfirm(); }
+  };
+  const doConfirm = () => {
+    const persistHp = saveHp.cb.checked;
+    const persistDs = saveDs.cb.checked;
+    if (persistHp || persistDs) {
+      for (const c of pcs) {
+        // Real-time saves should already have persisted these during combat,
+        // but call save again here to lock in the session-end snapshot.
+        if (persistDs && !c.deathSaves) c.deathSaves = { successes: 0, failures: 0 };
+        if (typeof DB !== 'undefined' && DB.save) DB.save('characters', c, characters);
+      }
+      const bits = [];
+      if (persistHp) bits.push('HP');
+      if (persistDs) bits.push('death saves');
+      if (typeof toast === 'function') toast('Saved ' + bits.join(' + ') + ' for ' + pcs.length + ' PC' + (pcs.length === 1 ? '' : 's'));
+    }
+    close();
+    _finishEndCombat();
+  };
+  cancelBtn.addEventListener('click', close);
+  confirmBtn.addEventListener('click', doConfirm);
+  document.addEventListener('keydown', onKey, true);
+
+  setTimeout(() => confirmBtn.focus(), 0);
+}
+// ── /HP WRITE-BACK ───────────────────────────────────────────
 
 // ── INITIATIVE / COMBAT-OPS PANEL STATE ──────────────────────
 // Undo stack: max 15 entries of {targetType, id, before:{currentHp, tempHp, deathSaves}, ts}
@@ -632,6 +799,21 @@ window.toggleDeathSave = function (charId, type) {
   renderCombatLog();
 };
 
+// ── REACTION TRACKER ─────────────────────────────────────────
+// Per-combatant boolean: m.combat.reactions[id] === true means reaction is
+// used this round. Auto-cleared when that combatant's turn starts
+// (see nextTurn / prevTurn).
+window.toggleReaction = function (id) {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m?.combat?.active) return;
+  if (!m.combat.reactions) m.combat.reactions = {};
+  m.combat.reactions[id] = !m.combat.reactions[id];
+  m.updatedAt = Date.now();
+  saveCurrentMap();
+  renderInitiativeBar();
+};
+// ── REACTION TRACKER end
+
 // ── CONCENTRATION TRACKING ───────────────────────────────────
 // Per character: c.concentrating = null | { spellName, startedRound, startedTurnIdx }.
 // Marc's #1 forgotten 5e rule: when a concentrator takes damage they need
@@ -828,6 +1010,56 @@ function _showConcentrationSavePrompt(charId, charName, damage, spellName) {
 
 // ── INITIATIVE / COMBAT-OPS PANEL RENDERING ──────────────────
 
+// ── MOBILE UX ──────────────────────────────────────────────
+let _mobileSetupDone = false;
+function _setupMobileGestures() {
+  if (_mobileSetupDone) return;
+  _mobileSetupDone = true;
+  if (window.matchMedia && !window.matchMedia('(max-width:680px)').matches) return;
+  // Swipe-left on a tile = damage prompt; swipe-right = heal prompt.
+  // Wire on the initiative-bar via touch event delegation.
+  const bar = document.getElementById('initiative-bar');
+  if (!bar) { _mobileSetupDone = false; return; } // retry next render
+  let touchStartX = 0, touchStartY = 0, touchTileId = null;
+  bar.addEventListener('touchstart', (e) => {
+    const tile = e.target.closest('[data-combatant-id]');
+    if (!tile) return;
+    const t = e.touches[0];
+    touchStartX = t.clientX; touchStartY = t.clientY;
+    touchTileId = tile.getAttribute('data-combatant-id');
+  }, { passive: true });
+  bar.addEventListener('touchend', (e) => {
+    if (!touchTileId) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = Math.abs(t.clientY - touchStartY);
+    if (dy < 30 && Math.abs(dx) > 50) {
+      // Horizontal swipe — select then damage/heal
+      if (typeof selectCombatant === 'function') selectCombatant(touchTileId);
+      setTimeout(() => {
+        if (dx < 0) { promptDamageOrHeal('damage'); }
+        else { promptDamageOrHeal('heal'); }
+      }, 50);
+    }
+    touchTileId = null;
+  }, { passive: true });
+}
+
+function _showMobileSheet(html) {
+  const sheet = document.getElementById('mobile-sheet');
+  const content = document.getElementById('mobile-sheet-content');
+  if (!sheet || !content) return;
+  content.innerHTML = html;
+  sheet.classList.add('open');
+}
+function _hideMobileSheet() {
+  const sheet = document.getElementById('mobile-sheet');
+  if (sheet) sheet.classList.remove('open');
+}
+window._showMobileSheet = _showMobileSheet;
+window._hideMobileSheet = _hideMobileSheet;
+// ── /MOBILE UX ─────────────────────────────────────────────
+
 function renderInitiativeBar() {
   const m = maps.find(x => x.id === currentMapId);
   const bar = document.getElementById('initiative-bar');
@@ -909,7 +1141,23 @@ function renderInitiativeBar() {
         'display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;' +
         'font-family:var(--font-display,sans-serif);cursor:pointer;letter-spacing:0;line-height:1;">C</div>';
     }
-    portrait = '<div style="position:relative;display:inline-block;">' + portraitInner + concBadge + '</div>';
+    // ── REACTION TRACKER ─ bottom-LEFT badge (mirror of "C" on the right)
+    const _rxUsed = !!(m.combat.reactions && m.combat.reactions[e.id]);
+    const _rxTitle = _rxUsed
+      ? 'Reaction used \u2014 click to refresh'
+      : 'Reaction available \u2014 click to mark used';
+    const _rxStyle =
+      'position:absolute;left:-3px;bottom:-3px;width:14px;height:14px;border-radius:50%;' +
+      'box-sizing:border-box;cursor:pointer;' +
+      (_rxUsed
+        ? 'background:#a04040;border:1px solid #c8b070;'
+        : 'background:transparent;border:1px solid #7a7268;');
+    const _rxBadge =
+      '<div class="rx-toggle" data-reaction-toggle="' + e.id + '" ' +
+      'onclick="event.stopPropagation();window.toggleReaction(\'' + e.id + '\')" ' +
+      'title="' + _rxTitle + '" style="' + _rxStyle + '"></div>';
+    // ── REACTION TRACKER end
+    portrait = '<div class="rx-portrait-wrap" style="position:relative;display:inline-block;">' + portraitInner + concBadge + _rxBadge + '</div>';
 
     // Foot row: either compact death-save pips (6 small dots) or a mini HP bar with numeric
     let footRow = '';
@@ -938,8 +1186,12 @@ function renderInitiativeBar() {
     const nameStyle = isDead ? 'text-decoration:line-through;color:#7a7268;' : 'color:#e2dbd0;';
     const initColor = isActive ? '#c8b070' : '#7a7268';
 
+    // ── LAST-TURN TOOLTIP: data-combatant-tip + onmouseenter/onmouseleave wired in (selection click intact) ──
     tilesHtml +=
-      '<div data-combatant-id="' + e.id + '" onclick="selectCombatant(\'' + e.id + '\')" title="' + e.name + ' · init ' + e.initiative + '" ' +
+      '<div data-combatant-id="' + e.id + '" data-combatant-tip="' + e.id + '" ' +
+      'onclick="hideCombatantTip();selectCombatant(\'' + e.id + '\', event && event.shiftKey ? \'add\' : null)" ' +
+      'onmouseenter="showCombatantTip(\'' + e.id + '\',this)" onmouseleave="hideCombatantTip()" ' +
+      'title="' + e.name + ' · init ' + e.initiative + '" ' +
       'style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 6px;min-width:88px;max-width:92px;' +
       'border:1.5px solid ' + borderColor + ';border-radius:8px;background:' + bgColor + ';cursor:pointer;transition:transform .1s;' +
       glowCss + (isDead ? 'opacity:.65;' : '') + '">' +
@@ -981,6 +1233,12 @@ function renderInitiativeBar() {
       controlsHtml +
     '</div>' +
     _renderSelectedDetailStrip(m);
+
+  // ── MOBILE UX
+  const fab = document.getElementById('mobile-fab-next');
+  if (fab) fab.style.display = (m && m.combat && m.combat.active) ? '' : 'none';
+  _setupMobileGestures();
+  // ── /MOBILE UX
 }
 
 // Thin strip shown directly under the initiative bar when a combatant is selected.
@@ -1667,3 +1925,101 @@ function saveSessionReportToNotes() {
   saveCurrentMap();
   closeCombatReport();
 }
+
+// ══════════════════════════════════════════════════════════════
+// ── LAST-TURN TOOLTIP ─────────────────────────────────────────
+// Hover any combatant tile in the initiative bar to see that
+// combatant's most-recent log entries (as the SOURCE of an action).
+// Globally unique element id "combat-tile-tip" to avoid collisions.
+// ══════════════════════════════════════════════════════════════
+
+function _ensureCombatTileTip() {
+  let tip = document.getElementById('combat-tile-tip');
+  if (tip) return tip;
+  tip = document.createElement('div');
+  tip.id = 'combat-tile-tip';
+  tip.style.cssText =
+    'position:fixed;display:none;background:rgba(15,12,8,.96);border:1px solid #c8b070;' +
+    'border-radius:6px;padding:6px 10px;font-size:.7rem;color:#e2dbd0;max-width:260px;' +
+    'z-index:10000;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.5);';
+  document.body.appendChild(tip);
+  return tip;
+}
+
+function _formatCombatTipEntry(logEntry, entries) {
+  const r = logEntry.round || 0;
+  // Resolve "T<index>" by matching turnId to the combat order; fall back to "?".
+  let tStr = '?';
+  if (logEntry.turnId && Array.isArray(entries)) {
+    const ti = entries.findIndex(x => x.id === logEntry.turnId);
+    if (ti >= 0) tStr = String(ti + 1);
+  }
+  const stamp = 'R' + r + 'T' + tStr;
+  const tgt = logEntry.target || {};
+  const tgtName = (logEntry.source && tgt.id === logEntry.source.id) ? 'self' : (tgt.name || '?');
+  if (logEntry.type === 'damage') return stamp + ': damage ' + tgtName + ' \u2192 -' + (logEntry.value || 0);
+  if (logEntry.type === 'heal')   return stamp + ': heal '   + tgtName + ' \u2192 +' + (logEntry.value || 0);
+  if (logEntry.type === 'kill')   return stamp + ': kill '   + tgtName;
+  return stamp + ': ' + (logEntry.type || 'event');
+}
+
+window.showCombatantTip = function(combatantId, anchorEl) {
+  if (!combatantId || !anchorEl) return;
+  const tip = _ensureCombatTileTip();
+  const m = (typeof maps !== 'undefined') ? maps.find(x => x.id === currentMapId) : null;
+  const log = m?.combat?.log || [];
+  const entries = m?.combat?.entries || [];
+
+  const recent = [];
+  for (let i = log.length - 1; i >= 0 && recent.length < 3; i--) {
+    const L = log[i];
+    if (!L || !L.source || L.source.id !== combatantId) continue;
+    if (L.type !== 'damage' && L.type !== 'heal' && L.type !== 'kill') continue;
+    recent.push(L);
+  }
+
+  let body;
+  if (!recent.length) {
+    body = '<div style="color:#9a8450;font-size:.65rem;letter-spacing:.04em;">No actions logged</div>';
+  } else {
+    body =
+      '<div style="font-size:.55rem;color:#9a8450;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">Last actions</div>' +
+      recent.map(L =>
+        '<div style="display:flex;gap:5px;align-items:baseline;line-height:1.35;">' +
+          '<span style="color:#c8b070;">\u25CF</span>' +
+          '<span style="color:#e2dbd0;font-family:var(--font-mono),monospace;font-size:.68rem;">' +
+            _formatCombatTipEntry(L, entries) +
+          '</span>' +
+        '</div>'
+      ).join('');
+  }
+  tip.innerHTML = body;
+  tip.style.display = 'block';
+
+  // Position just below the anchor; clamp to viewport, flip above if no room below.
+  const rect = anchorEl.getBoundingClientRect();
+  const vw = window.innerWidth || document.documentElement.clientWidth;
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  const tw = tip.offsetWidth || 260;
+  const th = tip.offsetHeight || 60;
+  let left = Math.round(rect.left + (rect.width / 2) - (tw / 2));
+  let top  = Math.round(rect.bottom + 6);
+  if (left < 6) left = 6;
+  if (left + tw > vw - 6) left = Math.max(6, vw - tw - 6);
+  if (top + th > vh - 6) top = Math.max(6, rect.top - th - 6);
+  tip.style.left = left + 'px';
+  tip.style.top  = top  + 'px';
+};
+
+window.hideCombatantTip = function() {
+  const tip = document.getElementById('combat-tile-tip');
+  if (tip) tip.style.display = 'none';
+};
+
+// Global mousedown listener — hide on any click anywhere (covers cases where
+// the tile click handler doesn't run, e.g. clicking the map or scroll).
+if (typeof document !== 'undefined' && !window.__combatTileTipMousedownInstalled) {
+  document.addEventListener('mousedown', function() { window.hideCombatantTip(); }, true);
+  window.__combatTileTipMousedownInstalled = true;
+}
+// ── /LAST-TURN TOOLTIP ────────────────────────────────────────
