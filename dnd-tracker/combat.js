@@ -212,8 +212,12 @@ function prevTurn() {
 
 function endCombat() {
   const m = maps.find(x => x.id === currentMapId);
-  if (!m) return;
-  if (!confirm('End combat? Initiative order will be cleared.')) return;
+  if (!m?.combat?.active) return;
+  // Confirmation is handled by confirmEndCombat (two-click pattern). The
+  // raw endCombat() can also be invoked directly via Ctrl+Shift+E for power
+  // users, so no browser confirm() here. Clear any pending confirm timer.
+  _endConfirmArmed = false;
+  if (_endConfirmTimer) { clearTimeout(_endConfirmTimer); _endConfirmTimer = null; }
 
   combatLog({ type: 'combat_end', note: 'Combat ended after ' + m.combat.round + ' rounds' });
 
@@ -357,6 +361,23 @@ function selectCombatant(id) {
   _selectedCombatantId = id || null;
   renderInitiativeBar();
 }
+// Explicit global so cross-script callers (monsters.js, map.js) can detect
+// availability via `typeof window.selectCombatant === 'function'`.
+window.selectCombatant = selectCombatant;
+
+// Selects the combat entry that corresponds to a given character id.
+// PC tokens on the map carry a characterId, but the combat entry's `id`
+// IS the character id (see beginCombat: `id: c.id`), so this is a direct
+// lookup. Returns true if a matching entry was selected.
+window.selectCombatantByCharacterId = function (charId) {
+  if (!charId) return false;
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m?.combat?.active) return false;
+  const entry = (m.combat.entries || []).find(en => en.type === 'character' && en.id === charId);
+  if (!entry) return false;
+  selectCombatant(entry.id);
+  return true;
+};
 
 // ── DAMAGE / HEAL HELPERS ────────────────────────────────────
 function _applyDelta(id, signedDelta) {
@@ -405,6 +426,19 @@ function _applyDelta(id, signedDelta) {
   }
   window.onHpChanged(t.type, id, signedDelta);
 
+  // ── Concentration: react to damage on a concentrating PC.
+  // RAW: any damage taken (incl. temp-HP-absorbed) triggers a CON save.
+  // 0 HP auto-ends concentration and suppresses the save prompt.
+  if (t.type === 'character' && signedDelta < 0 && o.concentrating) {
+    const incoming = -signedDelta; // raw incoming damage, before temp HP
+    const droppedToZero = oldHp > 0 && o.currentHp <= 0;
+    if (droppedToZero) {
+      window.endConcentration(id, '0 HP');
+    } else if (incoming > 0) {
+      _showConcentrationSavePrompt(id, targetName, incoming, o.concentrating.spellName);
+    }
+  }
+
   if (t.type === 'character') {
     if (typeof DB !== 'undefined' && DB.save) DB.save('characters', o, characters);
   } else {
@@ -443,6 +477,27 @@ function _removePrompt() {
   _combatPromptOpen = false;
 }
 
+// ── END-COMBAT CONFIRMATION (two-click within 3s) ────────────
+var _endConfirmTimer = null;
+var _endConfirmArmed = false;
+
+function confirmEndCombat() {
+  if (_endConfirmArmed) {
+    // Second click within window — actually end combat.
+    endCombat();
+    return;
+  }
+  // First click — arm and re-render so the End button shows "Confirm?" red.
+  _endConfirmArmed = true;
+  renderInitiativeBar();
+  _endConfirmTimer = setTimeout(() => {
+    _endConfirmArmed = false;
+    _endConfirmTimer = null;
+    const m = maps.find(x => x.id === currentMapId);
+    if (m?.combat?.active) renderInitiativeBar();
+  }, 3000);
+}
+
 function promptDamageOrHeal(kind) {
   if (!_selectedCombatantId) { toast('Select a combatant first (J/K)'); return; }
   _removePrompt();
@@ -450,13 +505,45 @@ function promptDamageOrHeal(kind) {
   const label = isDmg ? 'Damage' : 'Heal';
   const color = isDmg ? '#c04040' : '#4a9a40';
 
+  // Anchor to the selected tile when possible. Falls back to centered
+  // overlay if the tile isn't found (e.g. selection just cleared).
+  let tileRect = null;
+  const selectedTile = document.querySelector(
+    '#initiative-bar [data-combatant-id="' + _selectedCombatantId + '"]'
+  );
+  if (selectedTile) tileRect = selectedTile.getBoundingClientRect();
+
   const wrap = document.createElement('div');
   wrap.id = 'combat-inline-prompt';
+  let posCss;
+  if (tileRect) {
+    // Position immediately below the tile, centered horizontally.
+    // Clamp to viewport so it never overflows on small screens.
+    const promptWidth = 220;
+    let left = tileRect.left + (tileRect.width / 2) - (promptWidth / 2);
+    left = Math.max(8, Math.min(window.innerWidth - promptWidth - 8, left));
+    let top = tileRect.bottom + 10;
+    // If there's no room below, flip above the tile.
+    if (top + 100 > window.innerHeight) top = Math.max(8, tileRect.top - 110);
+    posCss = 'position:fixed;left:' + left + 'px;top:' + top + 'px;';
+  } else {
+    posCss = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);';
+  }
   wrap.style.cssText =
-    'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99998;' +
+    posCss + 'z-index:99998;' +
     'background:#1e1b16;border:1px solid ' + color + ';border-radius:8px;' +
-    'padding:14px 18px;box-shadow:0 8px 24px rgba(0,0,0,.6);' +
-    'display:flex;flex-direction:column;gap:8px;min-width:220px;';
+    'padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.6);' +
+    'display:flex;flex-direction:column;gap:6px;min-width:220px;';
+
+  // Cheap gold connector: a small notch pointing at the tile.
+  if (tileRect) {
+    const connector = document.createElement('div');
+    connector.style.cssText =
+      'position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(45deg);' +
+      'width:10px;height:10px;background:#1e1b16;border-left:1px solid #c8b070;border-top:1px solid #c8b070;';
+    wrap.appendChild(connector);
+  }
+
   const title = document.createElement('div');
   title.style.cssText = 'font-family:var(--font-display,sans-serif);font-size:.7rem;color:' + color + ';letter-spacing:.1em;text-transform:uppercase;';
   title.textContent = label + ' — enter amount';
@@ -467,7 +554,7 @@ function promptDamageOrHeal(kind) {
   input.min = '0';
   input.placeholder = '0';
   input.style.cssText =
-    'flex:1;font-size:.9rem;padding:6px 8px;background:#14110c;' +
+    'width:80px;font-size:.9rem;padding:6px 8px;background:#14110c;' +
     'border:1px solid ' + color + ';border-radius:4px;color:#e2dbd0;';
   const okBtn = document.createElement('button');
   okBtn.className = 'btn btn-sm btn-primary';
@@ -545,6 +632,200 @@ window.toggleDeathSave = function (charId, type) {
   renderCombatLog();
 };
 
+// ── CONCENTRATION TRACKING ───────────────────────────────────
+// Per character: c.concentrating = null | { spellName, startedRound, startedTurnIdx }.
+// Marc's #1 forgotten 5e rule: when a concentrator takes damage they need
+// CON save DC max(10, floor(damage/2)). Auto-prompt the DM, never auto-roll.
+// v1 scope: PCs only.
+
+// "C" badge tap-to-end: first click arms (red border), second within 2s ends.
+var _concEndArmTs = {};
+
+function _isConcentrationSpell(name) {
+  if (!name) return false;
+  if (typeof SPELL_DB === 'undefined' || !Array.isArray(SPELL_DB)) return false;
+  const n = String(name).trim().toLowerCase();
+  const hit = SPELL_DB.find(s => s.name.toLowerCase() === n);
+  return !!(hit && hit.conc);
+}
+
+window.startConcentration = function (characterId, spellName) {
+  const c = characters.find(x => x.id === characterId);
+  if (!c) return;
+  const name = (spellName || '').trim();
+  if (!name) return;
+  const m = maps.find(x => x.id === currentMapId);
+  c.concentrating = {
+    spellName: name,
+    startedRound: m?.combat?.round || 0,
+    startedTurnIdx: m?.combat?.turnIndex || 0
+  };
+  if (typeof DB !== 'undefined' && DB.save) DB.save('characters', c, characters);
+  renderInitiativeBar();
+  if (typeof renderCharList === 'function') renderCharList();
+  combatLog({ type: 'note', note: c.name + ' is concentrating on ' + name });
+  renderCombatLog();
+  toast('Concentrating: ' + name);
+};
+
+window.endConcentration = function (characterId, reason) {
+  const c = characters.find(x => x.id === characterId);
+  if (!c || !c.concentrating) return;
+  const lastSpell = c.concentrating.spellName || 'spell';
+  c.concentrating = null;
+  delete _concEndArmTs[characterId];
+  if (typeof DB !== 'undefined' && DB.save) DB.save('characters', c, characters);
+  renderInitiativeBar();
+  if (typeof renderCharList === 'function') renderCharList();
+  combatLog({ type: 'note', note: c.name + ' lost concentration on ' + lastSpell + ' (' + (reason || 'ended') + ')' });
+  renderCombatLog();
+  toast('Concentration ended: ' + lastSpell + ' (' + (reason || 'ended') + ')');
+};
+
+// Click handler for the "C" badge on initiative tiles.
+window.armEndConcentration = function (charId, ev) {
+  if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+  const c = characters.find(x => x.id === charId);
+  if (!c || !c.concentrating) return;
+  const now = Date.now();
+  const armed = _concEndArmTs[charId];
+  if (armed && (now - armed) <= 2000) {
+    window.endConcentration(charId, 'voluntary');
+    return;
+  }
+  _concEndArmTs[charId] = now;
+  renderInitiativeBar();
+  toast('Click again within 2s to end concentration');
+  setTimeout(() => {
+    if (_concEndArmTs[charId] === now) {
+      delete _concEndArmTs[charId];
+      renderInitiativeBar();
+    }
+  }, 2100);
+};
+
+// "+ Concentrate" inline input in the detail strip.
+window.openConcentrateInput = function (charId) {
+  // Replace the +Concentrate button cell with an input. We'll target a specific
+  // span we render in the detail strip.
+  const host = document.getElementById('conc-input-host-' + charId);
+  if (!host) return;
+  host.innerHTML =
+    '<input id="conc-input-' + charId + '" type="text" placeholder="Bless, Hunter\'s Mark…" ' +
+    'style="font-size:.62rem;padding:2px 6px;background:#14110c;border:1px solid #c8b070;' +
+    'border-radius:6px;color:#e2dbd0;width:160px;" autocomplete="off" />';
+  const input = document.getElementById('conc-input-' + charId);
+  if (!input) return;
+  // Build a tiny suggestion list (top 6 conc spells matching typed text).
+  const sugBox = document.createElement('div');
+  sugBox.id = 'conc-sug-' + charId;
+  sugBox.style.cssText =
+    'position:absolute;background:#1e1b16;border:1px solid #c8b070;border-radius:6px;' +
+    'margin-top:2px;padding:2px 0;z-index:99997;min-width:180px;display:none;' +
+    'box-shadow:0 6px 16px rgba(0,0,0,.55);';
+  host.appendChild(sugBox);
+
+  const renderSug = () => {
+    if (typeof SPELL_DB === 'undefined' || !Array.isArray(SPELL_DB)) {
+      sugBox.style.display = 'none'; return;
+    }
+    const q = (input.value || '').toLowerCase().trim();
+    if (!q) { sugBox.style.display = 'none'; return; }
+    const matches = SPELL_DB
+      .filter(s => s.conc && s.name.toLowerCase().includes(q))
+      .slice(0, 6);
+    if (!matches.length) { sugBox.style.display = 'none'; return; }
+    sugBox.innerHTML = matches.map(s =>
+      '<div data-name="' + s.name + '" ' +
+      'style="padding:3px 8px;font-size:.62rem;color:#e2dbd0;cursor:pointer;" ' +
+      'onmouseover="this.style.background=\'rgba(200,176,112,.12)\'" ' +
+      'onmouseout="this.style.background=\'transparent\'">' +
+      s.name + ' <span style="color:#7a7268;font-size:.52rem;">Lv ' + s.level + '</span></div>'
+    ).join('');
+    sugBox.style.display = 'block';
+    Array.from(sugBox.children).forEach(el => {
+      el.addEventListener('mousedown', (ev) => {
+        ev.preventDefault();
+        input.value = el.getAttribute('data-name') || '';
+        sugBox.style.display = 'none';
+        commit();
+      });
+    });
+  };
+
+  const commit = () => {
+    const v = (input.value || '').trim();
+    if (v) window.startConcentration(charId, v);
+    else renderInitiativeBar(); // bail out
+  };
+  const cancel = () => { renderInitiativeBar(); };
+
+  input.addEventListener('input', renderSug);
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+    else if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
+    ev.stopPropagation();
+  });
+  input.addEventListener('blur', () => {
+    // Defer so suggestion mousedown can fire first.
+    setTimeout(() => {
+      if (document.getElementById('conc-input-' + charId)) cancel();
+    }, 150);
+  });
+  setTimeout(() => input.focus(), 0);
+};
+
+// CON-save prompt shown when a concentrator takes damage.
+function _showConcentrationSavePrompt(charId, charName, damage, spellName) {
+  const dc = Math.max(10, Math.floor(damage / 2));
+  const existing = document.getElementById('conc-save-prompt-' + charId);
+  if (existing) existing.remove();
+
+  const wrap = document.createElement('div');
+  wrap.id = 'conc-save-prompt-' + charId;
+  // Stack multiple prompts vertically (bottom-right).
+  const existingPrompts = document.querySelectorAll('[id^="conc-save-prompt-"]');
+  const offset = 16 + existingPrompts.length * 92;
+  wrap.style.cssText =
+    'position:fixed;bottom:' + offset + 'px;right:16px;z-index:99996;' +
+    'background:#1e1b16;border:1.5px solid #c8b070;border-radius:8px;' +
+    'padding:10px 14px;box-shadow:0 6px 18px rgba(0,0,0,.55);' +
+    'min-width:260px;font-family:var(--font-display,sans-serif);' +
+    'animation:none;opacity:0;transition:opacity .2s ease-out;';
+  wrap.innerHTML =
+    '<div style="font-size:.72rem;color:#c8b070;letter-spacing:.06em;margin-bottom:6px;">' +
+      '\u26A0 ' + charName + ': CON save DC ' + dc + ' (' + spellName + ')' +
+    '</div>' +
+    '<div style="display:flex;gap:6px;">' +
+      '<button class="btn btn-sm" data-act="pass" style="font-size:.65rem;padding:3px 10px;background:#1f3020;border:1px solid #285028;color:#80c080;border-radius:6px;cursor:pointer;">Pass</button>' +
+      '<button class="btn btn-sm" data-act="fail" style="font-size:.65rem;padding:3px 10px;background:#362020;border:1px solid #5a2828;color:#e08080;border-radius:6px;cursor:pointer;">Fail</button>' +
+      '<button class="btn btn-sm" data-act="skip" style="font-size:.65rem;padding:3px 10px;background:#14110c;border:1px solid #3a3428;color:#9a8450;border-radius:6px;cursor:pointer;">Skip</button>' +
+    '</div>';
+  document.body.appendChild(wrap);
+  requestAnimationFrame(() => { wrap.style.opacity = '1'; });
+
+  const dismiss = () => {
+    if (!wrap.parentNode) return;
+    wrap.style.opacity = '0';
+    setTimeout(() => { if (wrap.parentNode) wrap.remove(); }, 220);
+    clearTimeout(timer);
+  };
+  wrap.querySelector('[data-act="pass"]').addEventListener('click', () => {
+    toast(charName + ' held concentration on ' + spellName);
+    combatLog({ type: 'note', note: charName + ' held concentration on ' + spellName + ' (DC ' + dc + ' passed)' });
+    renderCombatLog();
+    dismiss();
+  });
+  wrap.querySelector('[data-act="fail"]').addEventListener('click', () => {
+    window.endConcentration(charId, 'failed save');
+    dismiss();
+  });
+  wrap.querySelector('[data-act="skip"]').addEventListener('click', dismiss);
+
+  // Auto-dismiss after 12s — Marc may be roleplaying mid-prompt.
+  const timer = setTimeout(dismiss, 12000);
+}
+
 // ── INITIATIVE / COMBAT-OPS PANEL RENDERING ──────────────────
 
 function renderInitiativeBar() {
@@ -600,30 +881,51 @@ function renderInitiativeBar() {
 
     let portrait = '';
     const avatarStyle = 'width:32px;height:32px;border-radius:50%;border:1.5px solid ' + borderColor + ';';
+    let portraitInner = '';
     if (isMon) {
-      if (refObj && refObj.imgUrl) portrait = '<img src="' + refObj.imgUrl + '" style="' + avatarStyle + 'object-fit:cover;">';
-      else portrait = '<div style="' + avatarStyle + 'background:#3a1818;display:flex;align-items:center;justify-content:center;font-size:.58rem;color:#c04040;font-family:var(--font-display);">' + (e.name || '?').charAt(0) + '</div>';
+      if (refObj && refObj.imgUrl) portraitInner = '<img src="' + refObj.imgUrl + '" style="' + avatarStyle + 'object-fit:cover;">';
+      else portraitInner = '<div style="' + avatarStyle + 'background:#3a1818;display:flex;align-items:center;justify-content:center;font-size:.58rem;color:#c04040;font-family:var(--font-display);">' + (e.name || '?').charAt(0) + '</div>';
     } else {
-      if (refObj && refObj.imageUrl) portrait = '<img src="' + refObj.imageUrl + '" style="' + avatarStyle + 'object-fit:cover;">';
+      if (refObj && refObj.imageUrl) portraitInner = '<img src="' + refObj.imageUrl + '" style="' + avatarStyle + 'object-fit:cover;">';
       else {
         const col = refObj ? classColor(refObj.class) : '#5a4830';
-        portrait = '<div style="' + avatarStyle + 'background:' + col + '20;color:' + col + ';display:flex;align-items:center;justify-content:center;font-size:.58rem;font-family:var(--font-display);">' + (refObj?.icon || (e.name || '?').charAt(0)) + '</div>';
+        portraitInner = '<div style="' + avatarStyle + 'background:' + col + '20;color:' + col + ';display:flex;align-items:center;justify-content:center;font-size:.58rem;font-family:var(--font-display);">' + (refObj?.icon || (e.name || '?').charAt(0)) + '</div>';
       }
     }
+
+    // Concentration badge ("C") for characters with active concentration.
+    let concBadge = '';
+    if (!isMon && refObj && refObj.concentrating) {
+      const armed = !!_concEndArmTs[e.id];
+      const badgeBorder = armed ? '#c04040' : '#c8b070';
+      const badgeBg = armed ? '#3a1818' : '#1e1b16';
+      const badgeColor = armed ? '#e08080' : '#c8b070';
+      const tip = (armed ? 'Click again to end · ' : 'Concentrating: ') + (refObj.concentrating.spellName || '');
+      concBadge =
+        '<div onclick="window.armEndConcentration(\'' + e.id + '\',event)" ' +
+        'title="' + tip.replace(/"/g, '&quot;') + '" ' +
+        'style="position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;border-radius:50%;' +
+        'background:' + badgeBg + ';border:1.5px solid ' + badgeBorder + ';color:' + badgeColor + ';' +
+        'display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;' +
+        'font-family:var(--font-display,sans-serif);cursor:pointer;letter-spacing:0;line-height:1;">C</div>';
+    }
+    portrait = '<div style="position:relative;display:inline-block;">' + portraitInner + concBadge + '</div>';
 
     // Foot row: either compact death-save pips (6 small dots) or a mini HP bar with numeric
     let footRow = '';
     if (!isMon && isDead && refObj) {
       const ds = _getDeathSaves(refObj);
+      // Bumped from 7px → 11px and added 2px padding so each dot has a
+      // ~15px effective tap target — Jess can hit them on her phone.
       const dot = (filled, color) =>
-        '<div style="width:7px;height:7px;border-radius:50%;border:1px solid ' + color + ';background:' + (filled ? color : 'transparent') + ';"></div>';
+        '<div style="width:11px;height:11px;border-radius:50%;border:1px solid ' + color + ';background:' + (filled ? color : 'transparent') + ';"></div>';
       let succ = ''; for (let j = 0; j < 3; j++) succ += dot(j < ds.successes, '#4a9a40');
       let fail = ''; for (let j = 0; j < 3; j++) fail += dot(j < ds.failures, '#c04040');
       footRow =
-        '<div style="display:flex;gap:4px;justify-content:center;align-items:center;">' +
-          '<div title="Death save successes — click to toggle" style="display:flex;gap:2px;cursor:pointer;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'success\')">' + succ + '</div>' +
+        '<div style="display:flex;gap:4px;justify-content:center;align-items:center;padding:2px;">' +
+          '<div title="Death save successes — click to toggle" style="display:flex;gap:3px;cursor:pointer;padding:2px;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'success\')">' + succ + '</div>' +
           '<span style="color:#555;font-size:.55rem;">·</span>' +
-          '<div title="Death save failures — click to toggle" style="display:flex;gap:2px;cursor:pointer;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'failure\')">' + fail + '</div>' +
+          '<div title="Death save failures — click to toggle" style="display:flex;gap:3px;cursor:pointer;padding:2px;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'failure\')">' + fail + '</div>' +
         '</div>';
     } else if (maxHp > 0) {
       footRow =
@@ -637,7 +939,7 @@ function renderInitiativeBar() {
     const initColor = isActive ? '#c8b070' : '#7a7268';
 
     tilesHtml +=
-      '<div onclick="selectCombatant(\'' + e.id + '\')" title="' + e.name + ' · init ' + e.initiative + '" ' +
+      '<div data-combatant-id="' + e.id + '" onclick="selectCombatant(\'' + e.id + '\')" title="' + e.name + ' · init ' + e.initiative + '" ' +
       'style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 6px;min-width:88px;max-width:92px;' +
       'border:1.5px solid ' + borderColor + ';border-radius:8px;background:' + bgColor + ';cursor:pointer;transition:transform .1s;' +
       glowCss + (isDead ? 'opacity:.65;' : '') + '">' +
@@ -654,13 +956,22 @@ function renderInitiativeBar() {
       '<div style="font-size:.72rem;color:var(--text);font-weight:500;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;" title="' + (current?.name || '') + "'s turn" + '">' + (current ? current.name : '') + '</div>' +
     '</div>';
 
+  // End-combat button reflects the two-click confirmation state.
+  const endLabel = _endConfirmArmed ? 'Confirm?' : 'End';
+  const endStyle = _endConfirmArmed
+    ? 'font-size:.7rem;padding:3px 7px;background:#c04040;border-color:#c04040;color:#fff;'
+    : 'font-size:.7rem;padding:3px 7px;color:var(--red);';
+  const endTitle = _endConfirmArmed
+    ? 'Click again to end combat (Ctrl+Shift+E to skip confirm)'
+    : 'End combat (click twice; Ctrl+Shift+E to skip confirm)';
+
   const controlsHtml =
     '<div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">' +
       '<span style="font-size:.48rem;color:#5a5248;letter-spacing:.06em;margin-right:6px;display:none;" class="kb-hint">N next · J/K sel · D dmg · H heal · \u2318Z undo</span>' +
       '<button class="btn btn-sm btn-ghost" onclick="prevTurn()" title="Previous turn (Shift+N)" style="font-size:.75rem;padding:3px 7px;">\u25C0</button>' +
       '<button class="btn btn-sm btn-primary" onclick="nextTurn()" title="Next turn (N or Space)" style="font-size:.72rem;padding:3px 9px;">Next \u25B6</button>' +
       '<button class="btn btn-sm btn-ghost" onclick="window.undoHp()" title="Undo last HP change (Ctrl+Z)" style="font-size:.7rem;padding:3px 7px;">\u21B6</button>' +
-      '<button class="btn btn-sm btn-ghost" onclick="endCombat()" title="End combat" style="font-size:.7rem;color:var(--red);padding:3px 7px;">End</button>' +
+      '<button class="btn btn-sm btn-ghost" onclick="confirmEndCombat()" title="' + endTitle + '" style="' + endStyle + '">' + endLabel + '</button>' +
     '</div>';
 
   bar.innerHTML =
@@ -707,6 +1018,27 @@ function _renderSelectedDetailStrip(m) {
     ).join('');
   }
 
+  // Concentration UI (chars only).
+  let concHtml = '';
+  if (!isMon) {
+    if (refObj.concentrating && refObj.concentrating.spellName) {
+      const sp = refObj.concentrating.spellName;
+      concHtml =
+        '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;font-size:.6rem;border-radius:6px;background:rgba(200,176,112,.12);color:#c8b070;border:1px solid #c8b070;font-family:var(--font-display,sans-serif);letter-spacing:.04em;" title="Concentrating">' +
+          '<span style="font-weight:600;">C</span>' +
+          '<span>' + sp + '</span>' +
+          '<button onclick="window.endConcentration(\'' + entry.id + '\',\'voluntary\')" title="End concentration" ' +
+          'style="background:transparent;border:none;color:#e08080;cursor:pointer;font-size:.7rem;padding:0 2px;line-height:1;">\u00D7</button>' +
+        '</span>';
+    } else {
+      concHtml =
+        '<span id="conc-input-host-' + entry.id + '" style="position:relative;display:inline-flex;align-items:center;">' +
+          '<button onclick="window.openConcentrateInput(\'' + entry.id + '\')" title="Start concentrating on a spell" ' +
+          'style="font-size:.6rem;padding:2px 6px;background:transparent;border:1px dashed rgba(200,176,112,.4);color:#9a8450;border-radius:6px;cursor:pointer;letter-spacing:.04em;">+ Concentrate</button>' +
+        '</span>';
+    }
+  }
+
   return '<div style="display:flex;align-items:center;gap:10px;padding:4px 10px;border-top:1px solid rgba(200,176,112,.12);background:rgba(26,22,19,.4);flex-shrink:0;">' +
     '<span style="font-size:.68rem;color:#c8b070;font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + entry.name + '</span>' +
     '<span style="font-size:.66rem;color:#e2dbd0;font-family:var(--font-mono);">' + curHp + '/' + maxHp + tempStr + '</span>' +
@@ -718,6 +1050,7 @@ function _renderSelectedDetailStrip(m) {
     '<button onclick="promptDamageOrHeal(\'heal\')" title="Heal prompt (H)" style="font-size:.62rem;padding:2px 8px;background:#1f3020;border:1px solid #285028;color:#80c080;border-radius:6px;cursor:pointer;">Heal…</button>' +
     (chipsHtml ? '<span style="font-size:.52rem;color:#7a7268;letter-spacing:.06em;margin-left:4px;">LAST:</span>' + '<div style="display:flex;gap:3px;">' + chipsHtml + '</div>' : '') +
     (condsHtml ? '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-left:4px;">' + condsHtml + '</div>' : '') +
+    (concHtml ? '<div style="margin-left:4px;">' + concHtml + '</div>' : '') +
     '<div style="flex:1;"></div>' +
     '<span style="font-size:.5rem;color:#5a5248;letter-spacing:.06em;">Esc to deselect</span>' +
   '</div>';
@@ -749,6 +1082,13 @@ function _hotkeyHandler(ev) {
   if ((ev.ctrlKey || ev.metaKey) && (key === 'z' || key === 'Z')) {
     ev.preventDefault();
     window.undoHp();
+    return;
+  }
+
+  // Ctrl+Shift+E — quick-end combat (skips the two-click confirmation).
+  if ((ev.ctrlKey || ev.metaKey) && ev.shiftKey && (key === 'e' || key === 'E')) {
+    ev.preventDefault();
+    endCombat();
     return;
   }
 
