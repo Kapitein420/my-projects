@@ -210,14 +210,40 @@ function prevTurn() {
   renderTokensOnMap();
 }
 
+// ── HP WRITE-BACK ────────────────────────────────────────────
+// endCombat() is now a thin wrapper that shows a confirm modal listing
+// each PC's HP/death-save state. The original end-combat logic lives in
+// _finishEndCombat() and runs after the user confirms. If the encounter
+// has no PCs, the dialog is skipped and we call _finishEndCombat() directly.
+// Existing callers (End button two-click confirm, Ctrl+Shift+E hotkey)
+// keep working unchanged.
 function endCombat() {
   const m = maps.find(x => x.id === currentMapId);
   if (!m?.combat?.active) return;
-  // Confirmation is handled by confirmEndCombat (two-click pattern). The
-  // raw endCombat() can also be invoked directly via Ctrl+Shift+E for power
-  // users, so no browser confirm() here. Clear any pending confirm timer.
+
+  // Clear the two-click confirm timer if it's armed.
   _endConfirmArmed = false;
   if (_endConfirmTimer) { clearTimeout(_endConfirmTimer); _endConfirmTimer = null; }
+
+  // Collect PCs that participated in this combat.
+  const pcEntries = (m.combat.entries || []).filter(e => e.type === 'character');
+  const pcs = [];
+  for (const e of pcEntries) {
+    const c = (typeof characters !== 'undefined') ? characters.find(x => x.id === e.id) : null;
+    if (c) pcs.push(c);
+  }
+
+  // Edge case: monster-only encounter — skip the write-back dialog.
+  if (!pcs.length) { _finishEndCombat(); return; }
+
+  _showEndCombatDialog(pcs);
+}
+
+// Original end-combat body (renamed). Called after the write-back dialog
+// confirms, or directly when there are no PCs in the encounter.
+function _finishEndCombat() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
 
   combatLog({ type: 'combat_end', note: 'Combat ended after ' + m.combat.round + ' rounds' });
 
@@ -236,6 +262,138 @@ function endCombat() {
   renderCombatLog();
   renderTokensOnMap();
 }
+
+// Build + show the End Combat confirm modal listing each PC's current HP.
+// Two checkboxes (HP, death saves) default to checked. Cancel = no-op,
+// combat stays active. Confirm = re-save each PC then call _finishEndCombat().
+function _showEndCombatDialog(pcs) {
+  // Remove any pre-existing instance.
+  const existing = document.getElementById('end-combat-dialog');
+  if (existing) existing.remove();
+
+  const wrap = document.createElement('div');
+  wrap.id = 'end-combat-dialog';
+  wrap.style.cssText =
+    'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99998;' +
+    'background:var(--bg-card,#1e1b16);border:1px solid #c8b070;border-radius:8px;' +
+    'padding:18px 22px;box-shadow:0 10px 32px rgba(0,0,0,.7);' +
+    'display:flex;flex-direction:column;gap:12px;min-width:340px;max-width:460px;' +
+    'font-family:var(--font-display,sans-serif);color:#e2dbd0;';
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:.85rem;color:#c8b070;letter-spacing:.12em;text-transform:uppercase;';
+  title.textContent = 'End combat?';
+  wrap.appendChild(title);
+
+  const sub = document.createElement('div');
+  sub.style.cssText = 'font-size:.62rem;color:#a89e8e;letter-spacing:.06em;text-transform:uppercase;';
+  sub.textContent = 'Party state at end of combat';
+  wrap.appendChild(sub);
+
+  // PC list.
+  const list = document.createElement('div');
+  list.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:#e2dbd0;padding:6px 4px;border-top:1px solid #3a3328;border-bottom:1px solid #3a3328;';
+  for (const c of pcs) {
+    const cur = parseInt(c.currentHp) || 0;
+    const max = parseInt(c.maxHp) || 0;
+    const ratio = max > 0 ? cur / max : 1;
+    const ds = (c.deathSaves && typeof c.deathSaves.failures === 'number') ? c.deathSaves : null;
+    let suffix = '';
+    let lineColor = '#e2dbd0';
+    if (cur <= 0) {
+      const failed = ds && ds.failures >= 3;
+      suffix = failed ? '  \uD83D\uDC80 dead (3 failed saves)' : '  \uD83D\uDC80 unconscious';
+      lineColor = '#c08080';
+    } else if (ratio <= 0.25) {
+      suffix = '  \u26A0 low';
+      lineColor = '#d8a060';
+    }
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;color:' + lineColor + ';';
+    const safeName = (c.name || 'Unnamed').replace(/[<>&]/g, s => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[s]));
+    row.innerHTML =
+      '<span style="color:#7a7268;">\u2022</span>' +
+      '<span style="flex:1;">' + safeName + '</span>' +
+      '<span style="font-variant-numeric:tabular-nums;">' + cur + '/' + max + ' HP</span>' +
+      '<span style="font-size:.7rem;">' + suffix + '</span>';
+    list.appendChild(row);
+  }
+  wrap.appendChild(list);
+
+  // Checkboxes.
+  const optWrap = document.createElement('div');
+  optWrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;font-size:.72rem;color:#cfc6b8;';
+
+  const mkCheckbox = (id, labelText) => {
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = id;
+    cb.checked = true;
+    cb.style.cssText = 'accent-color:#c8b070;width:14px;height:14px;cursor:pointer;';
+    const span = document.createElement('span');
+    span.textContent = labelText;
+    lbl.appendChild(cb);
+    lbl.appendChild(span);
+    return { lbl: lbl, cb: cb };
+  };
+  const saveHp = mkCheckbox('end-combat-save-hp', 'Save current HP to character cards');
+  const saveDs = mkCheckbox('end-combat-save-ds', 'Save death save state');
+  optWrap.appendChild(saveHp.lbl);
+  optWrap.appendChild(saveDs.lbl);
+  wrap.appendChild(optWrap);
+
+  // Buttons row.
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;margin-top:4px;';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn btn-sm btn-ghost';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.style.cssText = 'font-size:.7rem;padding:5px 12px;';
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'btn btn-sm btn-primary';
+  confirmBtn.textContent = 'End Combat';
+  confirmBtn.style.cssText = 'font-size:.7rem;padding:5px 12px;background:#5a2828;border:1px solid #c04040;color:#f0d0c0;';
+
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(confirmBtn);
+  wrap.appendChild(btnRow);
+
+  document.body.appendChild(wrap);
+
+  const close = () => { wrap.remove(); document.removeEventListener('keydown', onKey, true); };
+  const onKey = (ev) => {
+    if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); close(); }
+    else if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); doConfirm(); }
+  };
+  const doConfirm = () => {
+    const persistHp = saveHp.cb.checked;
+    const persistDs = saveDs.cb.checked;
+    if (persistHp || persistDs) {
+      for (const c of pcs) {
+        // Real-time saves should already have persisted these during combat,
+        // but call save again here to lock in the session-end snapshot.
+        if (persistDs && !c.deathSaves) c.deathSaves = { successes: 0, failures: 0 };
+        if (typeof DB !== 'undefined' && DB.save) DB.save('characters', c, characters);
+      }
+      const bits = [];
+      if (persistHp) bits.push('HP');
+      if (persistDs) bits.push('death saves');
+      if (typeof toast === 'function') toast('Saved ' + bits.join(' + ') + ' for ' + pcs.length + ' PC' + (pcs.length === 1 ? '' : 's'));
+    }
+    close();
+    _finishEndCombat();
+  };
+  cancelBtn.addEventListener('click', close);
+  confirmBtn.addEventListener('click', doConfirm);
+  document.addEventListener('keydown', onKey, true);
+
+  setTimeout(() => confirmBtn.focus(), 0);
+}
+// ── /HP WRITE-BACK ───────────────────────────────────────────
 
 // ── INITIATIVE / COMBAT-OPS PANEL STATE ──────────────────────
 // Undo stack: max 15 entries of {targetType, id, before:{currentHp, tempHp, deathSaves}, ts}
