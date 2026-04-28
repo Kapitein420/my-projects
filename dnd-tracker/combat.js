@@ -212,8 +212,12 @@ function prevTurn() {
 
 function endCombat() {
   const m = maps.find(x => x.id === currentMapId);
-  if (!m) return;
-  if (!confirm('End combat? Initiative order will be cleared.')) return;
+  if (!m?.combat?.active) return;
+  // Confirmation is handled by confirmEndCombat (two-click pattern). The
+  // raw endCombat() can also be invoked directly via Ctrl+Shift+E for power
+  // users, so no browser confirm() here. Clear any pending confirm timer.
+  _endConfirmArmed = false;
+  if (_endConfirmTimer) { clearTimeout(_endConfirmTimer); _endConfirmTimer = null; }
 
   combatLog({ type: 'combat_end', note: 'Combat ended after ' + m.combat.round + ' rounds' });
 
@@ -357,6 +361,23 @@ function selectCombatant(id) {
   _selectedCombatantId = id || null;
   renderInitiativeBar();
 }
+// Explicit global so cross-script callers (monsters.js, map.js) can detect
+// availability via `typeof window.selectCombatant === 'function'`.
+window.selectCombatant = selectCombatant;
+
+// Selects the combat entry that corresponds to a given character id.
+// PC tokens on the map carry a characterId, but the combat entry's `id`
+// IS the character id (see beginCombat: `id: c.id`), so this is a direct
+// lookup. Returns true if a matching entry was selected.
+window.selectCombatantByCharacterId = function (charId) {
+  if (!charId) return false;
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m?.combat?.active) return false;
+  const entry = (m.combat.entries || []).find(en => en.type === 'character' && en.id === charId);
+  if (!entry) return false;
+  selectCombatant(entry.id);
+  return true;
+};
 
 // ── DAMAGE / HEAL HELPERS ────────────────────────────────────
 function _applyDelta(id, signedDelta) {
@@ -443,6 +464,27 @@ function _removePrompt() {
   _combatPromptOpen = false;
 }
 
+// ── END-COMBAT CONFIRMATION (two-click within 3s) ────────────
+var _endConfirmTimer = null;
+var _endConfirmArmed = false;
+
+function confirmEndCombat() {
+  if (_endConfirmArmed) {
+    // Second click within window — actually end combat.
+    endCombat();
+    return;
+  }
+  // First click — arm and re-render so the End button shows "Confirm?" red.
+  _endConfirmArmed = true;
+  renderInitiativeBar();
+  _endConfirmTimer = setTimeout(() => {
+    _endConfirmArmed = false;
+    _endConfirmTimer = null;
+    const m = maps.find(x => x.id === currentMapId);
+    if (m?.combat?.active) renderInitiativeBar();
+  }, 3000);
+}
+
 function promptDamageOrHeal(kind) {
   if (!_selectedCombatantId) { toast('Select a combatant first (J/K)'); return; }
   _removePrompt();
@@ -450,13 +492,45 @@ function promptDamageOrHeal(kind) {
   const label = isDmg ? 'Damage' : 'Heal';
   const color = isDmg ? '#c04040' : '#4a9a40';
 
+  // Anchor to the selected tile when possible. Falls back to centered
+  // overlay if the tile isn't found (e.g. selection just cleared).
+  let tileRect = null;
+  const selectedTile = document.querySelector(
+    '#initiative-bar [data-combatant-id="' + _selectedCombatantId + '"]'
+  );
+  if (selectedTile) tileRect = selectedTile.getBoundingClientRect();
+
   const wrap = document.createElement('div');
   wrap.id = 'combat-inline-prompt';
+  let posCss;
+  if (tileRect) {
+    // Position immediately below the tile, centered horizontally.
+    // Clamp to viewport so it never overflows on small screens.
+    const promptWidth = 220;
+    let left = tileRect.left + (tileRect.width / 2) - (promptWidth / 2);
+    left = Math.max(8, Math.min(window.innerWidth - promptWidth - 8, left));
+    let top = tileRect.bottom + 10;
+    // If there's no room below, flip above the tile.
+    if (top + 100 > window.innerHeight) top = Math.max(8, tileRect.top - 110);
+    posCss = 'position:fixed;left:' + left + 'px;top:' + top + 'px;';
+  } else {
+    posCss = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);';
+  }
   wrap.style.cssText =
-    'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99998;' +
+    posCss + 'z-index:99998;' +
     'background:#1e1b16;border:1px solid ' + color + ';border-radius:8px;' +
-    'padding:14px 18px;box-shadow:0 8px 24px rgba(0,0,0,.6);' +
-    'display:flex;flex-direction:column;gap:8px;min-width:220px;';
+    'padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.6);' +
+    'display:flex;flex-direction:column;gap:6px;min-width:220px;';
+
+  // Cheap gold connector: a small notch pointing at the tile.
+  if (tileRect) {
+    const connector = document.createElement('div');
+    connector.style.cssText =
+      'position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(45deg);' +
+      'width:10px;height:10px;background:#1e1b16;border-left:1px solid #c8b070;border-top:1px solid #c8b070;';
+    wrap.appendChild(connector);
+  }
+
   const title = document.createElement('div');
   title.style.cssText = 'font-family:var(--font-display,sans-serif);font-size:.7rem;color:' + color + ';letter-spacing:.1em;text-transform:uppercase;';
   title.textContent = label + ' — enter amount';
@@ -467,7 +541,7 @@ function promptDamageOrHeal(kind) {
   input.min = '0';
   input.placeholder = '0';
   input.style.cssText =
-    'flex:1;font-size:.9rem;padding:6px 8px;background:#14110c;' +
+    'width:80px;font-size:.9rem;padding:6px 8px;background:#14110c;' +
     'border:1px solid ' + color + ';border-radius:4px;color:#e2dbd0;';
   const okBtn = document.createElement('button');
   okBtn.className = 'btn btn-sm btn-primary';
@@ -615,15 +689,17 @@ function renderInitiativeBar() {
     let footRow = '';
     if (!isMon && isDead && refObj) {
       const ds = _getDeathSaves(refObj);
+      // Bumped from 7px → 11px and added 2px padding so each dot has a
+      // ~15px effective tap target — Jess can hit them on her phone.
       const dot = (filled, color) =>
-        '<div style="width:7px;height:7px;border-radius:50%;border:1px solid ' + color + ';background:' + (filled ? color : 'transparent') + ';"></div>';
+        '<div style="width:11px;height:11px;border-radius:50%;border:1px solid ' + color + ';background:' + (filled ? color : 'transparent') + ';"></div>';
       let succ = ''; for (let j = 0; j < 3; j++) succ += dot(j < ds.successes, '#4a9a40');
       let fail = ''; for (let j = 0; j < 3; j++) fail += dot(j < ds.failures, '#c04040');
       footRow =
-        '<div style="display:flex;gap:4px;justify-content:center;align-items:center;">' +
-          '<div title="Death save successes — click to toggle" style="display:flex;gap:2px;cursor:pointer;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'success\')">' + succ + '</div>' +
+        '<div style="display:flex;gap:4px;justify-content:center;align-items:center;padding:2px;">' +
+          '<div title="Death save successes — click to toggle" style="display:flex;gap:3px;cursor:pointer;padding:2px;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'success\')">' + succ + '</div>' +
           '<span style="color:#555;font-size:.55rem;">·</span>' +
-          '<div title="Death save failures — click to toggle" style="display:flex;gap:2px;cursor:pointer;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'failure\')">' + fail + '</div>' +
+          '<div title="Death save failures — click to toggle" style="display:flex;gap:3px;cursor:pointer;padding:2px;" onclick="event.stopPropagation();window.toggleDeathSave(\'' + e.id + '\',\'failure\')">' + fail + '</div>' +
         '</div>';
     } else if (maxHp > 0) {
       footRow =
@@ -637,7 +713,7 @@ function renderInitiativeBar() {
     const initColor = isActive ? '#c8b070' : '#7a7268';
 
     tilesHtml +=
-      '<div onclick="selectCombatant(\'' + e.id + '\')" title="' + e.name + ' · init ' + e.initiative + '" ' +
+      '<div data-combatant-id="' + e.id + '" onclick="selectCombatant(\'' + e.id + '\')" title="' + e.name + ' · init ' + e.initiative + '" ' +
       'style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 6px;min-width:88px;max-width:92px;' +
       'border:1.5px solid ' + borderColor + ';border-radius:8px;background:' + bgColor + ';cursor:pointer;transition:transform .1s;' +
       glowCss + (isDead ? 'opacity:.65;' : '') + '">' +
@@ -654,13 +730,22 @@ function renderInitiativeBar() {
       '<div style="font-size:.72rem;color:var(--text);font-weight:500;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;" title="' + (current?.name || '') + "'s turn" + '">' + (current ? current.name : '') + '</div>' +
     '</div>';
 
+  // End-combat button reflects the two-click confirmation state.
+  const endLabel = _endConfirmArmed ? 'Confirm?' : 'End';
+  const endStyle = _endConfirmArmed
+    ? 'font-size:.7rem;padding:3px 7px;background:#c04040;border-color:#c04040;color:#fff;'
+    : 'font-size:.7rem;padding:3px 7px;color:var(--red);';
+  const endTitle = _endConfirmArmed
+    ? 'Click again to end combat (Ctrl+Shift+E to skip confirm)'
+    : 'End combat (click twice; Ctrl+Shift+E to skip confirm)';
+
   const controlsHtml =
     '<div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">' +
       '<span style="font-size:.48rem;color:#5a5248;letter-spacing:.06em;margin-right:6px;display:none;" class="kb-hint">N next · J/K sel · D dmg · H heal · \u2318Z undo</span>' +
       '<button class="btn btn-sm btn-ghost" onclick="prevTurn()" title="Previous turn (Shift+N)" style="font-size:.75rem;padding:3px 7px;">\u25C0</button>' +
       '<button class="btn btn-sm btn-primary" onclick="nextTurn()" title="Next turn (N or Space)" style="font-size:.72rem;padding:3px 9px;">Next \u25B6</button>' +
       '<button class="btn btn-sm btn-ghost" onclick="window.undoHp()" title="Undo last HP change (Ctrl+Z)" style="font-size:.7rem;padding:3px 7px;">\u21B6</button>' +
-      '<button class="btn btn-sm btn-ghost" onclick="endCombat()" title="End combat" style="font-size:.7rem;color:var(--red);padding:3px 7px;">End</button>' +
+      '<button class="btn btn-sm btn-ghost" onclick="confirmEndCombat()" title="' + endTitle + '" style="' + endStyle + '">' + endLabel + '</button>' +
     '</div>';
 
   bar.innerHTML =
@@ -749,6 +834,13 @@ function _hotkeyHandler(ev) {
   if ((ev.ctrlKey || ev.metaKey) && (key === 'z' || key === 'Z')) {
     ev.preventDefault();
     window.undoHp();
+    return;
+  }
+
+  // Ctrl+Shift+E — quick-end combat (skips the two-click confirmation).
+  if ((ev.ctrlKey || ev.metaKey) && ev.shiftKey && (key === 'e' || key === 'E')) {
+    ev.preventDefault();
+    endCombat();
     return;
   }
 

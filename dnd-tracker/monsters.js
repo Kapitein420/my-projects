@@ -200,6 +200,17 @@ function showMonsterPopup(monsterId, tokenEl) {
   const mon = (m.monsters || []).find(x => x.id === monsterId);
   if (!mon) return;
 
+  // ── UNIFIED SELECTION (combat mode) ────────────────────────────
+  // If combat is active and this monster is a combatant, route the click
+  // through the initiative bar selection so HP edits happen in the detail
+  // strip (single source of truth). Skip the floating popup entirely.
+  if (m.combat?.active && Array.isArray(m.combat.entries) &&
+      m.combat.entries.some(en => en.id === monsterId) &&
+      typeof window.selectCombatant === 'function') {
+    window.selectCombatant(monsterId);
+    return;
+  }
+
   _monsterPopupId = monsterId;
   renderMonsterPopup(monsterId);
 
