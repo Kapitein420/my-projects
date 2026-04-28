@@ -938,8 +938,12 @@ function renderInitiativeBar() {
     const nameStyle = isDead ? 'text-decoration:line-through;color:#7a7268;' : 'color:#e2dbd0;';
     const initColor = isActive ? '#c8b070' : '#7a7268';
 
+    // ── LAST-TURN TOOLTIP: data-combatant-tip + onmouseenter/onmouseleave wired in (selection click intact) ──
     tilesHtml +=
-      '<div data-combatant-id="' + e.id + '" onclick="selectCombatant(\'' + e.id + '\')" title="' + e.name + ' · init ' + e.initiative + '" ' +
+      '<div data-combatant-id="' + e.id + '" data-combatant-tip="' + e.id + '" ' +
+      'onclick="hideCombatantTip();selectCombatant(\'' + e.id + '\')" ' +
+      'onmouseenter="showCombatantTip(\'' + e.id + '\',this)" onmouseleave="hideCombatantTip()" ' +
+      'title="' + e.name + ' · init ' + e.initiative + '" ' +
       'style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 6px;min-width:88px;max-width:92px;' +
       'border:1.5px solid ' + borderColor + ';border-radius:8px;background:' + bgColor + ';cursor:pointer;transition:transform .1s;' +
       glowCss + (isDead ? 'opacity:.65;' : '') + '">' +
@@ -1667,3 +1671,101 @@ function saveSessionReportToNotes() {
   saveCurrentMap();
   closeCombatReport();
 }
+
+// ══════════════════════════════════════════════════════════════
+// ── LAST-TURN TOOLTIP ─────────────────────────────────────────
+// Hover any combatant tile in the initiative bar to see that
+// combatant's most-recent log entries (as the SOURCE of an action).
+// Globally unique element id "combat-tile-tip" to avoid collisions.
+// ══════════════════════════════════════════════════════════════
+
+function _ensureCombatTileTip() {
+  let tip = document.getElementById('combat-tile-tip');
+  if (tip) return tip;
+  tip = document.createElement('div');
+  tip.id = 'combat-tile-tip';
+  tip.style.cssText =
+    'position:fixed;display:none;background:rgba(15,12,8,.96);border:1px solid #c8b070;' +
+    'border-radius:6px;padding:6px 10px;font-size:.7rem;color:#e2dbd0;max-width:260px;' +
+    'z-index:10000;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.5);';
+  document.body.appendChild(tip);
+  return tip;
+}
+
+function _formatCombatTipEntry(logEntry, entries) {
+  const r = logEntry.round || 0;
+  // Resolve "T<index>" by matching turnId to the combat order; fall back to "?".
+  let tStr = '?';
+  if (logEntry.turnId && Array.isArray(entries)) {
+    const ti = entries.findIndex(x => x.id === logEntry.turnId);
+    if (ti >= 0) tStr = String(ti + 1);
+  }
+  const stamp = 'R' + r + 'T' + tStr;
+  const tgt = logEntry.target || {};
+  const tgtName = (logEntry.source && tgt.id === logEntry.source.id) ? 'self' : (tgt.name || '?');
+  if (logEntry.type === 'damage') return stamp + ': damage ' + tgtName + ' \u2192 -' + (logEntry.value || 0);
+  if (logEntry.type === 'heal')   return stamp + ': heal '   + tgtName + ' \u2192 +' + (logEntry.value || 0);
+  if (logEntry.type === 'kill')   return stamp + ': kill '   + tgtName;
+  return stamp + ': ' + (logEntry.type || 'event');
+}
+
+window.showCombatantTip = function(combatantId, anchorEl) {
+  if (!combatantId || !anchorEl) return;
+  const tip = _ensureCombatTileTip();
+  const m = (typeof maps !== 'undefined') ? maps.find(x => x.id === currentMapId) : null;
+  const log = m?.combat?.log || [];
+  const entries = m?.combat?.entries || [];
+
+  const recent = [];
+  for (let i = log.length - 1; i >= 0 && recent.length < 3; i--) {
+    const L = log[i];
+    if (!L || !L.source || L.source.id !== combatantId) continue;
+    if (L.type !== 'damage' && L.type !== 'heal' && L.type !== 'kill') continue;
+    recent.push(L);
+  }
+
+  let body;
+  if (!recent.length) {
+    body = '<div style="color:#9a8450;font-size:.65rem;letter-spacing:.04em;">No actions logged</div>';
+  } else {
+    body =
+      '<div style="font-size:.55rem;color:#9a8450;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">Last actions</div>' +
+      recent.map(L =>
+        '<div style="display:flex;gap:5px;align-items:baseline;line-height:1.35;">' +
+          '<span style="color:#c8b070;">\u25CF</span>' +
+          '<span style="color:#e2dbd0;font-family:var(--font-mono),monospace;font-size:.68rem;">' +
+            _formatCombatTipEntry(L, entries) +
+          '</span>' +
+        '</div>'
+      ).join('');
+  }
+  tip.innerHTML = body;
+  tip.style.display = 'block';
+
+  // Position just below the anchor; clamp to viewport, flip above if no room below.
+  const rect = anchorEl.getBoundingClientRect();
+  const vw = window.innerWidth || document.documentElement.clientWidth;
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  const tw = tip.offsetWidth || 260;
+  const th = tip.offsetHeight || 60;
+  let left = Math.round(rect.left + (rect.width / 2) - (tw / 2));
+  let top  = Math.round(rect.bottom + 6);
+  if (left < 6) left = 6;
+  if (left + tw > vw - 6) left = Math.max(6, vw - tw - 6);
+  if (top + th > vh - 6) top = Math.max(6, rect.top - th - 6);
+  tip.style.left = left + 'px';
+  tip.style.top  = top  + 'px';
+};
+
+window.hideCombatantTip = function() {
+  const tip = document.getElementById('combat-tile-tip');
+  if (tip) tip.style.display = 'none';
+};
+
+// Global mousedown listener — hide on any click anywhere (covers cases where
+// the tile click handler doesn't run, e.g. clicking the map or scroll).
+if (typeof document !== 'undefined' && !window.__combatTileTipMousedownInstalled) {
+  document.addEventListener('mousedown', function() { window.hideCombatantTip(); }, true);
+  window.__combatTileTipMousedownInstalled = true;
+}
+// ── /LAST-TURN TOOLTIP ────────────────────────────────────────
