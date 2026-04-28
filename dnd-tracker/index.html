@@ -515,13 +515,38 @@
 
 /* Fullscreen player view */
 .player-fullscreen{position:fixed;inset:0;z-index:9999;background:#0a0808;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.player-fullscreen.has-ribbon{padding-top:80px;align-items:flex-start;}
+.player-fullscreen.has-ribbon .pf-stage{margin-top:8px;}
 .player-fullscreen .pf-stage{position:relative;display:inline-block;}
 .player-fullscreen .pf-img{display:block;max-width:100vw;max-height:100vh;width:auto;height:auto;}
+.player-fullscreen .pf-video-bg{max-height:100vh;}
+.player-fullscreen.has-ribbon .pf-img,
+.player-fullscreen.has-ribbon .pf-video-bg{max-height:calc(100vh - 96px);}
 .player-fullscreen #pf-fog{position:absolute;pointer-events:none;}
 .player-fullscreen .pf-overlay{position:absolute;pointer-events:none;}
 .player-fullscreen .pf-token{position:absolute;transform:translate(-50%,-50%);border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:600;pointer-events:none;}
-.player-fullscreen .pf-token-label{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--font-display);font-size:11px;color:#ddd;background:rgba(6,16,10,.85);padding:1px 6px;border-radius:3px;}
+.player-fullscreen .pf-token-label{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--font-display);font-size:16px;font-weight:600;color:#fff;background:rgba(6,8,10,.7);padding:2px 10px;border-radius:4px;text-shadow:0 1px 3px rgba(0,0,0,.85);letter-spacing:.02em;}
 .player-fullscreen .pf-token-img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
+.player-fullscreen .pf-token-deathsaves{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;pointer-events:none;}
+.player-fullscreen .pf-ds-group{display:flex;gap:2px;}
+.player-fullscreen .pf-ds-pip{width:5px;height:5px;border-radius:50%;box-sizing:border-box;}
+.player-fullscreen .pf-ds-pip.success-on{background:#4a9a40;border:1.5px solid #4a9a40;}
+.player-fullscreen .pf-ds-pip.success-off{background:transparent;border:1.5px solid #4a9a40;}
+.player-fullscreen .pf-ds-pip.failure-on{background:#c04040;border:1.5px solid #c04040;}
+.player-fullscreen .pf-ds-pip.failure-off{background:transparent;border:1.5px solid #c04040;}
+.player-fullscreen .pf-ds-sep{color:#7a6e54;font-size:8px;line-height:1;}
+.player-fullscreen .pf-init-ribbon{position:fixed;top:0;left:0;right:0;height:80px;background:rgba(15,12,8,.92);border-bottom:1px solid rgba(200,176,112,.3);display:flex;align-items:center;gap:8px;padding:8px 16px;z-index:9999;overflow-x:auto;overflow-y:hidden;}
+.player-fullscreen .pf-init-header{display:flex;flex-direction:column;align-items:flex-start;gap:2px;flex-shrink:0;padding-right:10px;border-right:1px solid rgba(200,176,112,.2);margin-right:6px;}
+.player-fullscreen .pf-init-round{font-family:var(--font-display);font-size:.62rem;color:#9a8450;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;}
+.player-fullscreen .pf-init-current{font-family:var(--font-display);font-size:.78rem;color:var(--glow);white-space:nowrap;text-shadow:0 0 10px rgba(200,176,112,.3);}
+.player-fullscreen .pf-init-tile{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;width:60px;padding:4px;border:1.5px solid rgba(90,70,40,.35);border-radius:6px;background:rgba(26,22,19,.6);transition:all .15s;}
+.player-fullscreen .pf-init-tile.active{border-color:#c8b070;background:rgba(200,176,112,.12);box-shadow:0 0 0 1px rgba(200,176,112,.5),0 0 14px rgba(200,176,112,.45);}
+.player-fullscreen .pf-init-tile.dead{opacity:.5;}
+.player-fullscreen .pf-init-tile.dead .pf-init-name{text-decoration:line-through;color:#7a7268;}
+.player-fullscreen .pf-init-portrait{width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(200,176,112,.3);object-fit:cover;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:.7rem;}
+.player-fullscreen .pf-init-tile.active .pf-init-portrait{border-color:#c8b070;}
+.player-fullscreen .pf-init-name{font-size:12px;color:#fff;font-family:var(--font-display);text-shadow:0 1px 2px rgba(0,0,0,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56px;text-align:center;}
+.player-fullscreen .pf-init-init{font-size:10px;color:#c8b070;font-family:var(--font-mono);font-weight:600;}
 .player-fullscreen .pf-round{position:fixed;top:16px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:1rem;color:var(--glow);background:rgba(26,22,19,.95);padding:8px 24px;border-radius:var(--r-lg);border:1px solid var(--border2);border-bottom:2px solid var(--glow-dd);z-index:10000;letter-spacing:.1em;text-shadow:0 0 12px rgba(200,176,112,.3);}
 .player-fullscreen .pf-turn-name{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:1.4rem;color:var(--text);background:rgba(26,22,19,.95);padding:10px 32px;border-radius:var(--r-lg);border:1px solid var(--border2);border-top:2px solid var(--glow-dd);z-index:10000;text-shadow:0 0 8px rgba(200,176,112,.2);letter-spacing:.05em;}
 
@@ -1795,7 +1820,14 @@ async function openPlayerFullscreen(mapId) {
   container.innerHTML = '';
   container._pfMapId = id;
 
-  // Header wrapper (round/turn text, rebuilt on each refresh)
+  // Initiative ribbon (built/refreshed by refreshPlayerFullscreen)
+  const ribbon = document.createElement('div');
+  ribbon.id = 'pf-init-ribbon';
+  ribbon.className = 'pf-init-ribbon';
+  ribbon.style.display = 'none';
+  container.appendChild(ribbon);
+
+  // Header wrapper (kept for compatibility with refresh; ribbon supersedes when combat active)
   const header = document.createElement('div');
   header.id = 'pf-header';
   container.appendChild(header);
@@ -1805,10 +1837,11 @@ async function openPlayerFullscreen(mapId) {
   stage.className = 'pf-stage';
   stage.style.cssText = 'position:relative;display:inline-block;';
 
+  // Sizing image (always present — used to size fog/overlay even when video plays)
+  // No inline max-height: lets the .pf-img class (and .has-ribbon override) take effect
   const img = document.createElement('img');
   img.className = 'pf-img';
-  img.style.cssText = 'display:block;max-width:100vw;max-height:100vh;width:auto;height:auto;position:relative;';
-  img.src = m.imageData || m.imageUrl || '';
+  img.style.position = 'relative';
   stage.appendChild(img);
 
   const fogCanvas = document.createElement('canvas');
@@ -1821,20 +1854,57 @@ async function openPlayerFullscreen(mapId) {
 
   container.appendChild(stage);
 
-  // Render after image loads and has actual dimensions
-  img.onload = () => {
-    const iw = img.offsetWidth || img.clientWidth;
-    const ih = img.offsetHeight || img.clientHeight;
+  // Helper: size fog/overlay to a given element's box, then refresh dynamic content
+  const _sizeAndRefresh = (sizingEl) => {
+    const iw = sizingEl.offsetWidth || sizingEl.clientWidth;
+    const ih = sizingEl.offsetHeight || sizingEl.clientHeight;
     if (!iw || !ih) return;
-
-    // Size fog canvas and overlay to match image
     fogCanvas.width = iw;
     fogCanvas.height = ih;
-    fogCanvas.style.cssText = 'position:absolute;top:0;left:0;width:' + iw + 'px;height:' + ih + 'px;pointer-events:none;';
-    overlay.style.cssText = 'position:absolute;top:0;left:0;width:' + iw + 'px;height:' + ih + 'px;pointer-events:none;';
-
+    fogCanvas.style.cssText = 'position:absolute;top:0;left:0;width:' + iw + 'px;height:' + ih + 'px;pointer-events:none;z-index:2;';
+    overlay.style.cssText = 'position:absolute;top:0;left:0;width:' + iw + 'px;height:' + ih + 'px;pointer-events:none;z-index:3;';
     refreshPlayerFullscreen(id);
   };
+
+  // Background source: video / YouTube iframe / image
+  if (m.videoUrl && m.videoUrl.includes('youtube.com/embed')) {
+    // YouTube: thumbnail on the <img> for sizing, iframe behind as visual
+    img.src = m.imageData || m.imageUrl || '';
+    const iframe = document.createElement('iframe');
+    iframe.className = 'pf-iframe-bg';
+    iframe.src = m.videoUrl;
+    iframe.allow = 'autoplay; encrypted-media';
+    iframe.frameBorder = '0';
+    iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border:none;z-index:0;';
+    stage.insertBefore(iframe, img);
+    // Image kept for sizing only — invisible but layout-active
+    img.style.zIndex = '1';
+    img.style.opacity = '0';
+    img.onload = () => _sizeAndRefresh(img);
+    if (img.complete && img.naturalWidth) _sizeAndRefresh(img);
+  } else if (m.videoUrl) {
+    // Direct video: <video> element is the visible background, image hidden
+    // No inline max-height: lets .pf-video-bg sizing rules (with has-ribbon override) apply
+    const vid = document.createElement('video');
+    vid.className = 'pf-video-bg';
+    vid.src = m.videoUrl;
+    vid.autoplay = true; vid.muted = true; vid.loop = true; vid.playsInline = true;
+    vid.style.display = 'block';
+    vid.style.maxWidth = '100vw';
+    vid.style.width = 'auto';
+    vid.style.height = 'auto';
+    vid.style.pointerEvents = 'none';
+    vid.style.position = 'relative';
+    vid.style.zIndex = '1';
+    stage.insertBefore(vid, img);
+    img.style.display = 'none';
+    vid.onloadeddata = () => _sizeAndRefresh(vid);
+  } else {
+    // Standard image map
+    img.src = m.imageData || m.imageUrl || '';
+    img.onload = () => _sizeAndRefresh(img);
+    if (img.complete && img.naturalWidth) _sizeAndRefresh(img);
+  }
 
   // ESC to close
   container._escHandler = (e) => { if (e.key === 'Escape') closePlayerFullscreen(); };
@@ -1853,11 +1923,15 @@ function refreshPlayerFullscreen(mapId) {
   const m = maps.find(x => x.id === id);
   if (!m) return;
 
-  // Rebuild round/turn header
+  // Initiative ribbon — top strip with portraits + names + init numbers
+  renderPlayerInitRibbon(m);
+
+  // Legacy round/turn floating banners — only show when combat active AND ribbon couldn't render
   const header = document.getElementById('pf-header');
+  const ribbon = document.getElementById('pf-init-ribbon');
   if (header) {
     header.innerHTML = '';
-    if (m.combat?.active) {
+    if (m.combat?.active && (!ribbon || ribbon.style.display === 'none')) {
       const roundEl = document.createElement('div');
       roundEl.className = 'pf-round';
       roundEl.textContent = 'Round ' + m.combat.round;
@@ -1872,19 +1946,83 @@ function refreshPlayerFullscreen(mapId) {
     }
   }
 
-  // Update fog + tokens (skip if image not yet sized)
+  // Pick the visible background element for sizing (video > image)
+  const vid = container.querySelector('.pf-video-bg');
   const img = container.querySelector('.pf-img');
+  const sizingEl = (vid && vid.offsetWidth) ? vid : img;
   const fogCanvas = document.getElementById('pf-fog');
   const overlay = container.querySelector('.pf-overlay');
-  if (!img || !fogCanvas || !overlay) return;
-  const iw = img.offsetWidth || img.clientWidth;
-  const ih = img.offsetHeight || img.clientHeight;
+  if (!sizingEl || !fogCanvas || !overlay) return;
+  const iw = sizingEl.offsetWidth || sizingEl.clientWidth;
+  const ih = sizingEl.offsetHeight || sizingEl.clientHeight;
   if (!iw || !ih) return;
+
+  // Resync canvas/overlay size in case the layout changed (e.g. ribbon toggled)
+  if (fogCanvas.width !== iw || fogCanvas.height !== ih) {
+    fogCanvas.width = iw;
+    fogCanvas.height = ih;
+    fogCanvas.style.cssText = 'position:absolute;top:0;left:0;width:' + iw + 'px;height:' + ih + 'px;pointer-events:none;z-index:2;';
+    overlay.style.cssText = 'position:absolute;top:0;left:0;width:' + iw + 'px;height:' + ih + 'px;pointer-events:none;z-index:3;';
+  }
 
   const ctx = fogCanvas.getContext('2d');
   ctx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
   if (m.fog?.enabled) renderPlayerFog(fogCanvas, m);
   renderPlayerTokens(overlay, m, {clientWidth: iw, clientHeight: ih});
+}
+
+// Initiative ribbon: top horizontal strip with portraits + names + init numbers
+function renderPlayerInitRibbon(m) {
+  const ribbon = document.getElementById('pf-init-ribbon');
+  const container = document.getElementById('player-fullscreen');
+  if (!ribbon || !container) return;
+  if (!m.combat?.active) {
+    ribbon.style.display = 'none';
+    ribbon.innerHTML = '';
+    container.classList.remove('has-ribbon');
+    return;
+  }
+  container.classList.add('has-ribbon');
+  const combat = m.combat;
+  const current = combat.entries?.[combat.turnIndex];
+  ribbon.style.display = 'flex';
+
+  // Header: round + current turn name (replaces the floating banners)
+  let html = '<div class="pf-init-header">' +
+    '<div class="pf-init-round">Round ' + (combat.round || 1) + '</div>' +
+    '<div class="pf-init-current">' + esc((current && current.name) ? current.name + "'s Turn" : 'Combat') + '</div>' +
+  '</div>';
+
+  for (let i = 0; i < (combat.entries || []).length; i++) {
+    const e = combat.entries[i];
+    const isActive = i === combat.turnIndex;
+    const isMon = e.type === 'monster';
+    let refObj = null;
+    if (isMon) refObj = (m.monsters || []).find(x => x.id === e.id);
+    else refObj = characters.find(x => x.id === e.id);
+    const curHp = refObj?.currentHp ?? 0;
+    const maxHp = refObj?.maxHp ?? 0;
+    const isDead = (maxHp > 0 && curHp <= 0);
+
+    let portraitHtml;
+    const imgUrl = isMon ? refObj?.imgUrl : refObj?.imageUrl;
+    if (imgUrl) {
+      portraitHtml = '<img class="pf-init-portrait" src="' + imgUrl + '" alt="' + esc(e.name) + '">';
+    } else {
+      const col = isMon ? '#8a2020' : (refObj ? classColor(refObj.class) : '#5a4830');
+      const glyph = (!isMon && refObj?.icon) ? refObj.icon : initials(e.name || '?');
+      portraitHtml = '<div class="pf-init-portrait" style="background:' + col + '20;color:' + col + ';">' + esc(glyph) + '</div>';
+    }
+
+    const tileCls = 'pf-init-tile' + (isActive ? ' active' : '') + (isDead ? ' dead' : '');
+    html +=
+      '<div class="' + tileCls + '" title="' + esc(e.name) + ' \u00b7 init ' + (e.initiative ?? '?') + '">' +
+        portraitHtml +
+        '<div class="pf-init-name">' + esc(e.name) + '</div>' +
+        '<div class="pf-init-init">' + (e.initiative ?? '?') + '</div>' +
+      '</div>';
+  }
+  ribbon.innerHTML = html;
 }
 
 function renderPlayerFog(canvas, m) {
@@ -1965,7 +2103,7 @@ function renderPlayerTokens(overlay, m, img) {
 
   overlay.innerHTML = (m.tokens || []).map(tok => {
     const isMonster = !!tok.monsterId;
-    let col, name, display, imgUrl;
+    let col, name, display, imgUrl, charRef = null;
     const sz = Math.round((tok.size || 1) * 48); // slightly bigger for big screen
 
     if (isMonster) {
@@ -1976,6 +2114,7 @@ function renderPlayerTokens(overlay, m, img) {
     } else {
       const c = characters.find(x => x.id === tok.characterId);
       if (!c) return '';
+      charRef = c;
       col = classColor(c.class); name = c.name;
       imgUrl = c.imageUrl; display = c.icon || initials(name);
     }
@@ -2006,9 +2145,43 @@ function renderPlayerTokens(overlay, m, img) {
         '<span style="display:none;font-size:' + Math.round(sz*0.33) + 'px;">' + display + '</span>'
       : '<span style="font-size:' + Math.round(sz*0.33) + 'px;">' + display + '</span>';
 
+    // PC-only HP ring (mirrors map.js DM-side behavior; monsters stay bare-bordered)
+    let hpSvg = '';
+    if (!isMonster && charRef) {
+      const pct = hpPct(charRef.currentHp || 0, charRef.maxHp || 1);
+      const hpC = pct > 60 ? '#4a9a40' : pct > 25 ? '#b8902a' : '#8a2020';
+      hpSvg = '<svg viewBox="0 0 36 36" style="position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);pointer-events:none;">' +
+        '<circle cx="18" cy="18" r="16" fill="none" stroke="' + hpC + '" stroke-width="2.5"' +
+          ' stroke-dasharray="' + (pct / 100 * 100.5).toFixed(1) + ' 100.5"' +
+          ' stroke-dashoffset="25.1" stroke-linecap="round"' +
+          ' transform="rotate(-90 18 18)" opacity="0.7"/>' +
+      '</svg>';
+    }
+
+    // Death-save pips on PCs at 0 HP (read-only, above token)
+    let deathPipsHtml = '';
+    if (!isMonster && charRef && (charRef.currentHp || 0) <= 0) {
+      const ds = charRef.deathSaves || { successes: 0, failures: 0 };
+      let succ = '';
+      for (let j = 0; j < 3; j++) {
+        succ += '<div class="pf-ds-pip ' + (j < (ds.successes || 0) ? 'success-on' : 'success-off') + '"></div>';
+      }
+      let fail = '';
+      for (let j = 0; j < 3; j++) {
+        fail += '<div class="pf-ds-pip ' + (j < (ds.failures || 0) ? 'failure-on' : 'failure-off') + '"></div>';
+      }
+      deathPipsHtml = '<div class="pf-token-deathsaves">' +
+        '<div class="pf-ds-group">' + succ + '</div>' +
+        '<span class="pf-ds-sep">\u2022</span>' +
+        '<div class="pf-ds-group">' + fail + '</div>' +
+      '</div>';
+    }
+
     return '<div class="pf-token" style="left:' + tok.x.toFixed(2) + '%;top:' + tok.y.toFixed(2) + '%;width:' + sz + 'px;height:' + sz + 'px;border-color:' + col + ';background:' + col + '28;color:' + col + ';' + glow + '">' +
       inner +
-      '<div class="pf-token-label">' + name + '</div>' +
+      hpSvg +
+      deathPipsHtml +
+      '<div class="pf-token-label">' + esc(name) + '</div>' +
     '</div>';
   }).join('');
 }
@@ -2028,6 +2201,7 @@ function closePlayerFullscreen() {
   stopPlayerRealtime();
   container.style.display = 'none';
   container.innerHTML = '';
+  container.classList.remove('has-ribbon');
   container._pfMapId = null;
 }
 
