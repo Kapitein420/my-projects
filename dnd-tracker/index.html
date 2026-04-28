@@ -575,6 +575,29 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
 .combat-inline-input:focus{outline:none;border-color:var(--glow);}
 .toast{position:fixed;top:20px;right:20px;padding:10px 14px;background:rgba(26,22,19,.95);border:1px solid var(--glow-d);border-radius:var(--r);color:#e2dbd0;font-size:.75rem;z-index:10001;transition:opacity .3s;font-family:var(--font-body);box-shadow:0 4px 16px rgba(0,0,0,.5);}
 
+/* ── BLOODIED INDICATOR (player TV) ─────────────────────── */
+.pf-token.bloodied {
+  filter: drop-shadow(0 0 6px #c04040);
+}
+.pf-token.bloodied::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle, #c04040 30%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+  animation: pf-bloodied-pulse 1.4s ease-in-out infinite;
+}
+@keyframes pf-bloodied-pulse {
+  0%, 100% { opacity: 0.55; transform: translateX(-50%) scale(0.9); }
+  50%      { opacity: 1;    transform: translateX(-50%) scale(1.15); }
+}
+
 </style>
 </head>
 <body>
@@ -983,6 +1006,8 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
       <label style="font-size:.6rem;color:#7a7268;font-family:var(--font-display);">Hex</label>
       <input type="range" min="10" max="80" value="30" style="width:50px;accent-color:#c8b070;" oninput="setHexSize(+this.value);document.getElementById('fog-hex-size-val').textContent=this.value">
       <span id="fog-hex-size-val" style="font-size:.6rem;color:#7a7268;font-family:var(--font-mono);min-width:18px;">30</span>
+      <div style="width:1px;height:14px;background:#3a3020;"></div>
+      <button class="btn btn-sm btn-ghost" id="bloodied-toggle-btn" onclick="toggleBloodiedVisibility()" title="Show or hide bloodied indicator on enemy tokens (player view)" style="font-size:.65rem;">🩸 Bloodied</button>
     </div>
   </div>
 
@@ -1963,9 +1988,11 @@ function renderPlayerTokens(overlay, m, img) {
   const r = m.fog?.hexSize || 30;
   const w = img.clientWidth, h = img.clientHeight;
 
+  const showBloodied = m.showBloodied !== false; // default true
   overlay.innerHTML = (m.tokens || []).map(tok => {
     const isMonster = !!tok.monsterId;
     let col, name, display, imgUrl;
+    let currentHp = 0, maxHp = 0;
     const sz = Math.round((tok.size || 1) * 48); // slightly bigger for big screen
 
     if (isMonster) {
@@ -1973,12 +2000,14 @@ function renderPlayerTokens(overlay, m, img) {
       if (!mon) return '';
       col = '#8a2020'; name = mon.displayName || mon.templateName;
       imgUrl = mon.imgUrl; display = initials(name);
+      currentHp = mon.currentHp || 0; maxHp = mon.maxHp || 0;
     } else {
       const c = characters.find(x => x.id === tok.characterId);
       if (!c) return '';
       col = classColor(c.class); name = c.name;
       imgUrl = c.imageUrl; display = c.icon || initials(name);
     }
+    const bloodiedCls = (isMonster && showBloodied && maxHp > 0 && currentHp > 0 && (currentHp / maxHp) <= 0.5) ? ' bloodied' : '';
 
     // Check fog visibility
     if (fogOn) {
@@ -2006,7 +2035,7 @@ function renderPlayerTokens(overlay, m, img) {
         '<span style="display:none;font-size:' + Math.round(sz*0.33) + 'px;">' + display + '</span>'
       : '<span style="font-size:' + Math.round(sz*0.33) + 'px;">' + display + '</span>';
 
-    return '<div class="pf-token" style="left:' + tok.x.toFixed(2) + '%;top:' + tok.y.toFixed(2) + '%;width:' + sz + 'px;height:' + sz + 'px;border-color:' + col + ';background:' + col + '28;color:' + col + ';' + glow + '">' +
+    return '<div class="pf-token' + bloodiedCls + '" style="left:' + tok.x.toFixed(2) + '%;top:' + tok.y.toFixed(2) + '%;width:' + sz + 'px;height:' + sz + 'px;border-color:' + col + ';background:' + col + '28;color:' + col + ';' + glow + '">' +
       inner +
       '<div class="pf-token-label">' + name + '</div>' +
     '</div>';
@@ -2243,6 +2272,21 @@ function onRemoteCharactersUpdate(data) {
       renderTokensOnMap();
     }
   }
+}
+
+// ── BLOODIED INDICATOR TOGGLE ──────────────────────────────
+function toggleBloodiedVisibility() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  m.showBloodied = m.showBloodied === false ? true : false;
+  m.updatedAt = Date.now();
+  if (typeof saveCurrentMap === 'function') saveCurrentMap();
+  const btn = document.getElementById('bloodied-toggle-btn');
+  if (btn) {
+    btn.style.borderColor = m.showBloodied !== false ? '#c8b070' : '';
+    btn.title = m.showBloodied !== false ? 'Bloodied visible — click to hide' : 'Bloodied hidden — click to show';
+  }
+  if (typeof refreshPlayerFullscreen === 'function') refreshPlayerFullscreen(currentMapId);
 }
 
 // ── MAXIMIZED MAP TOGGLE ───────────────────────────────────
