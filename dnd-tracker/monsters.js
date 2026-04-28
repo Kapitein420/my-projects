@@ -127,6 +127,9 @@ function renderMonsterSidebar() {
   const m = maps.find(x => x.id === currentMapId);
   const el = document.getElementById('monster-encounter-list');
   if (!el) return;
+  // Lazy-load encounter templates the first time the sidebar renders, then refresh the list panel.
+  if (!_monsterTemplatesLoaded) loadMonsterTemplates().then(renderMonsterTemplatesList);
+  else renderMonsterTemplatesList();
   const monsters = m?.monsters || [];
   if (!monsters.length) {
     el.innerHTML = '<div style="font-size:.65rem;color:var(--text4);padding:.2rem 0;">No monsters in encounter</div>';
@@ -277,4 +280,95 @@ function hideMonsterPopup() {
   _monsterPopupId = null;
   const popup = document.getElementById('monster-popup');
   if (popup) { popup.style.display = 'none'; popup.innerHTML = ''; }
+}
+
+// ── ENCOUNTER TEMPLATES ──────────────────────────────────────
+let monsterTemplates = [];
+let _monsterTemplatesLoaded = false;
+
+async function loadMonsterTemplates() {
+  monsterTemplates = await DB.load('monster_templates');
+  _monsterTemplatesLoaded = true;
+}
+
+async function saveCurrentEncounterAsTemplate() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) { alert('Open a map first.'); return; }
+  if (!m.monsters || m.monsters.length === 0) { alert('No monsters on this map to save.'); return; }
+  const name = prompt('Name this encounter template:', m.name + ' encounter');
+  if (!name) return;
+  // Strip per-instance state we don't want in templates
+  const monstersSnapshot = m.monsters.map(mon => ({
+    templateName: mon.templateName,
+    displayName: mon.displayName,
+    maxHp: mon.maxHp,
+    currentHp: mon.maxHp, // reset to full
+    ac: mon.ac,
+    cr: mon.cr,
+    meta: mon.meta,
+    imgUrl: mon.imgUrl
+  }));
+  const tpl = {
+    id: 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    name: name.trim(),
+    monsters: monstersSnapshot,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  monsterTemplates.push(tpl);
+  await DB.save('monster_templates', tpl, monsterTemplates);
+  renderMonsterTemplatesList();
+  alert('Saved template: ' + name + ' (' + monstersSnapshot.length + ' monsters)');
+}
+
+async function loadEncounterTemplate(tplId) {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) { alert('Open a map first.'); return; }
+  const tpl = monsterTemplates.find(t => t.id === tplId);
+  if (!tpl) return;
+  if (m.monsters && m.monsters.length > 0 && !confirm('This map already has ' + m.monsters.length + ' monsters. Add ' + tpl.monsters.length + ' more from "' + tpl.name + '"?')) return;
+  m.monsters = m.monsters || [];
+  // Auto-letter duplicates among the freshly-added monsters and existing ones
+  for (const mon of tpl.monsters) {
+    const existingCount = m.monsters.filter(x => x.templateName === mon.templateName).length;
+    const baseName = mon.templateName || mon.displayName;
+    const suffix = existingCount === 0 ? '' : ' ' + String.fromCharCode(65 + existingCount); // A, B, C
+    m.monsters.push({
+      ...mon,
+      id: 'mon_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      displayName: existingCount === 0 ? (mon.displayName || baseName) : baseName + suffix
+    });
+  }
+  m.updatedAt = Date.now();
+  saveCurrentMap();
+  renderMonsterSidebar();
+  if (typeof renderTokensOnMap === 'function') renderTokensOnMap();
+}
+
+async function deleteEncounterTemplate(tplId) {
+  const tpl = monsterTemplates.find(t => t.id === tplId);
+  if (!tpl) return;
+  if (!confirm('Delete template "' + tpl.name + '"?')) return;
+  monsterTemplates = monsterTemplates.filter(t => t.id !== tplId);
+  await DB.remove('monster_templates', tplId, monsterTemplates);
+  renderMonsterTemplatesList();
+}
+
+function renderMonsterTemplatesList() {
+  const el = document.getElementById('monster-templates-list');
+  if (!el) return;
+  if (monsterTemplates.length === 0) {
+    el.innerHTML = '<div style="font-size:.65rem;color:#7a7268;padding:6px 0;">No saved templates yet.</div>';
+    return;
+  }
+  el.innerHTML = monsterTemplates.map(t =>
+    '<div style="display:flex;align-items:center;gap:5px;padding:4px 6px;background:#1e1810;border:1px solid rgba(200,176,112,.15);border-radius:4px;margin-bottom:3px;">' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:.7rem;color:#e2dbd0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (t.name || 'Untitled') + '</div>' +
+        '<div style="font-size:.55rem;color:#7a7268;">' + t.monsters.length + ' monsters</div>' +
+      '</div>' +
+      '<button class="btn btn-sm btn-primary" onclick="loadEncounterTemplate(\'' + t.id + '\')" title="Load onto current map" style="font-size:.6rem;padding:2px 6px;">Load</button>' +
+      '<button class="btn btn-sm btn-ghost" onclick="deleteEncounterTemplate(\'' + t.id + '\')" title="Delete template" style="font-size:.6rem;padding:2px 5px;color:var(--red);">\u2715</button>' +
+    '</div>'
+  ).join('');
 }

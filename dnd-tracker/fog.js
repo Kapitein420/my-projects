@@ -98,6 +98,11 @@ function initFogSystem(mapObj) {
   _brushStrokeInProgress = null;
   _zoneSelection.clear();
 
+  // Make sure transient activeAudioUrl is in sync with stored zone state on
+  // load — handles the case where a map saved with a revealed-with-audio zone
+  // is reopened.
+  _recomputeActiveZoneAudio(_fogMap);
+
   // Observe map stage for resize
   const img = document.getElementById('map-img');
   if (_resizeObs) _resizeObs.disconnect();
@@ -555,7 +560,7 @@ function createZoneFromSelection() {
   for (const key of _zoneSelection) {
     hexes.push(parseHexKey(key));
   }
-  fog.zones[id] = { id, name: name.trim(), revealed: false, hexes };
+  fog.zones[id] = { id, name: name.trim(), revealed: false, hexes, audioUrl: '' };
   _zoneSelection.clear();
   _fogMap.updatedAt = Date.now();
   saveCurrentMap();
@@ -567,11 +572,46 @@ function toggleZoneRevealed(zoneId) {
   const zone = _fogMap?.fog?.zones?.[zoneId];
   if (!zone) return;
   zone.revealed = !zone.revealed;
+  if (zone.revealed) zone.revealedAt = Date.now();
+  _recomputeActiveZoneAudio(_fogMap);
   _fogMap.updatedAt = Date.now();
   saveCurrentMap();
   renderFogZonePanel();
   renderFog();
   if (typeof renderTokensOnMap === 'function') renderTokensOnMap();
+}
+
+// ── ZONE / MAP AUDIO ─────────────────────────────────────────
+// Per-zone music swap: when a zone is revealed, if it has an audioUrl set, the
+// player view should swap to that track. We pick the most-recently-revealed
+// zone with an audioUrl and store it transiently on the map as `activeAudioUrl`
+// for the player view's `_syncPlayerAudio` to read.
+function _recomputeActiveZoneAudio(m) {
+  if (!m?.fog?.zones) { if (m) m.activeAudioUrl = null; return; }
+  let best = null;
+  for (const z of Object.values(m.fog.zones)) {
+    if (!z.revealed) continue;
+    if (!z.audioUrl) continue;
+    const t = z.revealedAt || 0;
+    if (!best || t >= best.t) best = { url: z.audioUrl, t };
+  }
+  m.activeAudioUrl = best ? best.url : null;
+}
+
+function setZoneAudio(zoneId, url) {
+  const zone = _fogMap?.fog?.zones?.[zoneId];
+  if (!zone) return;
+  zone.audioUrl = (url || '').trim();
+  _recomputeActiveZoneAudio(_fogMap);
+  _fogMap.updatedAt = Date.now();
+  saveCurrentMap();
+}
+
+function setMapAudio(url) {
+  if (!_fogMap) return;
+  _fogMap.audioUrl = (url || '').trim();
+  _fogMap.updatedAt = Date.now();
+  saveCurrentMap();
 }
 
 function deleteZone(zoneId) {
@@ -612,6 +652,7 @@ function resetAllFog() {
   fog.revealedHexes = [];
   fog.brushStrokes = [];
   for (const zone of Object.values(fog.zones || {})) zone.revealed = false;
+  _recomputeActiveZoneAudio(_fogMap);
   _fogMap.updatedAt = Date.now();
   saveCurrentMap();
   renderFogZonePanel();
@@ -746,20 +787,41 @@ function renderFogZonePanel() {
   const el = document.getElementById('fog-zone-list');
   if (!el) return;
   const zones = Object.values(_fogMap?.fog?.zones || {});
+  // Map-level "Default audio" header — sits in the same panel as zones so the
+  // audio settings are logically grouped with the rest of the scene config.
+  const escAttr = (v) => (v || '').replace(/"/g, '&quot;');
+  const mapAudio = escAttr(_fogMap?.audioUrl || '');
+  const headerHtml = `
+    <div style="display:flex;align-items:center;gap:6px;padding:4px 0 6px;border-bottom:1px solid var(--border2);margin-bottom:4px;">
+      <span style="font-size:.7rem;color:var(--text3);min-width:78px;">Default audio:</span>
+      <input type="text" placeholder="https://… (mp3/ogg)" value="${mapAudio}"
+        onchange="setMapAudio(this.value)"
+        style="flex:1;font-size:.7rem;padding:2px 6px;background:var(--bg2);border:1px solid var(--border2);color:var(--text);border-radius:3px;">
+    </div>`;
   if (!zones.length) {
-    el.innerHTML = '<div style="font-size:.7rem;color:var(--text4);padding:.25rem 0;">No zones yet</div>';
+    el.innerHTML = headerHtml + '<div style="font-size:.7rem;color:var(--text4);padding:.25rem 0;">No zones yet</div>';
     return;
   }
-  el.innerHTML = zones.map(z => `
-    <div class="fog-zone-item" style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:.75rem;">
-      <button class="btn btn-sm" style="padding:0 4px;font-size:.7rem;min-width:0;background:none;border:none;cursor:pointer;color:var(--text2);"
-        onclick="toggleZoneRevealed('${z.id}')" title="${z.revealed ? 'Hide' : 'Reveal'}">${z.revealed ? '👁' : '🚫'}</button>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${z.revealed ? 'var(--glow)' : 'var(--text3)'};">${z.name}</span>
-      <span style="font-size:.6rem;color:var(--text4);">${z.hexes.length}h</span>
-      <button class="btn btn-sm" style="padding:0 4px;font-size:.65rem;min-width:0;background:none;border:none;cursor:pointer;color:var(--red);"
-        onclick="deleteZone('${z.id}')">✕</button>
-    </div>
-  `).join('');
+  el.innerHTML = headerHtml + zones.map(z => {
+    const za = escAttr(z.audioUrl || '');
+    return `
+    <div class="fog-zone-item" style="display:flex;flex-direction:column;gap:2px;padding:3px 0;font-size:.75rem;border-bottom:1px dashed var(--border2);">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="btn btn-sm" style="padding:0 4px;font-size:.7rem;min-width:0;background:none;border:none;cursor:pointer;color:var(--text2);"
+          onclick="toggleZoneRevealed('${z.id}')" title="${z.revealed ? 'Hide' : 'Reveal'}">${z.revealed ? '👁' : '🚫'}</button>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${z.revealed ? 'var(--glow)' : 'var(--text3)'};">${z.name}</span>
+        <span style="font-size:.6rem;color:var(--text4);">${z.hexes.length}h</span>
+        <button class="btn btn-sm" style="padding:0 4px;font-size:.65rem;min-width:0;background:none;border:none;cursor:pointer;color:var(--red);"
+          onclick="deleteZone('${z.id}')">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding-left:22px;">
+        <span style="font-size:.65rem;color:var(--text4);min-width:62px;">Audio URL</span>
+        <input type="text" placeholder="(uses default)" value="${za}"
+          onchange="setZoneAudio('${z.id}', this.value)"
+          style="flex:1;font-size:.65rem;padding:1px 4px;background:var(--bg2);border:1px solid var(--border2);color:var(--text);border-radius:3px;">
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function toggleFogZonePanel() {

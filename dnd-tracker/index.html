@@ -599,7 +599,34 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
 .combat-inline-input{width:60px;background:var(--bg-input);border:1px solid var(--glow-d);border-radius:4px;color:var(--text-on-dark);font-family:var(--font-mono);font-size:.78rem;padding:2px 5px;}
 .combat-inline-input:focus{outline:none;border-color:var(--glow);}
 .toast{position:fixed;top:20px;right:20px;padding:10px 14px;background:rgba(26,22,19,.95);border:1px solid var(--glow-d);border-radius:var(--r);color:#e2dbd0;font-size:.75rem;z-index:10001;transition:opacity .3s;font-family:var(--font-body);box-shadow:0 4px 16px rgba(0,0,0,.5);}
+@keyframes pf-ping-anim {
+  0%   { transform: scale(0.4); opacity: 1; }
+  50%  { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
 
+/* ── BLOODIED INDICATOR (player TV) ─────────────────────── */
+.pf-token.bloodied {
+  filter: drop-shadow(0 0 6px #c04040);
+}
+.pf-token.bloodied::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle, #c04040 30%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+  animation: pf-bloodied-pulse 1.4s ease-in-out infinite;
+}
+@keyframes pf-bloodied-pulse {
+  0%, 100% { opacity: 0.55; transform: translateX(-50%) scale(0.9); }
+  50%      { opacity: 1;    transform: translateX(-50%) scale(1.15); }
+}
 </style>
 </head>
 <body>
@@ -951,6 +978,7 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
     <button class="btn btn-sm btn-ghost" id="combat-start-btn" onclick="showCombatSetup()">⚔ Combat</button>
     <button class="btn btn-sm btn-ghost" onclick="showSessionReport()" title="Generate session report from all combat data">📊 Report</button>
     <button class="btn btn-sm btn-ghost" id="map-maximize-btn" onclick="toggleMapMaximize()" title="Expand map to fill browser (ESC to exit)">⛶ Fullscreen</button>
+    <button class="btn btn-sm btn-ghost" id="map-ping-btn" onclick="toggleMapPingMode()" title="Click to enter ping mode, then click on map to ping a location for players">📍 Ping</button>
     <button class="btn btn-sm btn-ghost" onclick="openPlayerFullscreen()" title="Open fullscreen player view (ESC to close)">📺 Player Screen</button>
     <button class="btn btn-sm btn-ghost" onclick="copyPlayerLink()" title="Copy link for a separate player screen" id="copy-player-link-btn">🔗 Link</button>
     <div style="position:relative;">
@@ -1008,6 +1036,8 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
       <label style="font-size:.6rem;color:#7a7268;font-family:var(--font-display);">Hex</label>
       <input type="range" min="10" max="80" value="30" style="width:50px;accent-color:#c8b070;" oninput="setHexSize(+this.value);document.getElementById('fog-hex-size-val').textContent=this.value">
       <span id="fog-hex-size-val" style="font-size:.6rem;color:#7a7268;font-family:var(--font-mono);min-width:18px;">30</span>
+      <div style="width:1px;height:14px;background:#3a3020;"></div>
+      <button class="btn btn-sm btn-ghost" id="bloodied-toggle-btn" onclick="toggleBloodiedVisibility()" title="Show or hide bloodied indicator on enemy tokens (player view)" style="font-size:.65rem;">🩸 Bloodied</button>
     </div>
   </div>
 
@@ -1028,6 +1058,12 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
 
         <div class="map-sidebar-section" style="margin-top:.5rem;font-size:.55rem;">Encounter</div>
         <div id="monster-encounter-list"></div>
+
+        <div class="map-sidebar-section" style="margin-top:.6rem;font-size:.55rem;display:flex;align-items:center;justify-content:space-between;">
+          <span>Templates</span>
+          <button class="btn btn-sm btn-ghost" onclick="saveCurrentEncounterAsTemplate()" title="Save current monsters as template" style="font-size:.55rem;padding:1px 6px;">+ Save</button>
+        </div>
+        <div id="monster-templates-list" style="max-height:120px;overflow-y:auto;"></div>
       </div>
       <div style="margin-top:auto;flex-shrink:0;">
         <div id="place-hint" class="place-hint">
@@ -1837,12 +1873,19 @@ async function openPlayerFullscreen(mapId) {
   stage.className = 'pf-stage';
   stage.style.cssText = 'position:relative;display:inline-block;';
 
-  // Sizing image (always present — used to size fog/overlay even when video plays)
-  // No inline max-height: lets the .pf-img class (and .has-ribbon override) take effect
+  // Sizing image (always present — used to size fog/overlay even when video plays).
+  // Also serves as the FRONT layer for the crossfade (id pf-img-front, with imgBack as back layer).
   const img = document.createElement('img');
   img.className = 'pf-img';
-  img.style.position = 'relative';
+  img.id = 'pf-img-front';
+  img.style.cssText = 'position:relative;transition:opacity .6s;';
   stage.appendChild(img);
+
+  const imgBack = document.createElement('img');
+  imgBack.className = 'pf-img';
+  imgBack.id = 'pf-img-back';
+  imgBack.style.cssText = 'display:block;position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .6s;pointer-events:none;';
+  stage.appendChild(imgBack);
 
   const fogCanvas = document.createElement('canvas');
   fogCanvas.id = 'pf-fog';
@@ -1853,6 +1896,24 @@ async function openPlayerFullscreen(mapId) {
   stage.appendChild(overlay);
 
   container.appendChild(stage);
+
+  // Hidden audio element for ambient/music. Loops, autoplays. Fed via
+  // _syncPlayerAudio() on each refresh; on first user gesture we retry play()
+  // to recover from autoplay-with-sound blocking.
+  const audio = document.createElement('audio');
+  audio.id = 'pf-audio';
+  audio.loop = true;
+  audio.autoplay = true;
+  audio.style.display = 'none';
+  audio._currentUrl = '';
+  container.appendChild(audio);
+  if (!container._pfAudioGestureBound) {
+    container._pfAudioGestureBound = true;
+    container.addEventListener('click', () => {
+      const a = document.getElementById('pf-audio');
+      if (a && a.src) a.play().catch(()=>{});
+    });
+  }
 
   // Helper: size fog/overlay to a given element's box, then refresh dynamic content
   const _sizeAndRefresh = (sizingEl) => {
@@ -1914,6 +1975,75 @@ async function openPlayerFullscreen(mapId) {
   startPlayerRealtime(id);
 }
 
+// Crossfade the player view to a new map src. Sets the back image, fades in
+// once it has loaded, then promotes back→front so the next swap can repeat.
+function _swapPlayerMapImage(newSrc) {
+  const front = document.getElementById('pf-img-front');
+  const back = document.getElementById('pf-img-back');
+  if (!front || !back) return;
+  if (!newSrc) return;
+  if ((front.getAttribute('src') || '') === newSrc) return;
+  back.onload = () => {
+    back.style.opacity = '1';
+    front.style.opacity = '0';
+    // After the .6s transition finishes, swap roles by copying src into front
+    // and resetting opacities so the next swap behaves the same.
+    setTimeout(() => {
+      front.src = newSrc;
+      front.style.transition = 'none';
+      back.style.transition = 'none';
+      front.style.opacity = '1';
+      back.style.opacity = '0';
+      // Re-arm transitions on next frame
+      requestAnimationFrame(() => {
+        front.style.transition = 'opacity .6s';
+        back.style.transition = 'opacity .6s';
+      });
+    }, 650);
+  };
+  back.src = newSrc;
+}
+
+// Crossfade the player audio between URLs. Fade out the current track over
+// 400ms, swap src, then fade in 0→1. Empty URL = pause and clear.
+function _syncPlayerAudio(m) {
+  const audio = document.getElementById('pf-audio');
+  if (!audio) return;
+  const newUrl = (m && (m.activeAudioUrl || m.audioUrl)) || '';
+  const curUrl = audio._currentUrl || '';
+  if (newUrl === curUrl) return;
+  audio._currentUrl = newUrl;
+  // Cancel any in-flight fade
+  if (audio._fadeInterval) { clearInterval(audio._fadeInterval); audio._fadeInterval = null; }
+  const fadeMs = 400, steps = 16, dt = fadeMs / steps;
+  const startVol = audio.volume;
+  let i = 0;
+  audio._fadeInterval = setInterval(() => {
+    i++;
+    audio.volume = Math.max(0, startVol * (1 - i / steps));
+    if (i >= steps) {
+      clearInterval(audio._fadeInterval); audio._fadeInterval = null;
+      if (!newUrl) {
+        try { audio.pause(); } catch(e){}
+        audio.removeAttribute('src');
+        audio.load();
+        audio.volume = 1;
+        return;
+      }
+      audio.src = newUrl;
+      audio.volume = 0;
+      audio.play().catch(()=>{}); // may be blocked until gesture
+      // Fade in
+      let j = 0;
+      audio._fadeInterval = setInterval(() => {
+        j++;
+        audio.volume = Math.min(1, j / steps);
+        if (j >= steps) { clearInterval(audio._fadeInterval); audio._fadeInterval = null; }
+      }, dt);
+    }
+  }, dt);
+}
+
 // Refresh dynamic parts of the player view without rebuilding the image
 function refreshPlayerFullscreen(mapId) {
   const container = document.getElementById('player-fullscreen');
@@ -1948,14 +2078,36 @@ function refreshPlayerFullscreen(mapId) {
 
   // Pick the visible background element for sizing (video > image)
   const vid = container.querySelector('.pf-video-bg');
-  const img = container.querySelector('.pf-img');
+  const img = document.getElementById('pf-img-front') || container.querySelector('.pf-img');
   const sizingEl = (vid && vid.offsetWidth) ? vid : img;
   const fogCanvas = document.getElementById('pf-fog');
   const overlay = container.querySelector('.pf-overlay');
   if (!sizingEl || !fogCanvas || !overlay) return;
+
+  // If the map image source has changed and we're NOT using a video bg,
+  // crossfade rather than hard-cut. Compare raw src attribute to avoid
+  // browser absolutization mismatches.
+  const desiredSrc = m.imageData || m.imageUrl || '';
+  if (img && !vid && desiredSrc) {
+    const currentRawSrc = img.getAttribute('src') || '';
+    if (!/youtube\.com|youtu\.be|\.mp4($|\?)|\.webm($|\?)/i.test(desiredSrc)) {
+      if (currentRawSrc && currentRawSrc !== desiredSrc) {
+        _swapPlayerMapImage(desiredSrc);
+      } else if (!currentRawSrc) {
+        img.src = desiredSrc;
+      }
+    } else if (!currentRawSrc) {
+      img.src = desiredSrc;
+    }
+  }
+
   const iw = sizingEl.offsetWidth || sizingEl.clientWidth;
   const ih = sizingEl.offsetHeight || sizingEl.clientHeight;
-  if (!iw || !ih) return;
+  if (!iw || !ih) {
+    // Still try to sync audio even if not yet sized.
+    _syncPlayerAudio(m);
+    return;
+  }
 
   // Resync canvas/overlay size in case the layout changed (e.g. ribbon toggled)
   if (fogCanvas.width !== iw || fogCanvas.height !== ih) {
@@ -1969,6 +2121,22 @@ function refreshPlayerFullscreen(mapId) {
   ctx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
   if (m.fog?.enabled) renderPlayerFog(fogCanvas, m);
   renderPlayerTokens(overlay, m, {clientWidth: iw, clientHeight: ih});
+  _syncPlayerAudio(m);
+
+  // ── PING RIPPLE ─────────────────────────────────────────────
+  const ping = m.activePing;
+  const stage = container.querySelector('.pf-stage');
+  if (ping && ping.ts && Date.now() - ping.ts < 3000 && stage) {
+    const lastTs = stage._lastPingTs || 0;
+    if (ping.ts !== lastTs) {
+      stage._lastPingTs = ping.ts;
+      const ripple = document.createElement('div');
+      ripple.className = 'pf-ping-ripple';
+      ripple.style.cssText = 'position:absolute;left:' + ping.x + '%;top:' + ping.y + '%;width:80px;height:80px;margin-left:-40px;margin-top:-40px;border:3px solid #ffd56b;border-radius:50%;pointer-events:none;animation:pf-ping-anim 1.6s ease-out 2;z-index:9998;box-shadow:0 0 24px rgba(255,213,107,.7);';
+      stage.appendChild(ripple);
+      setTimeout(() => { try { ripple.remove(); } catch(e){} }, 3300);
+    }
+  }
 }
 
 // Initiative ribbon: top horizontal strip with portraits + names + init numbers
@@ -2101,9 +2269,11 @@ function renderPlayerTokens(overlay, m, img) {
   const r = m.fog?.hexSize || 30;
   const w = img.clientWidth, h = img.clientHeight;
 
+  const showBloodied = m.showBloodied !== false; // default true
   overlay.innerHTML = (m.tokens || []).map(tok => {
     const isMonster = !!tok.monsterId;
     let col, name, display, imgUrl, charRef = null;
+    let currentHp = 0, maxHp = 0;
     const sz = Math.round((tok.size || 1) * 48); // slightly bigger for big screen
 
     if (isMonster) {
@@ -2111,6 +2281,7 @@ function renderPlayerTokens(overlay, m, img) {
       if (!mon) return '';
       col = '#8a2020'; name = mon.displayName || mon.templateName;
       imgUrl = mon.imgUrl; display = initials(name);
+      currentHp = mon.currentHp || 0; maxHp = mon.maxHp || 0;
     } else {
       const c = characters.find(x => x.id === tok.characterId);
       if (!c) return '';
@@ -2118,6 +2289,7 @@ function renderPlayerTokens(overlay, m, img) {
       col = classColor(c.class); name = c.name;
       imgUrl = c.imageUrl; display = c.icon || initials(name);
     }
+    const bloodiedCls = (isMonster && showBloodied && maxHp > 0 && currentHp > 0 && (currentHp / maxHp) <= 0.5) ? ' bloodied' : '';
 
     // Check fog visibility
     if (fogOn) {
@@ -2177,7 +2349,7 @@ function renderPlayerTokens(overlay, m, img) {
       '</div>';
     }
 
-    return '<div class="pf-token" style="left:' + tok.x.toFixed(2) + '%;top:' + tok.y.toFixed(2) + '%;width:' + sz + 'px;height:' + sz + 'px;border-color:' + col + ';background:' + col + '28;color:' + col + ';' + glow + '">' +
+    return '<div class="pf-token' + bloodiedCls + '" style="left:' + tok.x.toFixed(2) + '%;top:' + tok.y.toFixed(2) + '%;width:' + sz + 'px;height:' + sz + 'px;border-color:' + col + ';background:' + col + '28;color:' + col + ';' + glow + '">' +
       inner +
       hpSvg +
       deathPipsHtml +
@@ -2198,6 +2370,9 @@ function copyPlayerLink() {
 function closePlayerFullscreen() {
   const container = document.getElementById('player-fullscreen');
   if (container._escHandler) document.removeEventListener('keydown', container._escHandler);
+  // Clean up any in-flight audio fade so we don't leak intervals.
+  const audio = document.getElementById('pf-audio');
+  if (audio && audio._fadeInterval) { clearInterval(audio._fadeInterval); audio._fadeInterval = null; }
   stopPlayerRealtime();
   container.style.display = 'none';
   container.innerHTML = '';
@@ -2417,6 +2592,21 @@ function onRemoteCharactersUpdate(data) {
       renderTokensOnMap();
     }
   }
+}
+
+// ── BLOODIED INDICATOR TOGGLE ──────────────────────────────
+function toggleBloodiedVisibility() {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  m.showBloodied = m.showBloodied === false ? true : false;
+  m.updatedAt = Date.now();
+  if (typeof saveCurrentMap === 'function') saveCurrentMap();
+  const btn = document.getElementById('bloodied-toggle-btn');
+  if (btn) {
+    btn.style.borderColor = m.showBloodied !== false ? '#c8b070' : '';
+    btn.title = m.showBloodied !== false ? 'Bloodied visible — click to hide' : 'Bloodied hidden — click to show';
+  }
+  if (typeof refreshPlayerFullscreen === 'function') refreshPlayerFullscreen(currentMapId);
 }
 
 // ── MAXIMIZED MAP TOGGLE ───────────────────────────────────
