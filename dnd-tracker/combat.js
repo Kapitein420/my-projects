@@ -185,6 +185,10 @@ function nextTurn() {
 
   m.combat.turnIndex = idx;
   const newEntry = m.combat.entries[idx];
+  // ── REACTION TRACKER ─ refresh reaction at start of new combatant's turn
+  if (!m.combat.reactions) m.combat.reactions = {};
+  if (newEntry && m.combat.reactions) m.combat.reactions[newEntry.id] = false;
+  // ── REACTION TRACKER end
   combatLog({ type: 'turn_start', note: 'Round ' + m.combat.round + ' \u2014 ' + newEntry.name + "'s turn" });
   m.updatedAt = Date.now();
   saveCurrentMap();
@@ -204,6 +208,11 @@ function prevTurn() {
   if (idx === len - 1 && m.combat.round > 1) m.combat.round--;
 
   m.combat.turnIndex = idx;
+  // ── REACTION TRACKER ─ refresh reaction at start of new combatant's turn (mirror nextTurn)
+  const newEntry = m.combat.entries[idx];
+  if (!m.combat.reactions) m.combat.reactions = {};
+  if (newEntry && m.combat.reactions) m.combat.reactions[newEntry.id] = false;
+  // ── REACTION TRACKER end
   m.updatedAt = Date.now();
   saveCurrentMap();
   renderInitiativeBar();
@@ -632,6 +641,22 @@ window.toggleDeathSave = function (charId, type) {
   renderCombatLog();
 };
 
+// ── REACTION TRACKER ─────────────────────────────────────────
+// Per-combatant boolean: m.combat.reactions[id] === true means the reaction
+// has been used this round. Auto-cleared when that combatant's turn starts
+// (see nextTurn / prevTurn). Marc's pain point: "Did you already shield
+// this turn?" — one dot per tile fixes the bookkeeping.
+window.toggleReaction = function (id) {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m?.combat?.active) return;
+  if (!m.combat.reactions) m.combat.reactions = {};
+  m.combat.reactions[id] = !m.combat.reactions[id];
+  m.updatedAt = Date.now();
+  saveCurrentMap();
+  renderInitiativeBar();
+};
+// ── REACTION TRACKER end
+
 // ── CONCENTRATION TRACKING ───────────────────────────────────
 // Per character: c.concentrating = null | { spellName, startedRound, startedTurnIdx }.
 // Marc's #1 forgotten 5e rule: when a concentrator takes damage they need
@@ -909,7 +934,23 @@ function renderInitiativeBar() {
         'display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;' +
         'font-family:var(--font-display,sans-serif);cursor:pointer;letter-spacing:0;line-height:1;">C</div>';
     }
-    portrait = '<div style="position:relative;display:inline-block;">' + portraitInner + concBadge + '</div>';
+    // ── REACTION TRACKER ─ bottom-LEFT badge (mirror of "C" on the right)
+    const _rxUsed = !!(m.combat.reactions && m.combat.reactions[e.id]);
+    const _rxTitle = _rxUsed
+      ? 'Reaction used \u2014 click to refresh'
+      : 'Reaction available \u2014 click to mark used';
+    const _rxStyle =
+      'position:absolute;left:-3px;bottom:-3px;width:14px;height:14px;border-radius:50%;' +
+      'box-sizing:border-box;cursor:pointer;' +
+      (_rxUsed
+        ? 'background:#a04040;border:1px solid #c8b070;'
+        : 'background:transparent;border:1px solid #7a7268;');
+    const _rxBadge =
+      '<div class="rx-toggle" data-reaction-toggle="' + e.id + '" ' +
+      'onclick="event.stopPropagation();window.toggleReaction(\'' + e.id + '\')" ' +
+      'title="' + _rxTitle + '" style="' + _rxStyle + '"></div>';
+    // ── REACTION TRACKER end
+    portrait = '<div style="position:relative;display:inline-block;">' + portraitInner + concBadge + _rxBadge + '</div>';
 
     // Foot row: either compact death-save pips (6 small dots) or a mini HP bar with numeric
     let footRow = '';
