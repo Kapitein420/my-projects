@@ -18,10 +18,12 @@
      node analyze.mjs --limit=3             # cap how many to score this run
      node analyze.mjs --seed                # also push seeds.js samples first
 
-   Env required:
-     ANTHROPIC_API_KEY   (https://console.anthropic.com/settings/keys)
-   Optional:
-     SUPABASE_URL / SUPABASE_KEY  — overrides the baked-in shared/db.js creds
+   Env required (no fallbacks — fail-fast to prevent accidental
+   use of baked-in keys; all values live in Vercel env vars and a
+   local .env that is gitignored):
+     ANTHROPIC_API_KEY            (https://console.anthropic.com/settings/keys)
+     SUPABASE_URL                 https://<ref>.supabase.co
+     SUPABASE_SERVICE_ROLE_KEY    service_role key — writes bypass RLS
    ============================================================ */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -38,16 +40,19 @@ const ZUIDOOST_SEEDS = [
   { name: 'Sandberg Plein',             address: 'Sandberg Plein 5',           postcode: '1102 AS', url: '' },
 ];
 
-// --- Supabase config (matches shared/db.js) ---
-const SUPABASE_URL = process.env.SUPABASE_URL ||
-  'https://qavuogmqssjrsaylthdw.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdnVvZ21xc3NqcnNheWx0aGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTQyMzQsImV4cCI6MjA5MTQ5MDIzNH0.jpP1vHqs2nvy0HEOnoglXOboSDNC-Nm1DZjaTWnSBdw';
+// --- Supabase config: env vars only, no fallbacks ---
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const argv = parseArgs(process.argv.slice(2));
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('✗ ANTHROPIC_API_KEY missing. Get one at https://console.anthropic.com/settings/keys');
+const missing = [];
+if (!process.env.ANTHROPIC_API_KEY) missing.push('ANTHROPIC_API_KEY');
+if (!SUPABASE_URL) missing.push('SUPABASE_URL');
+if (!SUPABASE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+if (missing.length) {
+  console.error('✗ Missing env vars: ' + missing.join(', '));
+  console.error('  Create a .env file from .env.example (gitignored) or set them in Vercel → Settings → Environment Variables.');
   process.exit(1);
 }
 

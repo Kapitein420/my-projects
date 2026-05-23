@@ -9,7 +9,7 @@ const DB = {
 
   _defaultCreds: {
     url: 'https://qavuogmqssjrsaylthdw.supabase.co',
-    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdnVvZ21xc3NqcnNheWx0aGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTQyMzQsImV4cCI6MjA5MTQ5MDIzNH0.jpP1vHqs2nvy0HEOnoglXOboSDNC-Nm1DZjaTWnSBdw'
+    key: 'sb_publishable_yezIvScYkkhPPCTM-9RaIQ_PwMZbnoo'
   },
 
   init() {
@@ -24,9 +24,14 @@ const DB = {
   get isCloud() { return !!this.sb; },
 
   _h(extra = {}) {
+    // The publishable key always goes in `apikey` (identifies the
+    // project). The bearer token is either the signed-in user's
+    // JWT (so RLS auth.uid() policies see the right user) or the
+    // publishable key (anonymous read for the ?player= TV view).
+    const bearer = (window.Auth && window.Auth.accessToken) || this.sb.key;
     return {
       'apikey': this.sb.key,
-      'Authorization': 'Bearer ' + this.sb.key,
+      'Authorization': 'Bearer ' + bearer,
       'Content-Type': 'application/json',
       ...extra
     };
@@ -160,3 +165,7 @@ const DB = {
 
 // Auto-init when script loads
 DB.init();
+
+// Expose on window so cross-file references work — top-level `const`
+// in a non-module script does NOT auto-attach to window.
+window.DB = DB;

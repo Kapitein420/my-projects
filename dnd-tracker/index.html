@@ -1195,6 +1195,39 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
   </div>
 </div>
 
+<!-- SIGN-IN MODAL — shown until Supabase Auth confirms a session.
+     ?player= TV view bypasses this entirely (public SELECT only). -->
+<div class="overlay" id="auth-signin-overlay">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:420px;">
+    <div class="modal-title">Sign in — Tome of Heroes</div>
+
+    <div id="auth-signin-body">
+      <div style="font-size:.78rem;color:var(--text2);line-height:1.5;margin-bottom:.9rem;">
+        Enter your email to receive a one-time sign-in link.
+        Only the DM needs to sign in — the player TV (<code>?player=&lt;map-id&gt;</code>) loads without auth.
+      </div>
+      <div class="field" style="margin-bottom:.6rem;">
+        <label>Email</label>
+        <input id="auth-email" type="email" placeholder="dm@example.com" autocomplete="email"
+               onkeydown="if(event.key==='Enter')handleSignIn()">
+      </div>
+      <div id="auth-err" style="font-size:.75rem;color:var(--red);min-height:1rem;margin-bottom:.4rem;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-primary btn-sm" id="auth-submit-btn" onclick="handleSignIn()">Send magic link</button>
+      </div>
+    </div>
+
+    <div id="auth-signin-sent" style="display:none;">
+      <div style="font-size:.82rem;color:var(--text);line-height:1.55;margin-bottom:1rem;">
+        ✉ Magic link sent. Open it in this browser — you'll be signed in automatically when you come back to this tab.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-ghost btn-sm" onclick="resetAuthForm()">Use a different email</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- NEW MAP MODAL -->
 <div class="overlay" id="new-map-overlay" onclick="if(event.target===this)closeNewMapModal()">
   <div class="modal" onclick="event.stopPropagation()" style="max-width:460px;">
@@ -1233,6 +1266,7 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="../shared/db.js"></script>
+<script src="../shared/auth.js"></script>
 <script src="fog.js"></script>
 <script src="campaign-setup.js"></script>
 <script src="monsters.js"></script>
@@ -2687,8 +2721,41 @@ function toggleAmbient(){
   }
 }
 
+// ── AUTH SIGN-IN HANDLERS (bound to the modal in markup above) ──
+async function handleSignIn(){
+  const emailEl = document.getElementById('auth-email');
+  const errEl   = document.getElementById('auth-err');
+  const btn     = document.getElementById('auth-submit-btn');
+  const email   = (emailEl.value || '').trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = 'Please enter a valid email.';
+    return;
+  }
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    await Auth.signInWithOtp(email);
+    document.getElementById('auth-signin-body').style.display = 'none';
+    document.getElementById('auth-signin-sent').style.display = 'block';
+  } catch (e) {
+    errEl.textContent = e?.message || 'Could not send magic link — try again.';
+    btn.disabled = false;
+    btn.textContent = 'Send magic link';
+  }
+}
+
+function resetAuthForm(){
+  document.getElementById('auth-signin-body').style.display = 'block';
+  document.getElementById('auth-signin-sent').style.display = 'none';
+  const btn = document.getElementById('auth-submit-btn');
+  btn.disabled = false;
+  btn.textContent = 'Send magic link';
+}
+
 async function init(){
-  // Check for player fullscreen mode via URL param
+  // Check for player fullscreen mode via URL param — bypasses auth
+  // because the player TV does public-read-only access.
   const params = new URLSearchParams(window.location.search);
   const playerMapId = params.get('player');
   if (playerMapId) {
@@ -2702,6 +2769,20 @@ async function init(){
     openPlayerFullscreen(playerMapId);
     return;
   }
+
+  // DM view — gated by Supabase Auth. RLS denies writes without a JWT.
+  const authOverlay = document.getElementById('auth-signin-overlay');
+  await Auth.whenReady();
+  if (!Auth.isAuthed) {
+    authOverlay.classList.add('open');
+    // Resolves the next time Auth flips to a non-null session
+    // (i.e. when the magic link redirect plants the JWT in the URL
+    // hash and onAuthStateChange fires).
+    await new Promise(resolve => {
+      Auth.onChange(session => { if (session?.user) resolve(); });
+    });
+  }
+  authOverlay.classList.remove('open');
 
   [characters,sessions]=await Promise.all([DB.load('characters'),DB.load('sessions')]);
   await loadMaps();
