@@ -7,14 +7,27 @@
 const DB = {
   sb: null,
 
+  // Consolidated 2026-06 onto the agent-hq Supabase project. The retired
+  // "NoahMaatoke's Project" DB (ref qavuogmqssjrsaylthdw) was paused; its
+  // tables (characters/sessions/maps + buildings/scores) now live here.
   _defaultCreds: {
-    url: 'https://qavuogmqssjrsaylthdw.supabase.co',
-    key: 'sb_publishable_yezIvScYkkhPPCTM-9RaIQ_PwMZbnoo'
+    url: 'https://hdlxhwlbweuhqgqowiqu.supabase.co',
+    key: 'sb_publishable_Yut527KL8xP7kqfuMayC_g_eYuJ_Dyq'
   },
+
+  // Any browser that connected before the consolidation cached the old
+  // project's creds in localStorage, which override _defaultCreds. Drop
+  // those so we auto-heal onto agent-hq; configs for any other project
+  // (incl. agent-hq) are left untouched.
+  _retiredRef: 'qavuogmqssjrsaylthdw',
 
   init() {
     try {
-      const stored = JSON.parse(localStorage.getItem('_sb_config') || 'null');
+      let stored = JSON.parse(localStorage.getItem('_sb_config') || 'null');
+      if (stored && stored.url && stored.url.includes(this._retiredRef)) {
+        localStorage.removeItem('_sb_config');
+        stored = null;
+      }
       this.sb = stored || this._defaultCreds;
     } catch(e) {
       this.sb = this._defaultCreds;
