@@ -24,11 +24,11 @@ You do **NOT** need:
 
 ---
 
-## Supabase access (baked-in anon-key, RLS off)
+## Supabase access (baked-in publishable key; agent-hq project, RLS on with permissive anon policy on buildings/scores)
 
 ```
-URL  = https://qavuogmqssjrsaylthdw.supabase.co
-KEY  = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdnVvZ21xc3NqcnNheWx0aGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTQyMzQsImV4cCI6MjA5MTQ5MDIzNH0.jpP1vHqs2nvy0HEOnoglXOboSDNC-Nm1DZjaTWnSBdw
+URL  = https://hdlxhwlbweuhqgqowiqu.supabase.co
+KEY  = sb_publishable_Yut527KL8xP7kqfuMayC_g_eYuJ_Dyq
 ```
 
 Every request needs both headers:

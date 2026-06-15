@@ -38,11 +38,11 @@ const ZUIDOOST_SEEDS = [
   { name: 'Sandberg Plein',             address: 'Sandberg Plein 5',           postcode: '1102 AS', url: '' },
 ];
 
-// --- Supabase config (matches shared/db.js) ---
+// --- Supabase config (matches shared/db.js — agent-hq project) ---
 const SUPABASE_URL = process.env.SUPABASE_URL ||
-  'https://qavuogmqssjrsaylthdw.supabase.co';
+  'https://hdlxhwlbweuhqgqowiqu.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdnVvZ21xc3NqcnNheWx0aGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTQyMzQsImV4cCI6MjA5MTQ5MDIzNH0.jpP1vHqs2nvy0HEOnoglXOboSDNC-Nm1DZjaTWnSBdw';
+  'sb_publishable_Yut527KL8xP7kqfuMayC_g_eYuJ_Dyq';
 
 const argv = parseArgs(process.argv.slice(2));
 
