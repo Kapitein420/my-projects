@@ -1116,6 +1116,12 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
       <input id="nm-file" type="file" accept="image/*" onchange="handleNmFile(event)" style="color:var(--text2);">
     </div>
 
+    <div class="map-sidebar-section" style="margin:.7rem 0 .35rem;">Audio (optional)</div>
+    <div class="field" style="margin-bottom:.4rem;">
+      <label>Background music — direct .mp3/.ogg/.wav/.m4a or YouTube link</label>
+      <input id="nm-audio" type="text" placeholder="https://www.youtube.com/watch?v=… or https://example.com/track.mp3">
+    </div>
+
     <img id="nm-preview" class="nm-preview-img" style="display:none;" alt="Preview">
     <div id="nm-err" style="font-size:.75rem;color:var(--red);margin-top:.4rem;min-height:1rem;"></div>
 
@@ -1125,6 +1131,40 @@ body.map-maximized .map-stage-wrap{border-radius:0;}
     </div>
   </div>
 </div>
+
+<script>
+// Wire the new-map modal's audioUrl field into the map record.
+// map.js owns createMap(); we wrap it here (within our owned modal section)
+// so the map gets m.audioUrl persisted without touching map.js.
+(function () {
+  if (window.__nmAudioWrapped) return;
+  window.__nmAudioWrapped = true;
+  function wrap() {
+    if (typeof window.createMap !== 'function') { setTimeout(wrap, 30); return; }
+    const orig = window.createMap;
+    window.createMap = async function () {
+      const audioEl = document.getElementById('nm-audio');
+      const audioRaw = audioEl ? audioEl.value.trim() : '';
+      // Snapshot maps length so we can find the new one after orig returns
+      const beforeIds = new Set((window.maps || []).map(x => x.id));
+      const result = await orig.apply(this, arguments);
+      try {
+        const created = (window.maps || []).find(x => !beforeIds.has(x.id));
+        if (created && audioRaw) {
+          created.audioUrl = audioRaw;
+          created.updatedAt = Date.now();
+          if (window.DB && typeof DB.save === 'function') {
+            await DB.save('maps', created, window.maps);
+          }
+        }
+        if (audioEl) audioEl.value = '';
+      } catch (e) { console.warn('[nm-audio] persist failed:', e); }
+      return result;
+    };
+  }
+  wrap();
+})();
+</script>
 
 </main>
 
