@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Keizersgracht 250 — Your deal journey · DILS Investor Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-main: #F6F7F9;
+    --bg-surface: #FFFFFF;
+    --bg-surface-alt: #F9FAFB;
+    --border: #E5E7EB;
+    --divider: #E5E7EB;
+    --text-primary: #1F2937;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+    --disabled: #D1D5DB;
+    --disabled-light: #E5E7EB;
+
+    --office: #7FA9B5;
+    --retail: #B89B4C;
+    --logistics: #6FA08E;
+    --living: #C79AA5;
+    --capital-markets: #8C6B73;
+
+    --technology: #000000;
+    --marketing: #0F7C82;
+    --research: #6D4C7D;
+
+    --banner-info-bg: #D9F1F1;
+    --banner-info-text: #245C63;
+    --hero-overlay: rgba(17, 24, 39, 0.28);
+
+    --office-soft: rgba(127, 169, 181, 0.14);
+    --retail-soft: rgba(184, 155, 76, 0.14);
+    --logistics-soft: rgba(111, 160, 142, 0.14);
+    --living-soft: rgba(199, 154, 165, 0.14);
+    --capital-markets-soft: rgba(140, 107, 115, 0.14);
+    --marketing-soft: rgba(15, 124, 130, 0.12);
+    --research-soft: rgba(109, 76, 125, 0.12);
+
+    --status-success: #6FA08E;
+    --status-warning: #B89B4C;
+    --status-danger: #C86B6B;
+    --status-info: #7FA9B5;
+    --status-future: #94A3B8;
+
+    --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --fs-hero: 22px;
+    --fs-section: 18px;
+    --fs-card-title: 16px;
+    --fs-body: 14px;
+    --fs-meta: 12px;
+
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
+
+    --shadow-soft: 0 2px 8px rgba(17, 24, 39, 0.05);
+    --shadow-hover: 0 6px 18px rgba(17, 24, 39, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--fs-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Top bar */
+  .topbar {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+  }
+  .brand-mark {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-sm);
+    background: var(--text-primary);
+    color: #fff;
+    font-size: 13px;
+    display: grid; place-items: center;
+    font-weight: 700;
+  }
+  .brand-name { font-size: 15px; }
+  .topbar-right {
+    display: flex; align-items: center; gap: 18px;
+    color: var(--text-secondary);
+    font-size: var(--fs-meta);
+  }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--office-soft);
+    color: var(--office);
+    display: grid; place-items: center;
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  /* Layout */
+  .shell {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 20px 32px 72px;
+  }
+
+  /* Breadcrumb */
+  .crumbs {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    margin-bottom: 14px;
+  }
+  .crumbs a {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+  .crumbs a:hover { color: var(--text-primary); }
+  .crumbs .sep { color: var(--text-muted); }
+  .crumbs .current { color: var(--text-primary); font-weight: 500; }
+
+  /* Deal hero */
+  .deal-hero {
+    position: relative;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    min-height: 220px;
+    padding: 32px;
+    color: #fff;
+    display: flex;
+    align-items: flex-end;
+    background:
+      linear-gradient(135deg, rgba(17,24,39,0.55) 0%, rgba(17,24,39,0.25) 60%, rgba(17,24,39,0.15) 100%),
+      linear-gradient(135deg, var(--office) 0%, #5F8995 100%);
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 24px;
+  }
+  .deal-hero::after {
+    /* faint geometric overlay */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 18px 18px;
+    pointer-events: none;
+  }
+  .hero-content { position: relative; z-index: 1; width: 100%; }
+  .hero-tag {
+    display: inline-block;
+    font-size: var(--fs-meta);
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  .hero-title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px 0;
+  }
+  .hero-sub {
+    font-size: 14px;
+    opacity: 0.9;
+    margin: 0 0 18px 0;
+  }
+  .hero-stats {
+    display: flex;
+    gap: 36px;
+  }
+  .hero-stat .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+  }
+  .hero-stat .value {
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  /* Journey stepper */
+  .journey {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    padding: 22px 28px;
+    margin-bottom: 20px;
+  }
+  .journey-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .journey-head h2 {
+    margin: 0;
+    font-size: var(--fs-section);
+    font-weight: 600;
+  }
+  .journey-head .muted {
+    font-size: var(--fs-meta);
+    color: var(--text-secondary);
+  }
+  .stepper {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    position: relative;
+  }
+  .step {
+    position: relative;
+    text-align: center;
+    padding-top: 40px;
+  }
+  .step::before {
+    /* connector line */
+    content: "";
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    width: 100%;
+    height: 3px;
+    background: var(--disabled-light);
+    z-index: 0;
+  }
+  .step:last-child::before { display: none; }
+  .step.done::before { background: var(--status-success); }
+  .step.current::before {
+    background: linear-gradient(90deg, var(--banner-info-text) 0%, var(--disabled-light) 100%);
+  }
+  .step-node {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    border: 2px solid var(--disabled);
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    z-index: 1;
+  }
+  .step.done .step-node {
+    background: var(--status-success);
+    color: #fff;
+    border-color: var(--status-success);
+  }
+  .step.current .step-node {
+    background: var(--banner-info-bg);
+    color: var(--banner-info-text);
+    border-color: var(--banner-info-text);
+    box-shadow: 0 0 0 6px rgba(36, 92, 99, 0.12);
+  }
+  .step-label {
+    font-size: var(--fs-body);
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .step.done .step-label { color: var(--text-primary); }
+  .step.current .step-label {
+    color: var(--banner-info-text);
+    font-weight: 600;
+  }
+  .step-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Next step card */
+  .next-step {
+    background: var(--banner-info-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px 26px;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: center;
+  }
+  .next-step .eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--banner-info-text);
+    opacity: 0.8;
+    font-weight: 600;
+  }
+  .next-step h3 {
+    margin: 6px 0 6px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--banner-info-text);
+    letter-spacing: -0.01em;
+  }
+  .next-step p {
+    margin: 0;
+    color: var(--banner-info-text);
+    opacity: 0.9;
+    max-width: 56ch;
+  }
+  .next-step-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 180px;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: var(--fs-body);
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-weight: 500;
+    text-align: center;
+  }
+  .btn.primary {
+    background: var(--banner-info-text);
+    color: var(--banner-info-bg);
+    border-color: var(--banner-info-text);
+  }
+  .btn.primary-dark {
+    background: var(--text-primary);
+    color: #fff;
+    border-color: var(--text-primary);
+  }
+  .btn.ghost {
+    background: transparent;
+    border-color: rgba(36, 92, 99, 0.25);
+    color: var(--banner-info-text);
+  }
+
+  /* Two-col lower */
+  .two-col {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  }
+  .card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    padding: 22px;
+  }
+  .card h3 {
+    margin: 0 0 14px 0;
+    font-size: var(--fs-section);
+    font-weight: 600;
+  }
+  .card .subhead {
+    color: var(--text-secondary);
+    font-size: var(--fs-meta);
+    margin-top: -8px;
+    margin-bottom: 14px;
+  }
+
+  /* Vertical timeline */
+  .timeline { position: relative; padding-left: 8px; }
+  .tl-item {
+    position: relative;
+    padding: 12px 0 12px 28px;
+    border-bottom: 1px dashed var(--divider);
+  }
+  .tl-item:last-child { border-bottom: 0; }
+  .tl-item::before {
+    content: "";
+    position: absolute;
+    top: 16px; left: 0;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    border: 2px solid var(--disabled);
+  }
+  .tl-item::after {
+    content: "";
+    position: absolute;
+    top: 28px; left: 5px;
+    width: 2px; height: calc(100% - 16px);
+    background: var(--disabled-light);
+  }
+  .tl-item:last-child::after { display: none; }
+  .tl-item.done::before { background: var(--status-success); border-color: var(--status-success); }
+  .tl-item.current::before {
+    background: var(--banner-info-bg);
+    border-color: var(--banner-info-text);
+    box-shadow: 0 0 0 4px rgba(36, 92, 99, 0.12);
+  }
+  .tl-title { font-weight: 500; color: var(--text-primary); }
+  .tl-meta { font-size: var(--fs-meta); color: var(--text-muted); margin-top: 2px; }
+  .tl-body { font-size: var(--fs-meta); color: var(--text-secondary); margin-top: 4px; }
+
+  /* Advisor card */
+  .advisor {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--divider);
+  }
+  .advisor-avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--research-soft);
+    color: var(--research);
+    display: grid; place-items: center;
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .advisor-name { font-weight: 600; }
+  .advisor-title { font-size: var(--fs-meta); color: var(--text-secondary); }
+  .contact-list { display: grid; gap: 8px; font-size: var(--fs-meta); color: var(--text-secondary); }
+  .contact-list a { color: var(--text-primary); text-decoration: none; }
+  .contact-list a:hover { text-decoration: underline; }
+
+  /* Facts list */
+  .facts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .fact { background: var(--bg-surface-alt); border-radius: var(--radius-md); padding: 12px; }
+  .fact .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+  .fact .value { font-size: 15px; font-weight: 600; margin-top: 2px; color: var(--text-primary); }
+
+  /* Documents */
+  .doc {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--divider);
+  }
+  .doc:last-child { border-bottom: 0; }
+  .doc-icon {
+    width: 40px; height: 40px;
+    border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .doc-icon.nda { background: var(--marketing-soft); color: var(--marketing); }
+  .doc-icon.im { background: var(--research-soft); color: var(--research); }
+  .doc-icon.pack { background: var(--office-soft); color: var(--office); }
+  .doc-body { flex: 1; }
+  .doc-title { font-weight: 500; color: var(--text-primary); }
+  .doc-meta { font-size: var(--fs-meta); color: var(--text-muted); margin-top: 2px; }
+  .chip {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+  .chip.signed { background: rgba(111, 160, 142, 0.14); color: var(--status-success); }
+  .chip.available { background: rgba(127, 169, 181, 0.14); color: var(--office); }
+  .chip.pending { background: rgba(184, 155, 76, 0.14); color: var(--status-warning); }
+  .chip.locked { background: var(--disabled-light); color: var(--text-muted); }
+
+  /* Gallery */
+  .gallery {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .photo {
+    border-radius: var(--radius-md);
+    min-height: 120px;
+    background-size: cover;
+    background-position: center;
+  }
+  .photo.big { grid-row: span 2; min-height: 248px;
+    background: linear-gradient(135deg, #5F8995 0%, #7FA9B5 50%, #A6C3CC 100%);
+  }
+  .photo.p2 {
+    background: linear-gradient(160deg, #6D4C7D 0%, #9A7AAB 100%);
+  }
+  .photo.p3 {
+    background: linear-gradient(160deg, #6FA08E 0%, #9FC1B3 100%);
+  }
+  .photo.p4 {
+    background: linear-gradient(160deg, #B89B4C 0%, #D6BC79 100%);
+  }
+  .photo.p5 {
+    background: linear-gradient(160deg, #8C6B73 0%, #B89299 100%);
+  }
+
+  .asset-info p {
+    color: var(--text-secondary);
+    margin: 0 0 10px;
+    font-size: var(--fs-body);
+  }
+
+  /* FAQ / help */
+  .faq {
+    display: grid;
+    gap: 10px;
+  }
+  .faq details {
+    background: var(--bg-surface-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+  }
+  .faq summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text-primary);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .faq summary::after { content: "+"; color: var(--text-muted); font-size: 18px; }
+  .faq details[open] summary::after { content: "–"; }
+  .faq p {
+    color: var(--text-secondary);
+    margin: 10px 0 0;
+    font-size: var(--fs-body);
+  }
+
+  /* Section spacing */
+  section + section { margin-top: 20px; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr; }
+    .hero-stats { gap: 20px; flex-wrap: wrap; }
+    .next-step { grid-template-columns: 1fr; }
+    .next-step-actions { flex-direction: row; }
+    .gallery { grid-template-columns: 1fr 1fr; }
+    .photo.big { grid-row: auto; min-height: 160px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">D</div>
+    <div class="brand-name">DILS Investor Portal</div>
+  </div>
+  <div class="topbar-right">
+    <span>Overview</span>
+    <span>Deals</span>
+    <span>Documents</span>
+    <span>Support</span>
+    <div class="avatar">AM</div>
+  </div>
+</header>
+
+<main class="shell">
+
+  <!-- Breadcrumbs -->
+  <nav class="crumbs">
+    <a href="#">Portal</a><span class="sep">/</span>
+    <a href="#">My deals</a><span class="sep">/</span>
+    <span class="current">Keizersgracht 250</span>
+  </nav>
+
+  <!-- Deal hero -->
+  <section class="deal-hero">
+    <div class="hero-content">
+      <span class="hero-tag">Office · Amsterdam</span>
+      <h1 class="hero-title">Keizersgracht 250</h1>
+      <p class="hero-sub">Grade A canal-side office · 4,820 m² · 7 tenants · Fully let</p>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="label">Asking price</div><div class="value">€54.0M</div></div>
+        <div class="hero-stat"><div class="label">Net yield</div><div class="value">5.1%</div></div>
+        <div class="hero-stat"><div class="label">WAULT</div><div class="value">7.2 y</div></div>
+        <div class="hero-stat"><div class="label">Occupancy</div><div class="value">96%</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Journey stepper -->
+  <section class="journey">
+    <div class="journey-head">
+      <h2>Your journey</h2>
+      <span class="muted">Step 3 of 5 · typically 3–6 weeks to NBO</span>
+    </div>
+    <div class="stepper">
+      <div class="step done">
+        <div class="step-node">✓</div>
+        <div class="step-label">Teaser</div>
+        <div class="step-meta">Apr 12</div>
+      </div>
+      <div class="step done">
+        <div class="step-node">✓</div>
+        <div class="step-label">NDA</div>
+        <div class="step-meta">Signed Apr 14</div>
+      </div>
+      <div class="step current">
+        <div class="step-node">3</div>
+        <div class="step-label">Information Memorandum</div>
+        <div class="step-meta">Unlocked 2 days ago</div>
+      </div>
+      <div class="step">
+        <div class="step-node">4</div>
+        <div class="step-label">Viewing</div>
+        <div class="step-meta">Schedule when ready</div>
+      </div>
+      <div class="step">
+        <div class="step-node">5</div>
+        <div class="step-label">NBO</div>
+        <div class="step-meta">Non-binding offer</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Next step -->
+  <section class="next-step">
+    <div>
+      <div class="eyebrow">You are here</div>
+      <h3>Dive into the Information Memorandum</h3>
+      <p>The IM unlocked on April 20 and covers the full tenant roll, financials, building specs, and ESG profile. When you're ready, request a viewing directly from this page — Mark will confirm within one business day.</p>
+    </div>
+    <div class="next-step-actions">
+      <button class="btn primary">Open IM (18.4 MB)</button>
+      <button class="btn ghost">Request viewing</button>
+    </div>
+  </section>
+
+  <!-- Two columns -->
+  <section class="two-col">
+
+    <!-- LEFT column -->
+    <div style="display: grid; gap: 20px;">
+
+      <!-- Progress timeline -->
+      <div class="card">
+        <h3>Progress timeline</h3>
+        <p class="subhead">A full history of your activity on this deal.</p>
+        <div class="timeline">
+          <div class="tl-item done">
+            <div class="tl-title">Teaser reviewed</div>
+            <div class="tl-meta">Apr 12, 2026 · 09:32</div>
+            <div class="tl-body">Opened the 2-page summary and basic financials.</div>
+          </div>
+          <div class="tl-item done">
+            <div class="tl-title">NDA signed</div>
+            <div class="tl-meta">Apr 14, 2026 · 14:07</div>
+            <div class="tl-body">Electronic signature countersigned by Mark Jansen the same day.</div>
+          </div>
+          <div class="tl-item current">
+            <div class="tl-title">Information Memorandum unlocked</div>
+            <div class="tl-meta">Apr 20, 2026 · 11:15</div>
+            <div class="tl-body">IM v2 released with updated rent roll and ESG addendum.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-title">Schedule a viewing</div>
+            <div class="tl-meta">Pending — at your convenience</div>
+            <div class="tl-body">Typically booked within 1 week of IM review.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-title">Submit NBO</div>
+            <div class="tl-meta">Pending</div>
+            <div class="tl-body">A guided form will walk you through price, conditions, and diligence timeline.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documents -->
+      <div class="card">
+        <h3>Documents</h3>
+        <p class="subhead">Everything you have access to for this deal.</p>
+
+        <div class="doc">
+          <div class="doc-icon nda">NDA</div>
+          <div class="doc-body">
+            <div class="doc-title">Keizersgracht 250 — NDA (countersigned)</div>
+            <div class="doc-meta">Signed Apr 14, 2026 · 2.1 MB · PDF</div>
+          </div>
+          <span class="chip signed">Signed</span>
+        </div>
+
+        <div class="doc">
+          <div class="doc-icon im">IM</div>
+          <div class="doc-body">
+            <div class="doc-title">Information Memorandum v2</div>
+            <div class="doc-meta">Updated Apr 20, 2026 · 18.4 MB · PDF</div>
+          </div>
+          <span class="chip available">Available</span>
+        </div>
+
+        <div class="doc">
+          <div class="doc-icon pack">DAT</div>
+          <div class="doc-body">
+            <div class="doc-title">Financial datapack (Excel)</div>
+            <div class="doc-meta">Apr 20, 2026 · 3.6 MB · XLSX</div>
+          </div>
+          <span class="chip available">Available</span>
+        </div>
+
+        <div class="doc">
+          <div class="doc-icon pack">ESG</div>
+          <div class="doc-body">
+            <div class="doc-title">ESG addendum</div>
+            <div class="doc-meta">Apr 20, 2026 · 1.1 MB · PDF</div>
+          </div>
+          <span class="chip available">Available</span>
+        </div>
+      </div>
+
+      <!-- Asset info + gallery -->
+      <div class="card asset-info">
+        <h3>About the asset</h3>
+        <div class="gallery">
+          <div class="photo big"></div>
+          <div class="photo p2"></div>
+          <div class="photo p3"></div>
+          <div class="photo p4"></div>
+          <div class="photo p5"></div>
+        </div>
+        <p>Keizersgracht 250 is a fully refurbished Grade A office asset on one of Amsterdam's most iconic canals. The property spans 4,820 m² across seven floors, currently let to seven professional-services tenants on staggered leases averaging 7.2 years.</p>
+        <p>A 2024 refurbishment delivered EPC A+ certification, new HVAC, and a tenant-exclusive roof terrace. The asset is offered as a stabilised core investment.</p>
+      </div>
+
+      <!-- FAQ -->
+      <div class="card">
+        <h3>Frequently asked</h3>
+        <div class="faq">
+          <details>
+            <summary>What happens after I submit an NBO?</summary>
+            <p>Your non-binding offer is reviewed by the seller's advisor. If shortlisted, you'll be invited to the binding phase with a formal data room and a target exclusivity window of 4–6 weeks.</p>
+          </details>
+          <details>
+            <summary>Can I share the IM with my analyst or lender?</summary>
+            <p>Yes — the NDA covers your internal team and advisors. Please keep distribution limited to named individuals at your firm and its mandated financiers.</p>
+          </details>
+          <details>
+            <summary>How do I withdraw from the process?</summary>
+            <p>Just let Mark know. Your access will be revoked and all confidential materials should be destroyed per the NDA.</p>
+          </details>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT column -->
+    <div style="display: grid; gap: 20px;">
+
+      <!-- Advisor -->
+      <div class="card">
+        <h3>Your advisor</h3>
+        <div class="advisor">
+          <div class="advisor-avatar">MJ</div>
+          <div>
+            <div class="advisor-name">Mark Jansen</div>
+            <div class="advisor-title">Director, DILS Capital Markets</div>
+          </div>
+        </div>
+        <div class="contact-list">
+          <div>✉ <a href="mailto:mark.jansen@dils.nl">mark.jansen@dils.nl</a></div>
+          <div>☎ <a href="tel:+31201234567">+31 20 123 45 67</a></div>
+          <div style="color: var(--text-muted)">Typically replies within 2 hours</div>
+        </div>
+        <div style="margin-top: 14px; display: grid; gap: 8px;">
+          <button class="btn primary-dark">Send a message</button>
+          <button class="btn">Book a call</button>
+        </div>
+      </div>
+
+      <!-- Key facts -->
+      <div class="card">
+        <h3>Key facts</h3>
+        <div class="facts">
+          <div class="fact"><div class="label">Ask</div><div class="value">€54.0M</div></div>
+          <div class="fact"><div class="label">NOI</div><div class="value">€2.75M</div></div>
+          <div class="fact"><div class="label">Net yield</div><div class="value">5.1%</div></div>
+          <div class="fact"><div class="label">WAULT</div><div class="value">7.2 y</div></div>
+          <div class="fact"><div class="label">Occupancy</div><div class="value">96%</div></div>
+          <div class="fact"><div class="label">Area</div><div class="value">4,820 m²</div></div>
+          <div class="fact"><div class="label">Tenants</div><div class="value">7</div></div>
+          <div class="fact"><div class="label">EPC</div><div class="value">A+</div></div>
+        </div>
+      </div>
+
+      <!-- Viewing CTA -->
+      <div class="card" style="background: var(--office-soft); border-color: rgba(127, 169, 181, 0.3);">
+        <h3 style="color: var(--office);">Schedule your viewing</h3>
+        <p style="color: var(--text-secondary); margin: 0 0 14px;">Most investors visit in the week following IM review. Pick a slot and Mark will meet you on-site.</p>
+        <button class="btn primary-dark" style="width: 100%;">Pick a time</button>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+</body>
+</html>
