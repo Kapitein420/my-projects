@@ -357,8 +357,38 @@ window.onHpChanged = function (targetType, id, delta) {
 };
 
 // ── SELECTION ────────────────────────────────────────────────
-function selectCombatant(id) {
-  _selectedCombatantId = id || null;
+// ── MULTI-SELECT ─────────────────────────────────────────────
+// Set of all selected combatant ids. The singular _selectedCombatantId
+// is the "primary" / last-clicked target — matches today's single-select
+// behavior when the set has 0 or 1 entries.
+var _selectedCombatantIds = new Set();
+
+function selectCombatant(id, modifier) {
+  // ── MULTI-SELECT
+  if (modifier === 'add' && id) {
+    if (_selectedCombatantIds.has(id)) {
+      // Toggle off
+      _selectedCombatantIds.delete(id);
+      // If we just removed the primary, promote the most recent remaining
+      // selection (or clear if none).
+      if (_selectedCombatantId === id) {
+        const arr = Array.from(_selectedCombatantIds);
+        _selectedCombatantId = arr.length ? arr[arr.length - 1] : null;
+      }
+    } else {
+      _selectedCombatantIds.add(id);
+      _selectedCombatantId = id; // primary = last-added
+    }
+  } else {
+    // Plain click — clear the set, select just one.
+    _selectedCombatantIds.clear();
+    if (id) {
+      _selectedCombatantIds.add(id);
+      _selectedCombatantId = id;
+    } else {
+      _selectedCombatantId = null;
+    }
+  }
   renderInitiativeBar();
 }
 // Explicit global so cross-script callers (monsters.js, map.js) can detect
@@ -380,6 +410,13 @@ window.selectCombatantByCharacterId = function (charId) {
 };
 
 // ── DAMAGE / HEAL HELPERS ────────────────────────────────────
+// ── GROUP DAMAGE
+// Batch mode: when truthy, _applyDelta skips its per-call render so a
+// caller iterating over many ids only redraws once at the end. Each
+// individual mutation still pushes its own undo record (Ctrl+Z walks
+// back one target at a time — same pattern as bulkHP).
+var _batchApplyDepth = 0;
+
 function _applyDelta(id, signedDelta) {
   if (!id || !signedDelta) return;
   const t = _findCombatTarget(id);
@@ -444,22 +481,85 @@ function _applyDelta(id, signedDelta) {
   } else {
     saveCurrentMap();
   }
+  // ── GROUP DAMAGE: in batch mode, defer renders to the caller.
+  if (_batchApplyDepth > 0) return;
   if (typeof renderCharList === 'function') renderCharList();
   if (currentMapId && typeof renderTokensOnMap === 'function') renderTokensOnMap();
   if (typeof renderTokenSidebar === 'function') renderTokenSidebar();
   renderInitiativeBar();
 }
 
-function applyDamageToSelected(amount) {
+// ── GROUP DAMAGE
+// Single-target shorthand: routes to the batch path when 2+ are selected.
+function applyDamageToSelected(amount, halfOnSavePassedIds) {
   const n = Math.abs(parseInt(amount) || 0);
-  if (!n || !_selectedCombatantId) return;
+  if (!n) return;
+  if (_selectedCombatantIds.size > 1) {
+    _applyBatchDelta(-n, halfOnSavePassedIds || null);
+    return;
+  }
+  if (!_selectedCombatantId) return;
   _applyDelta(_selectedCombatantId, -n);
 }
 
 function applyHealToSelected(amount) {
   const n = Math.abs(parseInt(amount) || 0);
-  if (!n || !_selectedCombatantId) return;
+  if (!n) return;
+  if (_selectedCombatantIds.size > 1) {
+    _applyBatchDelta(n, null);
+    return;
+  }
+  if (!_selectedCombatantId) return;
   _applyDelta(_selectedCombatantId, n);
+}
+
+// ── GROUP DAMAGE
+// Iterate the multi-select set, applying signedDelta to each. For damage,
+// passedIds (Set or Array of combatant ids that "saved") get half damage,
+// floor(n/2). Each mutation records its own undo entry; renders defer
+// until the very end. Heals never have a save mechanic.
+function _applyBatchDelta(signedDelta, passedIds) {
+  if (!signedDelta || !_selectedCombatantIds.size) return;
+  const passedSet = passedIds
+    ? (passedIds instanceof Set ? passedIds : new Set(passedIds))
+    : null;
+  const ids = Array.from(_selectedCombatantIds);
+  const isDmg = signedDelta < 0;
+  const fullAmt = Math.abs(signedDelta);
+  let savedCount = 0;
+  let appliedCount = 0;
+
+  _batchApplyDepth++;
+  try {
+    for (const id of ids) {
+      if (!_findCombatTarget(id)) continue;
+      let thisDelta = signedDelta;
+      if (isDmg && passedSet && passedSet.has(id)) {
+        thisDelta = -Math.floor(fullAmt / 2);
+        savedCount++;
+      }
+      if (thisDelta === 0) continue;
+      _applyDelta(id, thisDelta);
+      appliedCount++;
+    }
+  } finally {
+    _batchApplyDepth--;
+  }
+
+  // One render pass for the whole batch.
+  if (typeof renderCharList === 'function') renderCharList();
+  if (currentMapId && typeof renderTokensOnMap === 'function') renderTokensOnMap();
+  if (typeof renderTokenSidebar === 'function') renderTokenSidebar();
+  renderInitiativeBar();
+
+  // Toast summary.
+  if (isDmg) {
+    const summary = 'Damage applied: -' + fullAmt + ' to ' + appliedCount +
+      (savedCount > 0 ? ' (' + savedCount + ' saved)' : '');
+    toast(summary);
+  } else {
+    toast('Heal applied: +' + fullAmt + ' to ' + appliedCount);
+  }
 }
 
 // Re-apply a chip amount (keeps its original sign).
@@ -859,6 +959,9 @@ function renderInitiativeBar() {
     const e = combat.entries[i];
     const isActive = i === combat.turnIndex;
     const isSelected = _selectedCombatantId === e.id;
+    // ── MULTI-SELECT: secondary highlight for additional selected tiles
+    // (in the set, but not the primary).
+    const isSecondarySelected = !isSelected && _selectedCombatantIds.has(e.id);
     const isMon = e.type === 'monster';
 
     let refObj = null;
@@ -871,13 +974,26 @@ function renderInitiativeBar() {
     const hpPctVal = maxHp > 0 ? Math.max(0, Math.min(100, Math.round((curHp / maxHp) * 100))) : 0;
     const hpBarColor = isMon ? '#8a2020' : (refObj && !isMon ? classColor(refObj.class) : '#506050');
 
-    const borderColor = isActive ? '#c8b070' : isSelected ? '#d4b878' : isDead ? '#333' : isMon ? '#8a2020' : 'rgba(90,70,40,.35)';
+    // ── MULTI-SELECT: secondary tiles get a lighter gold border + soft ring.
+    const borderColor = isActive
+      ? '#c8b070'
+      : isSelected
+        ? '#d4b878'
+        : isSecondarySelected
+          ? '#a89060'
+          : isDead ? '#333' : isMon ? '#8a2020' : 'rgba(90,70,40,.35)';
     const glowCss = isActive
       ? 'box-shadow:0 0 0 2px rgba(200,176,112,.6),0 0 12px rgba(200,176,112,.4);'
       : isSelected
         ? 'box-shadow:0 0 0 2px rgba(212,184,120,.45);'
-        : '';
-    const bgColor = isActive ? 'rgba(200,176,112,.08)' : isDead ? 'rgba(0,0,0,.3)' : 'var(--bg-card)';
+        : isSecondarySelected
+          ? 'box-shadow:0 0 0 2px rgba(168,144,96,.35);'
+          : '';
+    const bgColor = isActive
+      ? 'rgba(200,176,112,.08)'
+      : isSecondarySelected
+        ? 'rgba(168,144,96,.06)'
+        : isDead ? 'rgba(0,0,0,.3)' : 'var(--bg-card)';
 
     let portrait = '';
     const avatarStyle = 'width:32px;height:32px;border-radius:50%;border:1.5px solid ' + borderColor + ';';
@@ -939,7 +1055,7 @@ function renderInitiativeBar() {
     const initColor = isActive ? '#c8b070' : '#7a7268';
 
     tilesHtml +=
-      '<div data-combatant-id="' + e.id + '" onclick="selectCombatant(\'' + e.id + '\')" title="' + e.name + ' · init ' + e.initiative + '" ' +
+      '<div data-combatant-id="' + e.id + '" onclick="selectCombatant(\'' + e.id + '\', event.shiftKey ? \'add\' : null)" title="' + e.name + ' · init ' + e.initiative + ' (Shift+click to multi-select)" ' +
       'style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 6px;min-width:88px;max-width:92px;' +
       'border:1.5px solid ' + borderColor + ';border-radius:8px;background:' + bgColor + ';cursor:pointer;transition:transform .1s;' +
       glowCss + (isDead ? 'opacity:.65;' : '') + '">' +
@@ -985,8 +1101,14 @@ function renderInitiativeBar() {
 
 // Thin strip shown directly under the initiative bar when a combatant is selected.
 // Holds HP edit buttons, inline damage input, chips, and expanded death saves.
+// ── MULTI-SELECT: when 2+ combatants are selected, swap the singular HP
+// row for a batch row with a "[N selected]" badge and group dmg/heal buttons.
 function _renderSelectedDetailStrip(m) {
   if (!_selectedCombatantId) return '';
+  // ── GROUP DAMAGE: route to batch strip when multi-select is active.
+  if (_selectedCombatantIds.size > 1) {
+    return _renderBatchDetailStrip(m);
+  }
   const entry = (m.combat.entries || []).find(x => x.id === _selectedCombatantId);
   if (!entry) return '';
   const isMon = entry.type === 'monster';
@@ -1056,6 +1178,221 @@ function _renderSelectedDetailStrip(m) {
   '</div>';
 }
 
+// ── GROUP DAMAGE
+// Batch detail strip: shown when 2+ combatants are multi-selected. Replaces
+// the singular HP/dmg row with "[N selected]" badge and group buttons.
+function _renderBatchDetailStrip(m) {
+  const ids = Array.from(_selectedCombatantIds);
+  const n = ids.length;
+  // Compose a short list of names for the title (truncate if many).
+  const entries = (m.combat.entries || []);
+  const names = ids.map(id => {
+    const e = entries.find(x => x.id === id);
+    return e ? e.name : '?';
+  });
+  const namePreview = names.length <= 3
+    ? names.join(', ')
+    : names.slice(0, 2).join(', ') + ' +' + (names.length - 2) + ' more';
+
+  return '<div style="display:flex;align-items:center;gap:10px;padding:4px 10px;border-top:1px solid rgba(200,176,112,.12);background:rgba(26,22,19,.55);flex-shrink:0;">' +
+    '<span style="display:inline-flex;align-items:center;gap:6px;padding:2px 8px;background:rgba(200,176,112,.16);border:1px solid #c8b070;color:#c8b070;border-radius:10px;font-size:.62rem;font-family:var(--font-display,sans-serif);letter-spacing:.06em;text-transform:uppercase;">' +
+      '<span style="font-weight:600;">' + n + ' selected</span>' +
+    '</span>' +
+    '<span style="font-size:.66rem;color:#b0a898;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + names.join(', ').replace(/"/g, '&quot;') + '">' + namePreview + '</span>' +
+    '<button onclick="promptBatchDamage()" title="Group damage with optional save-for-half" style="font-size:.62rem;padding:2px 10px;background:#362020;border:1px solid #5a2828;color:#e08080;border-radius:6px;cursor:pointer;">Group Dmg…</button>' +
+    '<button onclick="promptBatchHeal()" title="Group heal" style="font-size:.62rem;padding:2px 10px;background:#1f3020;border:1px solid #285028;color:#80c080;border-radius:6px;cursor:pointer;">Group Heal…</button>' +
+    '<div style="flex:1;"></div>' +
+    '<span style="font-size:.5rem;color:#5a5248;letter-spacing:.06em;">Shift+click / Shift+J/K to add · Esc to clear</span>' +
+  '</div>';
+}
+
+// ── GROUP DAMAGE
+// Inline batch-damage prompt with per-target Pass/Fail toggles for save-for-half.
+function promptBatchDamage() {
+  if (_selectedCombatantIds.size < 2) { toast('Select 2+ combatants (Shift+click)'); return; }
+  _removePrompt();
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m?.combat?.active) return;
+  const ids = Array.from(_selectedCombatantIds);
+  const entries = (m.combat.entries || []);
+  const passedSet = new Set(); // ids that "pass" the save when toggled
+
+  const wrap = document.createElement('div');
+  wrap.id = 'combat-inline-prompt';
+  wrap.style.cssText =
+    'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99998;' +
+    'background:#1e1b16;border:1px solid #c04040;border-radius:8px;' +
+    'padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.6);' +
+    'display:flex;flex-direction:column;gap:8px;min-width:320px;max-width:420px;';
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-family:var(--font-display,sans-serif);font-size:.72rem;color:#c04040;letter-spacing:.1em;text-transform:uppercase;';
+  title.textContent = 'Group damage \u2014 ' + ids.length + ' targets';
+  wrap.appendChild(title);
+
+  // Amount + half-on-save row
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '0';
+  input.placeholder = 'Damage';
+  input.style.cssText =
+    'width:90px;font-size:.9rem;padding:6px 8px;background:#14110c;' +
+    'border:1px solid #c04040;border-radius:4px;color:#e2dbd0;';
+  row.appendChild(input);
+
+  const halfWrap = document.createElement('label');
+  halfWrap.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:.65rem;color:#c8b070;cursor:pointer;letter-spacing:.04em;';
+  const halfChk = document.createElement('input');
+  halfChk.type = 'checkbox';
+  halfChk.id = 'batch-half-on-save';
+  halfWrap.appendChild(halfChk);
+  const halfLbl = document.createElement('span');
+  halfLbl.textContent = '\u00BD on save';
+  halfWrap.appendChild(halfLbl);
+  row.appendChild(halfWrap);
+  wrap.appendChild(row);
+
+  // Per-target Pass/Fail rail (revealed when checkbox is on).
+  const targetsBox = document.createElement('div');
+  targetsBox.style.cssText =
+    'display:none;flex-direction:column;gap:3px;max-height:240px;overflow-y:auto;' +
+    'padding:6px 4px;background:#14110c;border:1px solid #2a2620;border-radius:6px;';
+  for (const id of ids) {
+    const e = entries.find(x => x.id === id);
+    if (!e) continue;
+    const tRow = document.createElement('div');
+    tRow.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:.66rem;';
+    tRow.innerHTML =
+      '<span style="flex:1;color:#e2dbd0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + e.name + '</span>' +
+      '<button data-act="pass" data-id="' + id + '" style="font-size:.58rem;padding:2px 8px;background:#14110c;border:1px solid #285028;color:#80c080;border-radius:5px;cursor:pointer;">Pass</button>' +
+      '<button data-act="fail" data-id="' + id + '" style="font-size:.58rem;padding:2px 8px;background:#362020;border:1px solid #5a2828;color:#e08080;border-radius:5px;cursor:pointer;">Fail</button>';
+    targetsBox.appendChild(tRow);
+  }
+  // Default everyone to "fail" (full damage).
+  // Click Pass → toggles into passedSet; click Fail → removes.
+  targetsBox.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-act]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    const act = btn.getAttribute('data-act');
+    if (act === 'pass') passedSet.add(id);
+    else passedSet.delete(id);
+    // Reflect state visually: passing = green ring on Pass btn, fail = red ring on Fail btn.
+    const row2 = btn.parentElement;
+    const passBtn = row2.querySelector('button[data-act="pass"]');
+    const failBtn = row2.querySelector('button[data-act="fail"]');
+    if (passedSet.has(id)) {
+      passBtn.style.background = '#1f3020';
+      passBtn.style.boxShadow = '0 0 0 1px #4a9a40 inset';
+      failBtn.style.background = '#14110c';
+      failBtn.style.boxShadow = 'none';
+    } else {
+      passBtn.style.background = '#14110c';
+      passBtn.style.boxShadow = 'none';
+      failBtn.style.background = '#362020';
+      failBtn.style.boxShadow = '0 0 0 1px #c04040 inset';
+    }
+  });
+  wrap.appendChild(targetsBox);
+
+  halfChk.addEventListener('change', () => {
+    targetsBox.style.display = halfChk.checked ? 'flex' : 'none';
+    if (!halfChk.checked) passedSet.clear();
+  });
+
+  // Apply / cancel
+  const ctrlRow = document.createElement('div');
+  ctrlRow.style.cssText = 'display:flex;gap:6px;align-items:center;';
+  const okBtn = document.createElement('button');
+  okBtn.className = 'btn btn-sm btn-primary';
+  okBtn.textContent = 'Apply';
+  okBtn.style.cssText = 'font-size:.7rem;';
+  ctrlRow.appendChild(okBtn);
+  const hint = document.createElement('div');
+  hint.style.cssText = 'font-size:.55rem;color:#7a7268;flex:1;';
+  hint.textContent = 'Enter to apply  \u2022  Esc to cancel';
+  ctrlRow.appendChild(hint);
+  wrap.appendChild(ctrlRow);
+
+  document.body.appendChild(wrap);
+  _combatPromptOpen = true;
+
+  const commit = () => {
+    const v = parseInt(input.value) || 0;
+    if (v > 0) {
+      const passed = halfChk.checked ? passedSet : null;
+      applyDamageToSelected(v, passed);
+    }
+    _removePrompt();
+  };
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+    else if (ev.key === 'Escape') { ev.preventDefault(); _removePrompt(); }
+    ev.stopPropagation();
+  });
+  okBtn.addEventListener('click', commit);
+  setTimeout(() => input.focus(), 0);
+}
+window.promptBatchDamage = promptBatchDamage;
+
+// ── GROUP DAMAGE
+// Simpler heal prompt — no save mechanic.
+function promptBatchHeal() {
+  if (_selectedCombatantIds.size < 2) { toast('Select 2+ combatants (Shift+click)'); return; }
+  _removePrompt();
+
+  const wrap = document.createElement('div');
+  wrap.id = 'combat-inline-prompt';
+  wrap.style.cssText =
+    'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99998;' +
+    'background:#1e1b16;border:1px solid #4a9a40;border-radius:8px;' +
+    'padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.6);' +
+    'display:flex;flex-direction:column;gap:8px;min-width:240px;';
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-family:var(--font-display,sans-serif);font-size:.72rem;color:#4a9a40;letter-spacing:.1em;text-transform:uppercase;';
+  title.textContent = 'Group heal \u2014 ' + _selectedCombatantIds.size + ' targets';
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;align-items:center;';
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '0';
+  input.placeholder = 'Heal';
+  input.style.cssText =
+    'width:90px;font-size:.9rem;padding:6px 8px;background:#14110c;' +
+    'border:1px solid #4a9a40;border-radius:4px;color:#e2dbd0;';
+  const okBtn = document.createElement('button');
+  okBtn.className = 'btn btn-sm btn-primary';
+  okBtn.textContent = 'Heal';
+  okBtn.style.cssText = 'font-size:.7rem;';
+  const hint = document.createElement('div');
+  hint.style.cssText = 'font-size:.55rem;color:#7a7268;';
+  hint.textContent = 'Enter to apply  \u2022  Esc to cancel';
+  row.appendChild(input);
+  row.appendChild(okBtn);
+  wrap.appendChild(title);
+  wrap.appendChild(row);
+  wrap.appendChild(hint);
+  document.body.appendChild(wrap);
+  _combatPromptOpen = true;
+
+  const commit = () => {
+    const v = parseInt(input.value) || 0;
+    if (v > 0) applyHealToSelected(v);
+    _removePrompt();
+  };
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+    else if (ev.key === 'Escape') { ev.preventDefault(); _removePrompt(); }
+    ev.stopPropagation();
+  });
+  okBtn.addEventListener('click', commit);
+  setTimeout(() => input.focus(), 0);
+}
+window.promptBatchHeal = promptBatchHeal;
+
 // ── HOTKEYS ──────────────────────────────────────────────────
 function _hotkeyHandler(ev) {
   const m = maps.find(x => x.id === currentMapId);
@@ -1100,43 +1437,51 @@ function _hotkeyHandler(ev) {
     return;
   }
 
-  // J — select next combatant
+  // J — select next combatant (Shift+J extends the multi-select set)
   if (key === 'j' || key === 'J') {
     ev.preventDefault();
     if (!entries.length) return;
     let idx = entries.findIndex(x => x.id === _selectedCombatantId);
     idx = idx < 0 ? 0 : (idx + 1) % entries.length;
-    selectCombatant(entries[idx].id);
+    // ── MULTI-SELECT: Shift+J adds the next combatant to the set
+    selectCombatant(entries[idx].id, ev.shiftKey ? 'add' : null);
     return;
   }
 
-  // K — select prev combatant
+  // K — select prev combatant (Shift+K extends the multi-select set)
   if (key === 'k' || key === 'K') {
     ev.preventDefault();
     if (!entries.length) return;
     let idx = entries.findIndex(x => x.id === _selectedCombatantId);
     idx = idx < 0 ? entries.length - 1 : (idx - 1 + entries.length) % entries.length;
-    selectCombatant(entries[idx].id);
+    // ── MULTI-SELECT: Shift+K adds the previous combatant to the set
+    selectCombatant(entries[idx].id, ev.shiftKey ? 'add' : null);
     return;
   }
 
-  // D — damage prompt for selected
+  // D — damage prompt for selected (batch prompt when 2+ selected)
   if (key === 'd' || key === 'D') {
     ev.preventDefault();
-    promptDamageOrHeal('damage');
+    // ── GROUP DAMAGE
+    if (_selectedCombatantIds.size > 1) promptBatchDamage();
+    else promptDamageOrHeal('damage');
     return;
   }
 
-  // H — heal prompt for selected
+  // H — heal prompt for selected (batch prompt when 2+ selected)
   if (key === 'h' || key === 'H') {
     ev.preventDefault();
-    promptDamageOrHeal('heal');
+    // ── GROUP DAMAGE
+    if (_selectedCombatantIds.size > 1) promptBatchHeal();
+    else promptDamageOrHeal('heal');
     return;
   }
 
-  // Escape — clear selection (if no prompt open)
+  // Escape — clear selection (entire multi-select set; if no prompt open)
   if (key === 'Escape') {
-    if (_selectedCombatantId) {
+    // ── MULTI-SELECT: Esc fully clears the set, not just the primary.
+    if (_selectedCombatantId || _selectedCombatantIds.size) {
+      _selectedCombatantIds.clear();
       _selectedCombatantId = null;
       renderInitiativeBar();
       ev.preventDefault();
@@ -1156,6 +1501,8 @@ function _uninstallCombatHotkeys() {
   document.removeEventListener('keydown', _hotkeyHandler);
   _combatHotkeysInstalled = false;
   _selectedCombatantId = null;
+  // ── MULTI-SELECT: clear the set when combat ends.
+  _selectedCombatantIds.clear();
   _removePrompt();
 }
 
