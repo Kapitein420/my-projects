@@ -24,11 +24,13 @@ You do **NOT** need:
 
 ---
 
-## Supabase access (baked-in anon-key, RLS off)
+## Supabase access (anon key, read-only under RLS)
+
+Read the live values from your local `.env` (gitignored) or Vercel env vars — never paste them into docs:
 
 ```
-URL  = https://qavuogmqssjrsaylthdw.supabase.co
-KEY  = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdnVvZ21xc3NqcnNheWx0aGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTQyMzQsImV4cCI6MjA5MTQ5MDIzNH0.jpP1vHqs2nvy0HEOnoglXOboSDNC-Nm1DZjaTWnSBdw
+URL  = $SUPABASE_URL                      # e.g. https://<ref>.supabase.co
+KEY  = $SUPABASE_ANON_KEY                 # browser-safe, read-only under RLS
 ```
 
 Every request needs both headers:

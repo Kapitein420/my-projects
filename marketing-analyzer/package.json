@@ -5,8 +5,8 @@
   "description": "Local CLI that scores Amsterdam Zuidoost office-building landing pages and writes results to Supabase. The dashboard (index.html) reads them.",
   "type": "module",
   "scripts": {
-    "analyze": "node analyze.mjs",
-    "seed": "node analyze.mjs --seed"
+    "analyze": "node --env-file=../.env analyze.mjs",
+    "seed": "node --env-file=../.env analyze.mjs --seed"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0"

@@ -9,7 +9,7 @@ const DB = {
 
   _defaultCreds: {
     url: 'https://qavuogmqssjrsaylthdw.supabase.co',
-    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdnVvZ21xc3NqcnNheWx0aGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTQyMzQsImV4cCI6MjA5MTQ5MDIzNH0.jpP1vHqs2nvy0HEOnoglXOboSDNC-Nm1DZjaTWnSBdw'
+    key: 'sb_publishable_yezIvScYkkhPPCTM-9RaIQ_PwMZbnoo'
   },
 
   init() {
