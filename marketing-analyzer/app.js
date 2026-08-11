@@ -1,28 +1,26 @@
 /* ============================================================
    DILS Marketing Analyzer — dashboard logic
+   SM-style: Nunito Sans + brass + compact tables.
+   Reads via shared/db.js (jsonb pattern).
 
-   Reads from Supabase via shared/db.js (jsonb pattern).
-
-   Tables consumed:
      buildings  — { id, data: { name, url, address, postcode } }
      scores     — { id, data: { buildingId, ruleTotal, aiTotal, composite,
-                                 rule: {...}, dimensions: { name: { score, justification } },
-                                 recommendations: [...], scoredAt: ISO } }
+                                 rule, dimensions: { name: { score, justification } },
+                                 recommendations, scoredAt } }
    ============================================================ */
 
 const DIMENSION_META = {
-  copy_clarity_nl:       { label: 'Dutch copy',          desc: 'Dutch copy is concise, tenant-focused, free of jargon — specific, not generic.' },
-  copy_clarity_en:       { label: 'English copy',        desc: 'English copy meets the same bar. Graceful absence is fine if the NL page is strong.' },
+  copy_clarity_nl:       { label: 'Dutch copy',           desc: 'Dutch copy is concise, tenant-focused, free of jargon — specific, not generic.' },
+  copy_clarity_en:       { label: 'English copy',         desc: 'English copy meets the same bar. Graceful absence is fine if the NL page is strong.' },
   brand_distinctiveness: { label: 'Brand distinctiveness',desc: 'Would a tenant recognise this building from a competitor? Visual identity, naming, voice.' },
-  target_tenant_fit:     { label: 'Target-tenant fit',   desc: 'Does the site speak to the right tenant profile — corporate HQ vs creative studio vs flex?' },
-  amenity_messaging:     { label: 'Amenity messaging',   desc: 'Gym, F&B, bike, EV, transit, parking — clearly surfaced (not buried in a datasheet).' },
-  trust_signals:         { label: 'Trust signals',       desc: 'Tenant logos, awards, certifications (BREEAM, WELL), occupancy stats, named agent contact.' },
-  cta_quality:           { label: 'Call-to-action',      desc: 'Primary CTA is visible, specific, low-friction — "Plan een bezichtiging", not just "Contact".' },
-  structural_clarity:    { label: 'Structure & IA',      desc: 'Information architecture suggests a confident, planned site — sections, hierarchy, navigation.' },
-  // Legacy (older prompt version with vision pass)
-  visual_hierarchy:      { label: 'Visual hierarchy',    desc: 'Where the eye lands first. Scale, contrast, layout priority.' },
-  typography_quality:    { label: 'Typography',          desc: 'Type pairing, hierarchy, line length, NL+EN readability.' },
-  photography_quality:   { label: 'Photography',         desc: 'Hero imagery, interiors, drone. Stock-iness penalised.' },
+  target_tenant_fit:     { label: 'Target-tenant fit',    desc: 'Speaks to the right tenant profile — corporate HQ vs creative studio vs flex.' },
+  amenity_messaging:     { label: 'Amenity messaging',    desc: 'Gym, F&B, bike, EV, transit, parking — surfaced not buried in a datasheet.' },
+  trust_signals:         { label: 'Trust signals',        desc: 'Tenant logos, awards, certifications (BREEAM, WELL), occupancy, named agent contact.' },
+  cta_quality:           { label: 'Call-to-action',       desc: 'Primary CTA visible, specific, low-friction — "Plan een bezichtiging", not just "Contact".' },
+  structural_clarity:    { label: 'Structure & IA',       desc: 'Information architecture suggests a confident, planned site — sections, hierarchy, nav.' },
+  visual_hierarchy:      { label: 'Visual hierarchy',     desc: 'Where the eye lands first. Scale, contrast, layout priority.' },
+  typography_quality:    { label: 'Typography',           desc: 'Type pairing, hierarchy, line length, NL+EN readability.' },
+  photography_quality:   { label: 'Photography',          desc: 'Hero imagery, interiors, drone. Stock-iness penalised.' },
 };
 
 const STATE = {
@@ -31,13 +29,12 @@ const STATE = {
   latestByBuilding: {},
   cohort: null,
   sortBy: 'composite',
-  selectedId: null,          // for the single-building drawer
-  compareSet: new Set(),     // up to 2 building IDs for side-by-side
-  view: 'list',              // 'list' | 'compare'
+  selectedId: null,
+  compareSet: new Set(),
+  view: 'list',
 };
 
 const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 const MAX_COMPARE = 2;
 
 /* ── Boot ────────────────────────────────────────────────── */
@@ -57,7 +54,9 @@ function bindUi() {
   $('#btn-compare').addEventListener('click', enterCompare);
   $('#btn-clear-compare').addEventListener('click', clearCompare);
   $('#btn-back-to-list').addEventListener('click', exitCompare);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDrawer(); if (STATE.view === 'compare') exitCompare(); } });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeDrawer(); if (STATE.view === 'compare') exitCompare(); }
+  });
 }
 
 async function reload() {
@@ -71,17 +70,24 @@ async function reload() {
     STATE.latestByBuilding = computeLatestByBuilding(STATE.scores);
     STATE.cohort = computeCohort(STATE.latestByBuilding);
 
-    // Drop any compareSet IDs that no longer exist.
     STATE.compareSet = new Set([...STATE.compareSet].filter((id) => STATE.buildings.some((b) => b.id === id)));
 
     renderKpis();
     renderCompareBar();
     if (STATE.view === 'compare') renderCompareView();
     else renderRankings();
+    updateFreshness();
   } catch (e) {
     toast('Could not load — did you run schema.sql in Supabase?', true);
     console.error(e);
   }
+}
+
+function updateFreshness() {
+  const el = $('#fresh-ts');
+  if (!el) return;
+  const now = new Date();
+  el.textContent = now.toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function computeLatestByBuilding(scores) {
@@ -94,9 +100,8 @@ function computeLatestByBuilding(scores) {
   return map;
 }
 
-/* ── Cohort averages ─────────────────────────────────────── */
 function computeCohort(latestBy) {
-  const scored = Object.values(latestBy);
+  const scored = Object.values(latestBy).filter((s) => typeof s.composite === 'number');
   const out = { n: scored.length, composite: null, rule: null, ai: null, dimensions: {} };
   if (scored.length === 0) return out;
 
@@ -117,7 +122,7 @@ function computeCohort(latestBy) {
   return out;
 }
 
-/* ── Explainer legend ────────────────────────────────────── */
+/* ── Explainer dimension legend ──────────────────────────── */
 function populateExplainer() {
   const target = $('#dim-legend');
   if (!target) return;
@@ -132,35 +137,45 @@ function populateExplainer() {
   }).join('');
 }
 
-/* ── KPI row ─────────────────────────────────────────────── */
+/* ── KPI tiles ───────────────────────────────────────────── */
 function renderKpis() {
   const tracked = STATE.buildings.length;
-  const analyzed = Object.keys(STATE.latestByBuilding).length;
+  const scored = Object.keys(STATE.latestByBuilding).length;
+  const withUrl = STATE.buildings.filter((b) => (b.url || '').trim()).length;
+  const pending = withUrl - scored;
+
   const composites = Object.values(STATE.latestByBuilding).map((s) => s.composite).filter((n) => typeof n === 'number');
   const avg = composites.length ? composites.reduce((a, b) => a + b, 0) / composites.length : null;
   const top = composites.length ? Math.max(...composites) : null;
   const topRow = top !== null ? Object.values(STATE.latestByBuilding).find((s) => s.composite === top) : null;
   const topBuilding = topRow ? STATE.buildings.find((b) => b.id === topRow.buildingId) : null;
 
+  const noUrlCount = tracked - withUrl;
+
   $('#kpi-tracked').textContent = tracked.toString();
-  $('#kpi-analyzed').textContent = analyzed.toString();
-  $('#kpi-analyzed-sub').textContent = tracked ? `${Math.round((analyzed / tracked) * 100)}% of tracked` : '';
+  $('#kpi-scored').textContent = scored.toString();
+  $('#kpi-scored-sub').textContent = tracked ? `${Math.round((scored / tracked) * 100)}% of tracked` : '';
+  $('#kpi-pending').textContent = Math.max(0, pending).toString();
+  $('#kpi-pending-sub').textContent = noUrlCount > 0 ? `${noUrlCount} more need URL` : (pending > 0 ? 'Will run in next scan' : 'All caught up');
   $('#kpi-avg').textContent = avg !== null ? Math.round(avg) : '—';
+  $('#kpi-avg-sub').textContent = scored > 1 ? `Across ${scored} buildings` : '';
   $('#kpi-top').textContent = top !== null ? Math.round(top) : '—';
   $('#kpi-top-sub').textContent = topBuilding ? topBuilding.name : '';
 }
 
-/* ── Rankings table ──────────────────────────────────────── */
+/* ── Leaderboard ─────────────────────────────────────────── */
 function renderRankings() {
-  $('#rankings-section').hidden = false;
-  $('#compare-view').hidden = true;
+  $('#leaderboard').hidden = false;
+  $('#compare-section').hidden = true;
+  $('#explainer').hidden = false;
 
   const body = $('#rank-body');
 
   if (STATE.buildings.length === 0) {
     body.innerHTML = `
       <div class="empty">
-        <p>No buildings yet. Click <strong>Load sample buildings</strong> to seed Zuidoost anchors,
+        <p class="h">No buildings yet</p>
+        <p>Click <strong>+ Samples</strong> in the topbar to seed Zuidoost anchors,
         or add one via the form below.</p>
       </div>`;
     return;
@@ -171,8 +186,8 @@ function renderRankings() {
     return {
       id: b.id,
       name: b.name,
-      url: b.url,
-      address: b.address,
+      url: b.url || '',
+      address: b.address || '',
       ruleTotal: latest?.ruleTotal ?? null,
       aiTotal: latest?.aiTotal ?? null,
       composite: latest?.composite ?? null,
@@ -186,34 +201,36 @@ function renderRankings() {
   const cohortAvg = STATE.cohort?.composite;
 
   const html = `
-    <table class="rank-table">
+    <table>
       <thead>
-        <tr>
-          <th class="col-select" title="Select up to 2 buildings to compare"></th>
-          <th class="col-rank">#</th>
+        <tr class="header-row">
+          <th class="shrink"></th>
+          <th class="shrink">#</th>
           <th>Building</th>
-          <th class="col-score">Rule</th>
-          <th class="col-score">AI</th>
-          <th class="col-score">Composite</th>
+          <th>Status</th>
+          <th class="right shrink">Rule</th>
+          <th class="right shrink">AI</th>
+          <th class="right shrink">Composite</th>
         </tr>
       </thead>
       <tbody>
         ${rows.map((r, i) => {
           const checked = STATE.compareSet.has(r.id);
           const disabled = !checked && compareFull;
+          const status = statusFor(r);
+          const rank = r.composite !== null ? (i + 1) : '—';
           return `
           <tr data-id="${escAttr(r.id)}">
-            <td class="col-select">
-              <input type="checkbox" class="row-checkbox" data-id="${escAttr(r.id)}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} />
+            <td class="shrink"><input type="checkbox" class="row-checkbox" data-id="${escAttr(r.id)}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} aria-label="Select ${escAttr(r.name)}"></td>
+            <td class="col-rank">${rank}</td>
+            <td>
+              <span class="bldg-name">${escHtml(r.name)}</span>
+              <div class="bldg-meta">${r.address ? escHtml(r.address) + ' · ' : ''}${r.url ? `<a href="${escAttr(r.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escHtml(stripProto(r.url))} ↗</a>` : '<em>no URL</em>'}</div>
             </td>
-            <td class="col-rank">${r.composite !== null ? (i + 1) : '—'}</td>
-            <td class="col-name">
-              ${escHtml(r.name)}
-              <span class="url">${escHtml(r.url || '(no url)')}</span>
-            </td>
-            <td class="col-score">${pill(r.ruleTotal)}</td>
-            <td class="col-score">${pill(r.aiTotal)}</td>
-            <td class="col-score">${pill(r.composite, true)}${deltaBadge(r.composite, cohortAvg)}</td>
+            <td>${status}</td>
+            <td class="right">${pill(r.ruleTotal)}</td>
+            <td class="right">${pill(r.aiTotal)}</td>
+            <td class="right"><span class="comp-cell">${pill(r.composite, true)}${deltaBadge(r.composite, cohortAvg)}</span></td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -221,10 +238,9 @@ function renderRankings() {
 
   body.innerHTML = html;
 
-  // row click → drawer (but clicks on the checkbox cell are handled separately)
   body.querySelectorAll('tbody tr').forEach((tr) => {
     tr.addEventListener('click', (e) => {
-      if (e.target.closest('.col-select')) return;
+      if (e.target.closest('input, a')) return;
       openDrawer(tr.dataset.id);
     });
   });
@@ -232,6 +248,12 @@ function renderRankings() {
     cb.addEventListener('click', (e) => e.stopPropagation());
     cb.addEventListener('change', (e) => onCheckboxChange(e.target));
   });
+}
+
+function statusFor(r) {
+  if (!r.url) return `<span class="status-pill pill-bad"><span class="dot"></span>Needs URL</span>`;
+  if (r.composite === null) return `<span class="status-pill pill-warn"><span class="dot"></span>Pending scan</span>`;
+  return `<span class="status-pill pill-ok"><span class="dot"></span>Scored</span>`;
 }
 
 function sorter(by) {
@@ -252,23 +274,25 @@ function sorter(by) {
 }
 
 function pill(n, big = false) {
-  if (n === null || n === undefined) return `<span class="score-pill s-na">—</span>`;
+  if (n === null || n === undefined) return `<span class="spill s-na">—</span>`;
   const v = Math.round(n);
   let cls = 's-0';
   if (v >= 90) cls = 's-90'; else if (v >= 75) cls = 's-75';
   else if (v >= 60) cls = 's-60'; else if (v >= 40) cls = 's-40';
-  return `<span class="score-pill ${cls}" style="${big ? 'font-size:1.05rem;padding:.3rem .85rem;' : ''}">${v}</span>`;
+  return `<span class="spill ${cls}${big ? ' lg' : ''}">${v}</span>`;
 }
 
-/* ── Cohort delta badge ──────────────────────────────────── */
 function deltaBadge(score, cohortAvg) {
-  if (score == null || cohortAvg == null || STATE.cohort?.n < 2) return '';
+  if (score == null || cohortAvg == null || (STATE.cohort?.n ?? 0) < 2) return '';
   const delta = score - cohortAvg;
   const rounded = Math.round(delta * 10) / 10;
-  if (Math.abs(rounded) < 0.05) return ` <span class="delta neutral" title="On par with the Zuidoost average">avg</span>`;
-  const sign = delta > 0 ? '+' : '−';
+  if (Math.abs(rounded) < 0.05) return `<span class="delta neutral" title="On par with the Zuidoost average">avg</span>`;
   const cls = delta > 0 ? 'up' : 'down';
-  return ` <span class="delta ${cls}" title="Delta vs Zuidoost cohort average (${STATE.cohort.n} scored buildings)">${sign}${Math.abs(rounded).toFixed(1)}</span>`;
+  return `<span class="delta ${cls}" title="vs Zuidoost cohort average (${STATE.cohort.n} scored)">${Math.abs(rounded).toFixed(1)}</span>`;
+}
+
+function stripProto(url) {
+  return url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 }
 
 /* ── Compare bar + mode ──────────────────────────────────── */
@@ -281,7 +305,7 @@ function onCheckboxChange(cb) {
     STATE.compareSet.delete(id);
   }
   renderCompareBar();
-  renderRankings(); // re-render to update disabled state
+  renderRankings();
 }
 
 function renderCompareBar() {
@@ -291,11 +315,10 @@ function renderCompareBar() {
   $('#compare-count').textContent = `${count} selected`;
   $('#btn-compare').disabled = count !== 2;
 
-  const pills = [...STATE.compareSet].map((id) => {
+  $('#compare-pills').innerHTML = [...STATE.compareSet].map((id) => {
     const b = STATE.buildings.find((x) => x.id === id);
-    return `<span class="pill-chip">${escHtml(b?.name ?? id)}</span>`;
+    return `<span class="chip">${escHtml(b?.name ?? id)}</span>`;
   }).join('');
-  $('#compare-pills').innerHTML = pills;
 }
 
 function clearCompare() {
@@ -316,8 +339,9 @@ function exitCompare() {
 }
 
 function renderCompareView() {
-  $('#rankings-section').hidden = true;
-  $('#compare-view').hidden = false;
+  $('#leaderboard').hidden = true;
+  $('#compare-section').hidden = false;
+  $('#explainer').hidden = true;
 
   const ids = [...STATE.compareSet];
   const [a, b] = ids.map((id) => STATE.buildings.find((x) => x.id === id)).filter(Boolean);
@@ -327,33 +351,33 @@ function renderCompareView() {
 
   $('#compare-title').textContent = `${a.name} vs ${b.name}`;
 
-  // Merge all dimension keys both buildings have
   const dimKeys = new Set([
     ...Object.keys(sa?.dimensions ?? {}),
     ...Object.keys(sb?.dimensions ?? {}),
   ]);
 
   const tierRows = [
-    ['Composite', sa?.composite, sb?.composite, 100],
-    ['Rule score', sa?.ruleTotal, sb?.ruleTotal, 100],
-    ['AI score', sa?.aiTotal, sb?.aiTotal, 100],
+    ['Composite', sa?.composite, sb?.composite, 100, true],
+    ['Rule score', sa?.ruleTotal, sb?.ruleTotal, 100, true],
+    ['AI score', sa?.aiTotal, sb?.aiTotal, 100, true],
   ];
-
-  const dimRows = [...dimKeys].map((k) => {
-    const va = getDimScore(sa, k);
-    const vb = getDimScore(sb, k);
-    return [k, va, vb, 10];
-  });
+  const dimRows = [...dimKeys].map((k) => [k, getDimScore(sa, k), getDimScore(sb, k), 10, false]);
 
   const html = `
     <div class="cv-heads">
       <div>Dimension</div>
-      <div class="b-name">${escHtml(a.name)}<span class="u">${escHtml(a.url || '')}</span></div>
-      <div class="b-name">${escHtml(b.name)}<span class="u">${escHtml(b.url || '')}</span></div>
+      <div class="b-name">${escHtml(a.name)}<span class="u">${a.url ? escHtml(stripProto(a.url)) : ''}</span></div>
+      <div class="b-name">${escHtml(b.name)}<span class="u">${b.url ? escHtml(stripProto(b.url)) : ''}</span></div>
     </div>
 
-    ${tierRows.map(([label, va, vb, max]) => compareRow(label, va, vb, max, true)).join('')}
-    ${dimRows.length ? '<div class="cv-row tier-top" style="background:transparent"><div class="cv-dim" style="font-family:var(--font-display);letter-spacing:.12em;text-transform:uppercase;color:var(--text3);font-size:.75rem">— AI dimensions —</div><div></div><div></div></div>' : ''}
+    ${tierRows.map(([label, va, vb, max, isTier]) => compareRow(label, va, vb, max, isTier)).join('')}
+
+    ${dimRows.length ? `
+      <div class="cv-row" style="background:var(--bg4)">
+        <div class="cv-dim" style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--brass);font-weight:700">— AI dimensions —</div>
+        <div></div><div></div>
+      </div>
+    ` : ''}
     ${dimRows.map(([k, va, vb, max]) => {
       const meta = DIMENSION_META[k];
       const label = meta?.label ?? k.replace(/_/g, ' ');
@@ -361,14 +385,13 @@ function renderCompareView() {
       return compareRow(label, va, vb, max, false, title);
     }).join('')}
 
-    ${(sa || sb) ? `
-      <div style="padding:1.25rem 1.5rem;background:var(--bg-light2);border-top:1px solid var(--border-light)">
-        <div class="section-title" style="margin-top:0">Recommendations</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-          <div>${renderRecs(sa?.recommendations)}</div>
-          <div>${renderRecs(sb?.recommendations)}</div>
-        </div>
-      </div>` : ''}
+    ${(sa?.recommendations || sb?.recommendations) ? `
+      <div class="cv-recs-row">
+        <div>Recommendations</div>
+        <div>${renderRecs(sa?.recommendations)}</div>
+        <div>${renderRecs(sb?.recommendations)}</div>
+      </div>
+    ` : ''}
   `;
 
   $('#compare-body').innerHTML = html;
@@ -402,18 +425,18 @@ function getDimScore(scoreRow, key) {
 }
 
 function barColour(ratio) {
-  if (ratio >= 0.8) return '#5a8a3a';
-  if (ratio >= 0.6) return '#a08a30';
-  if (ratio >= 0.4) return '#c87838';
-  return '#a83a30';
+  if (ratio >= 0.8) return 'var(--ok)';
+  if (ratio >= 0.6) return 'var(--brass)';
+  if (ratio >= 0.4) return 'var(--warn)';
+  return 'var(--bad)';
 }
 
 function renderRecs(recs) {
-  if (!recs || !recs.length) return `<div style="color:var(--text3);font-size:.85rem">No recommendations yet.</div>`;
-  return `<ol style="padding-left:1.1rem;margin:0">${recs.map((r) => `<li style="margin-bottom:.35rem;font-size:.85rem;color:var(--text2);line-height:1.45">${escHtml(r)}</li>`).join('')}</ol>`;
+  if (!recs || !recs.length) return `<div style="color:var(--ink-mute);font-size:12px;font-style:italic">None yet — building hasn't been scored.</div>`;
+  return `<ol style="padding-left:18px;margin:0">${recs.map((r) => `<li style="margin-bottom:6px;font-size:12px;color:var(--ink-dim);line-height:1.5">${escHtml(r)}</li>`).join('')}</ol>`;
 }
 
-/* ── Drawer (single-building detail) ─────────────────────── */
+/* ── Drawer ──────────────────────────────────────────────── */
 function openDrawer(buildingId) {
   STATE.selectedId = buildingId;
   const b = STATE.buildings.find((x) => x.id === buildingId);
@@ -423,18 +446,19 @@ function openDrawer(buildingId) {
   $('#d-name').textContent = b.name;
   $('#d-meta').innerHTML = [
     b.address ? escHtml(b.address) : null,
-    b.url ? `<a href="${escAttr(b.url)}" target="_blank" rel="noopener">${escHtml(b.url)} ↗</a>` : null,
-    s?.scoredAt ? `<span class="scored-at">analyzed ${formatDate(s.scoredAt)}</span>` : null,
+    b.url ? `<a href="${escAttr(b.url)}" target="_blank" rel="noopener">${escHtml(stripProto(b.url))} ↗</a>` : '<em>no URL set</em>',
+    s?.scoredAt ? `analyzed ${formatDate(s.scoredAt)}` : 'not yet analyzed',
   ].filter(Boolean).join(' · ');
 
   const body = $('#d-body');
   if (!s) {
     body.innerHTML = `
       <div class="empty">
-        <p>This building has not been analyzed yet.</p>
-        <p>The daily scheduled scan runs at 06:00 Amsterdam. To trigger manually, run the
-        <code>zuidoost-marketing-scan</code> agent from the
-        <a href="https://claude.ai/code/scheduled" target="_blank" rel="noopener">Claude Code scheduled page</a>.</p>
+        <p class="h">Not yet scored</p>
+        <p>The daily scheduled scan runs at 06:00 Amsterdam.</p>
+        <p>Trigger immediately from the
+          <a href="https://claude.ai/code/scheduled" target="_blank" rel="noopener">scheduled-agents page</a>
+          (look for <code>zuidoost-marketing-scan</code>).</p>
       </div>`;
   } else {
     const cohortComposite = STATE.cohort?.composite;
@@ -445,36 +469,33 @@ function openDrawer(buildingId) {
         <div class="b">
           <div class="b-label">Rule</div>
           <div class="b-value">${Math.round(s.ruleTotal ?? 0)}</div>
-          <div style="margin-top:.2rem">${deltaBadge(s.ruleTotal, cohortRule)}</div>
+          ${deltaBadge(s.ruleTotal, cohortRule)}
         </div>
         <div class="b">
           <div class="b-label">AI</div>
           <div class="b-value">${Math.round(s.aiTotal ?? 0)}</div>
-          <div style="margin-top:.2rem">${deltaBadge(s.aiTotal, cohortAi)}</div>
+          ${deltaBadge(s.aiTotal, cohortAi)}
         </div>
         <div class="b composite">
           <div class="b-label">Composite</div>
           <div class="b-value">${Math.round(s.composite ?? 0)}</div>
-          <div style="margin-top:.2rem">${deltaBadge(s.composite, cohortComposite)}</div>
+          ${deltaBadge(s.composite, cohortComposite)}
         </div>
       </div>
 
       <div class="section-title">AI breakdown</div>
-      <div class="dim-list">
-        ${renderDimensions(s.dimensions || {})}
-      </div>
+      <div class="dim-list">${renderDimensions(s.dimensions || {})}</div>
 
       ${s.recommendations && s.recommendations.length ? `
         <div class="section-title">Top recommendations</div>
-        <div class="recs">
-          <ol>${s.recommendations.map((r) => `<li>${escHtml(r)}</li>`).join('')}</ol>
-        </div>` : ''}
+        <div class="recs"><ol>${s.recommendations.map((r) => `<li>${escHtml(r)}</li>`).join('')}</ol></div>
+      ` : ''}
 
       <div class="section-title">How to read this</div>
-      <p style="font-size:.85rem;color:var(--text3);font-family:var(--font-body);line-height:1.5">
-        Composite = 0.4 × rule + 0.6 × AI. Each dimension is scored 0–10 (5 = market average, 8+ rare).
+      <p style="font-size:12px;color:var(--ink-mute);line-height:1.6">
+        Composite = 0.4 × rule + 0.6 × AI. Each dimension scored 0–10 (5 = market average, 8+ rare).
         Deltas compare against the Zuidoost cohort of ${STATE.cohort?.n ?? 0} scored building${STATE.cohort?.n === 1 ? '' : 's'}.
-        Re-runs daily at 06:00 Amsterdam; tune the rubric by editing
+        Re-runs daily 06:00 Amsterdam; tune the rubric in
         <code>marketing-analyzer/agent-rubric.md</code>.
       </p>`;
   }
@@ -486,7 +507,7 @@ function openDrawer(buildingId) {
 
 function renderDimensions(dims) {
   const entries = Object.entries(dims);
-  if (entries.length === 0) return `<div class="empty">No AI dimensions stored.</div>`;
+  if (entries.length === 0) return `<div style="color:var(--ink-mute);font-size:12px">No AI dimensions stored.</div>`;
   const cohortDims = STATE.cohort?.dimensions ?? {};
   return entries.map(([name, info]) => {
     const score = typeof info === 'number' ? info : (info?.score ?? 0);
@@ -497,13 +518,12 @@ function renderDimensions(dims) {
     const label = meta?.label ?? name.replace(/_/g, ' ');
     const tooltip = meta?.desc ?? '';
     const cohortAvg = cohortDims[name];
-    const delta = deltaBadge(score, cohortAvg);
     return `
       <div class="dim">
         <div class="dim-name" title="${escAttr(tooltip)}">${escHtml(label)}</div>
-        <div class="dim-score">${score}/10 ${delta}</div>
+        <div class="dim-score">${score}<span style="color:var(--ink-mute);font-weight:400">/10</span></div>
         <div class="dim-bar"><div class="dim-bar-fill" style="width:${pct}%;background:${colour}"></div></div>
-        ${just ? `<div class="dim-justification">${escHtml(just)}</div>` : ''}
+        ${just || cohortAvg !== undefined ? `<div class="dim-meta">${just ? `<span style="font-size:11px;color:var(--ink-mute);font-style:italic">${escHtml(just)}</span>` : ''}${cohortAvg !== undefined ? deltaBadge(score, cohortAvg) : ''}</div>` : ''}
       </div>`;
   }).join('');
 }
@@ -522,12 +542,11 @@ async function onAddBuilding(e) {
   const name = (fd.get('name') || '').toString().trim();
   const url = (fd.get('url') || '').toString().trim();
   const address = (fd.get('address') || '').toString().trim();
-  if (!name || !url) { toast('Name and URL required', true); return; }
+  if (!name) { toast('Name required', true); return; }
 
   const record = {
     id: slugify(name),
-    name, url, address,
-    postcode: '',
+    name, url, address, postcode: '',
     addedAt: new Date().toISOString(),
   };
 
@@ -550,8 +569,10 @@ async function loadSamples() {
   for (const s of window.ZUIDOOST_SEEDS) {
     const id = slugify(s.name);
     if (existing.has(id)) continue;
-    const record = { id, name: s.name, url: s.url, address: s.address, postcode: s.postcode, addedAt: new Date().toISOString() };
-    try { await DB.save('buildings', record); added++; } catch (err) { console.error(err); }
+    try {
+      await DB.save('buildings', { id, name: s.name, url: s.url, address: s.address, postcode: s.postcode, addedAt: new Date().toISOString() });
+      added++;
+    } catch (err) { console.error(err); }
   }
   toast(added > 0 ? `Added ${added} sample building${added === 1 ? '' : 's'}` : 'All samples already loaded');
   await reload();
@@ -581,5 +602,4 @@ function toast(msg, isError = false) {
   _toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
 }
 
-/* go */
 boot();
